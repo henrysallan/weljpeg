@@ -1,0 +1,157 @@
+/* ============================================================
+   Welcome Labs — Global Styles & Design Tokens
+   ============================================================ */
+
+:root {
+  /* Colours */
+  --color-bg: #F9F9F9;
+  --color-text: #1A1C21;
+  --color-black: #000000;
+  --color-icon-line: #33363F;
+  --color-tag-border: #808080;
+  --color-tag-bg: #FFFFFF;
+  --color-placeholder-image: #C8C8C8;
+
+  /* Typography */
+  --font-family: 'Manrope', sans-serif;
+  --font-weight: 200;
+
+  /* Spacing */
+  --page-padding: 10px;
+  --content-width: calc(100vw - 2 * var(--page-padding));
+  --grid-columns: 8;
+  --grid-gutter: 10px;
+
+  /* Lines */
+  --separator-weight: 0.5px;
+  --separator-color: var(--color-black);
+
+  /* Dimensions (desktop reference) */
+  --logo-bar-expanded: 316px;
+  --logo-bar-collapsed: 41px;
+  --header-expanded: 74px;
+  --header-collapsed: 34.5px;
+  --header-title-expanded: 83px;
+  --header-title-collapsed: 35.6px;
+
+  /* Z-indices */
+  --z-mail-icon: 100;
+  --z-logo-bar: 90;
+  --z-header-stack-1: 80;
+  --z-header-stack-2: 70;
+  --z-header-expanded: 60;
+  --z-content: 1;
+}
+
+/* ============================================================
+   Reset & Base
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-family);
+  font-weight: var(--font-weight);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  line-height: 1.4;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* ============================================================
+   Separator Line Component
+   ============================================================ */
+
+.separator {
+  width: calc(100% - 2 * var(--page-padding));
+  margin: 0 auto;
+  height: 1px;
+  background: var(--separator-color);
+  border: none;
+  transform: scaleY(0.5);
+  transform-origin: top;
+}
+
+/* ============================================================
+   Content Container
+   ============================================================ */
+
+.content-container {
+  width: 100%;
+  max-width: 1728px;
+  margin: 0 auto;
+  padding: 0 var(--page-padding);
+}
+
+#main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ============================================================
+   Utility: visually hidden
+   ============================================================ */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================
+   Responsive Padding
+   ============================================================ */
+
+@media (max-width: 639px) {
+  :root {
+    --page-padding: 16px;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 767px) {
+  :root {
+    --page-padding: 20px;
+  }
+}

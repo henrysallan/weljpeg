@@ -1,0 +1,15 @@
+/* Logo bar -- 41px tall, in normal flow. Becomes sticky at
+   the viewport top when scrolled there. Stays stuck for the
+   rest of the page since its parent (#main-content) spans
+   all sections. */
+.logoBar {
+  width: 100%;
+  height: var(--logo-bar-collapsed);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-logo-bar);
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--page-padding);
+}

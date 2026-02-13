@@ -1,0 +1,23 @@
+.tagPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 189px;
+  height: 34.5px;
+  background: var(--color-tag-bg);
+  border: 1px solid var(--color-tag-border);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--color-text);
+  white-space: nowrap;
+  cursor: default;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .tagPill {
+    width: 140px;
+    height: 28px;
+    font-size: 12px;
+  }
+}

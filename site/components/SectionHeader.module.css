@@ -1,0 +1,82 @@
+.headerBlock {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--color-bg);
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--page-padding);
+  background: var(--color-bg);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  max-width: 1728px;
+  margin: 0 auto;
+}
+
+/* Expanded state (default) */
+.headerExpanded {
+  height: var(--header-expanded);
+  z-index: var(--z-header-expanded);
+}
+
+/* Title */
+.title {
+  font-size: clamp(40px, 5vw, 83px);
+  font-weight: var(--font-weight);
+  font-variant: small-caps;
+  line-height: 1;
+  white-space: nowrap;
+  transform-origin: left center;
+  will-change: transform;
+  margin: 0;
+}
+
+/* Tags container — stacked vertically when expanded, row when collapsed */
+.tags {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+/* ---- Collapsed state (applied by scroll system) ---- */
+
+.headerCollapsed {
+  height: var(--header-collapsed);
+  z-index: var(--z-header-stack-1);
+  cursor: pointer;
+}
+
+.headerCollapsed .title {
+  font-size: var(--header-title-collapsed);
+}
+
+.headerCollapsed .tags {
+  flex-direction: row;
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 639px) {
+  .headerExpanded {
+    height: 50px;
+  }
+
+  .tags {
+    display: none;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .headerExpanded {
+    height: 60px;
+  }
+}
