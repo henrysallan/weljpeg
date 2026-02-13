@@ -1,0 +1,1941 @@
+{
+  "$comment": "This is structural design data exported by the Figma Raw plugin. It is formatted to help LLMs (Large Language Models) understand design structures and components from Figma designs.",
+  "name": "Full page flow: Initial Scroll State",
+  "type": "FRAME",
+  "width": 1728,
+  "height": 4887,
+  "layoutMode": "NONE",
+  "primaryAxisSizingMode": "FIXED",
+  "counterAxisSizingMode": "FIXED",
+  "primaryAxisAlignItems": "MIN",
+  "counterAxisAlignItems": "MIN",
+  "fills": [
+    {
+      "type": "SOLID",
+      "opacity": 1,
+      "color": {
+        "r": 0.9759615659713745,
+        "g": 0.9759615659713745,
+        "b": 0.9759615659713745,
+        "a": 1,
+        "hex": "#f9f9f9"
+      }
+    }
+  ],
+  "strokeWeight": 1,
+  "strokeAlign": "INSIDE",
+  "strokeCap": "NONE",
+  "strokeJoin": "MITER",
+  "children": [
+    {
+      "name": "Subtract",
+      "type": "BOOLEAN_OPERATION",
+      "width": 0,
+      "height": 0,
+      "fills": [
+        {
+          "type": "SOLID",
+          "opacity": 1,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1,
+            "hex": "#000000"
+          }
+        }
+      ],
+      "strokeWeight": 0,
+      "strokeAlign": "INSIDE",
+      "strokeCap": "NONE",
+      "strokeJoin": "MITER"
+    },
+    {
+      "name": "Frame 13",
+      "type": "FRAME",
+      "width": 1728,
+      "height": 4172,
+      "layoutMode": "VERTICAL",
+      "primaryAxisSizingMode": "FIXED",
+      "counterAxisSizingMode": "AUTO",
+      "primaryAxisAlignItems": "MIN",
+      "counterAxisAlignItems": "CENTER",
+      "paddingLeft": 10,
+      "paddingRight": 10,
+      "paddingTop": 10,
+      "paddingBottom": 10,
+      "itemSpacing": 10,
+      "strokeWeight": 1,
+      "strokeAlign": "INSIDE",
+      "strokeCap": "NONE",
+      "strokeJoin": "MITER",
+      "children": [
+        {
+          "name": "Frame 12",
+          "type": "FRAME",
+          "width": 1708,
+          "height": 325.65570068359375,
+          "layoutMode": "HORIZONTAL",
+          "primaryAxisSizingMode": "FIXED",
+          "counterAxisSizingMode": "AUTO",
+          "primaryAxisAlignItems": "SPACE_BETWEEN",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 1212,
+          "fills": [
+            {
+              "type": "SOLID",
+              "opacity": 1,
+              "color": {
+                "r": 0.9759615659713745,
+                "g": 0.9759615659713745,
+                "b": 0.9759615659713745,
+                "a": 1,
+                "hex": "#f9f9f9"
+              }
+            }
+          ],
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "Frame 9",
+              "type": "FRAME",
+              "width": 369.3203125,
+              "height": 325.65570068359375,
+              "layoutMode": "VERTICAL",
+              "primaryAxisSizingMode": "AUTO",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "paddingLeft": 10,
+              "paddingRight": 10,
+              "paddingTop": 10,
+              "paddingBottom": 10,
+              "itemSpacing": 10,
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "Frame 6",
+                  "type": "FRAME",
+                  "width": 349.3203125,
+                  "height": 305.65570068359375,
+                  "layoutMode": "VERTICAL",
+                  "primaryAxisSizingMode": "AUTO",
+                  "counterAxisSizingMode": "FIXED",
+                  "primaryAxisAlignItems": "CENTER",
+                  "counterAxisAlignItems": "MIN",
+                  "itemSpacing": 385.7078552246094,
+                  "strokeWeight": 7.2775068283081055,
+                  "strokeAlign": "INSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "children": [
+                    {
+                      "name": "Frame 4",
+                      "type": "FRAME",
+                      "width": 349.3203125,
+                      "height": 305.65570068359375,
+                      "layoutMode": "HORIZONTAL",
+                      "primaryAxisSizingMode": "FIXED",
+                      "counterAxisSizingMode": "AUTO",
+                      "primaryAxisAlignItems": "MIN",
+                      "counterAxisAlignItems": "MIN",
+                      "itemSpacing": 392.9853820800781,
+                      "strokeWeight": 7.2775068283081055,
+                      "strokeAlign": "INSIDE",
+                      "strokeCap": "NONE",
+                      "strokeJoin": "MITER"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Frame 54",
+              "type": "FRAME",
+              "width": 52,
+              "height": 41,
+              "layoutMode": "VERTICAL",
+              "primaryAxisSizingMode": "FIXED",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "CENTER",
+              "counterAxisAlignItems": "CENTER",
+              "paddingLeft": 11,
+              "paddingRight": 11,
+              "paddingTop": 8,
+              "paddingBottom": 8,
+              "itemSpacing": 10,
+              "fills": [
+                {
+                  "type": "SOLID",
+                  "opacity": 1,
+                  "color": {
+                    "r": 0.9759615659713745,
+                    "g": 0.9759615659713745,
+                    "b": 0.9759615659713745,
+                    "a": 1,
+                    "hex": "#f9f9f9"
+                  }
+                }
+              ],
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "Group 231",
+                  "type": "GROUP",
+                  "width": 40,
+                  "height": 29,
+                  "children": [
+                    {
+                      "name": "Rectangle 1",
+                      "type": "RECTANGLE",
+                      "width": 40,
+                      "height": 29,
+                      "cornerRadius": 2,
+                      "strokes": [
+                        {
+                          "type": "SOLID",
+                          "opacity": 1,
+                          "color": {
+                            "r": 0.20000000298023224,
+                            "g": 0.21176470816135406,
+                            "b": 0.24705882370471954,
+                            "a": 1,
+                            "hex": "#33363f"
+                          }
+                        }
+                      ],
+                      "strokeStyle": {
+                        "name": "Library Style c46082f0",
+                        "fullName": "[Library] Style c46082f0",
+                        "estimated": true
+                      },
+                      "strokeWeight": 1,
+                      "strokeAlign": "CENTER",
+                      "strokeCap": "NONE",
+                      "strokeJoin": "MITER"
+                    },
+                    {
+                      "name": "Vector 3",
+                      "type": "VECTOR",
+                      "width": 40,
+                      "height": 10,
+                      "cornerRadius": 2,
+                      "strokes": [
+                        {
+                          "type": "SOLID",
+                          "opacity": 1,
+                          "color": {
+                            "r": 0.20000000298023224,
+                            "g": 0.21176470816135406,
+                            "b": 0.24705882370471954,
+                            "a": 1,
+                            "hex": "#33363f"
+                          }
+                        }
+                      ],
+                      "strokeStyle": {
+                        "name": "Library Style c46082f0",
+                        "fullName": "[Library] Style c46082f0",
+                        "estimated": true
+                      },
+                      "strokeWeight": 1,
+                      "strokeAlign": "INSIDE",
+                      "strokeCap": "NONE",
+                      "strokeJoin": "MITER"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Line 3",
+          "type": "LINE",
+          "width": 1708,
+          "height": 0,
+          "strokes": [
+            {
+              "type": "SOLID",
+              "opacity": 1,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 1,
+                "hex": "#000000"
+              }
+            }
+          ],
+          "strokeWeight": 0.5,
+          "strokeAlign": "CENTER",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER"
+        },
+        {
+          "name": "CaseStudyHeader_01",
+          "type": "FRAME",
+          "width": 1708,
+          "height": 74,
+          "layoutMode": "HORIZONTAL",
+          "primaryAxisSizingMode": "FIXED",
+          "counterAxisSizingMode": "FIXED",
+          "primaryAxisAlignItems": "MIN",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 41,
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "Redbull",
+              "type": "TEXT",
+              "width": 1478,
+              "height": 67,
+              "fills": [
+                {
+                  "type": "SOLID",
+                  "opacity": 1,
+                  "color": {
+                    "r": 0.10140000283718109,
+                    "g": 0.1109333336353302,
+                    "b": 0.12999999523162842,
+                    "a": 1,
+                    "hex": "#1a1c21"
+                  }
+                }
+              ],
+              "fillStyle": {
+                "name": "Library Style 1537cc99",
+                "fullName": "[Library] Style 1537cc99",
+                "estimated": true
+              },
+              "strokeWeight": 4.616415977478027,
+              "strokeAlign": "OUTSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "characters": "Redbull",
+              "fontSize": 83,
+              "fontName": {
+                "family": "Manrope",
+                "style": "ExtraLight"
+              },
+              "fontWeight": 200,
+              "letterSpacing": {
+                "unit": "PERCENT",
+                "value": 0
+              },
+              "lineHeight": {
+                "unit": "PIXELS",
+                "value": 110.79398345947266
+              },
+              "textAlignHorizontal": "LEFT",
+              "textAlignVertical": "CENTER",
+              "textAutoResize": "NONE",
+              "textCase": "SMALL_CAPS_FORCED",
+              "textDecoration": "NONE"
+            },
+            {
+              "name": "Frame 26",
+              "type": "FRAME",
+              "width": 189,
+              "height": 74,
+              "layoutMode": "VERTICAL",
+              "primaryAxisSizingMode": "AUTO",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "itemSpacing": 5,
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "Tag1",
+                  "type": "INSTANCE",
+                  "width": 189,
+                  "height": 34.5,
+                  "layoutMode": "HORIZONTAL",
+                  "primaryAxisSizingMode": "FIXED",
+                  "counterAxisSizingMode": "FIXED",
+                  "primaryAxisAlignItems": "CENTER",
+                  "counterAxisAlignItems": "CENTER",
+                  "paddingLeft": 62,
+                  "paddingRight": 62,
+                  "itemSpacing": 11,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 1,
+                        "g": 1,
+                        "b": 1,
+                        "a": 1,
+                        "hex": "#ffffff"
+                      }
+                    }
+                  ],
+                  "strokes": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0.5,
+                        "g": 0.5,
+                        "b": 0.5,
+                        "a": 1,
+                        "hex": "#808080"
+                      }
+                    }
+                  ],
+                  "strokeWeight": 1,
+                  "strokeAlign": "INSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "mainComponent": {
+                    "name": "Tag1"
+                  }
+                },
+                {
+                  "name": "Tag1",
+                  "type": "INSTANCE",
+                  "width": 189,
+                  "height": 34.5,
+                  "layoutMode": "HORIZONTAL",
+                  "primaryAxisSizingMode": "FIXED",
+                  "counterAxisSizingMode": "FIXED",
+                  "primaryAxisAlignItems": "CENTER",
+                  "counterAxisAlignItems": "CENTER",
+                  "paddingLeft": 62,
+                  "paddingRight": 62,
+                  "itemSpacing": 11,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 1,
+                        "g": 1,
+                        "b": 1,
+                        "a": 1,
+                        "hex": "#ffffff"
+                      }
+                    }
+                  ],
+                  "strokes": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0.5,
+                        "g": 0.5,
+                        "b": 0.5,
+                        "a": 1,
+                        "hex": "#808080"
+                      }
+                    }
+                  ],
+                  "strokeWeight": 1,
+                  "strokeAlign": "INSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "mainComponent": {
+                    "name": "Tag1"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Line 4",
+          "type": "LINE",
+          "width": 1708,
+          "height": 0,
+          "strokes": [
+            {
+              "type": "SOLID",
+              "opacity": 1,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 1,
+                "hex": "#000000"
+              }
+            }
+          ],
+          "strokeWeight": 0.5,
+          "strokeAlign": "CENTER",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER"
+        },
+        {
+          "name": "Case Study  1 Section 1 ",
+          "type": "FRAME",
+          "width": 1708,
+          "height": 470.59521484375,
+          "layoutMode": "HORIZONTAL",
+          "primaryAxisSizingMode": "FIXED",
+          "counterAxisSizingMode": "AUTO",
+          "primaryAxisAlignItems": "MIN",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 41,
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "Frame 12",
+              "type": "FRAME",
+              "width": 997,
+              "height": 408,
+              "layoutMode": "VERTICAL",
+              "primaryAxisSizingMode": "FIXED",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "itemSpacing": 131,
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+                  "type": "TEXT",
+                  "width": 395,
+                  "height": 96,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0.10140000283718109,
+                        "g": 0.1109333336353302,
+                        "b": 0.12999999523162842,
+                        "a": 1,
+                        "hex": "#1a1c21"
+                      }
+                    }
+                  ],
+                  "fillStyle": {
+                    "name": "Library Style 1537cc99",
+                    "fullName": "[Library] Style 1537cc99",
+                    "estimated": true
+                  },
+                  "strokeWeight": 1,
+                  "strokeAlign": "OUTSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "characters": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+                  "fontSize": 15,
+                  "fontName": {
+                    "family": "Manrope",
+                    "style": "ExtraLight"
+                  },
+                  "fontWeight": 200,
+                  "letterSpacing": {
+                    "unit": "PERCENT",
+                    "value": 0
+                  },
+                  "lineHeight": {
+                    "unit": "PIXELS",
+                    "value": 17
+                  },
+                  "textAlignHorizontal": "LEFT",
+                  "textAlignVertical": "BOTTOM",
+                  "textAutoResize": "HEIGHT",
+                  "textCase": "ORIGINAL",
+                  "textDecoration": "NONE"
+                }
+              ]
+            },
+            {
+              "name": "Rectangle 34",
+              "type": "RECTANGLE",
+              "width": 670,
+              "height": 470.59521484375,
+              "fills": [
+                {
+                  "type": "IMAGE",
+                  "opacity": 1,
+                  "imageHash": "4b52a0cb7b7a65820437a8f5fd591503cd6b740d",
+                  "scaleMode": "FILL",
+                  "imageTransform": [
+                    [
+                      1,
+                      0,
+                      0
+                    ],
+                    [
+                      0,
+                      0.6364508867263794,
+                      0.1817745715379715
+                    ]
+                  ]
+                }
+              ],
+              "strokeWeight": 0.9005376696586609,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER"
+            }
+          ]
+        },
+        {
+          "name": "Case Study  1 Section 2",
+          "type": "FRAME",
+          "width": 1708,
+          "height": 905,
+          "layoutMode": "HORIZONTAL",
+          "primaryAxisSizingMode": "FIXED",
+          "counterAxisSizingMode": "AUTO",
+          "primaryAxisAlignItems": "MIN",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 10,
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "Rectangle 35",
+              "type": "RECTANGLE",
+              "width": 1296,
+              "height": 905,
+              "fills": [
+                {
+                  "type": "IMAGE",
+                  "opacity": 1,
+                  "imageHash": "78b947853eed4a7ddac6036bf63789d46ee48b8f",
+                  "scaleMode": "CROP",
+                  "imageTransform": [
+                    [
+                      1,
+                      0,
+                      -0.0003084871859755367
+                    ],
+                    [
+                      0,
+                      0.5340916514396667,
+                      0.013152752071619034
+                    ]
+                  ]
+                }
+              ],
+              "strokeWeight": 7.672619342803955,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER"
+            },
+            {
+              "name": "Frame 11",
+              "type": "FRAME",
+              "width": 402,
+              "height": 408,
+              "layoutMode": "VERTICAL",
+              "primaryAxisSizingMode": "FIXED",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "itemSpacing": 131,
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "Frame 11",
+                  "type": "FRAME",
+                  "width": 402,
+                  "height": 408,
+                  "layoutMode": "VERTICAL",
+                  "primaryAxisSizingMode": "FIXED",
+                  "counterAxisSizingMode": "FIXED",
+                  "primaryAxisAlignItems": "MIN",
+                  "counterAxisAlignItems": "MIN",
+                  "itemSpacing": 131,
+                  "strokeWeight": 1,
+                  "strokeAlign": "INSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "children": [
+                    {
+                      "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+                      "type": "TEXT",
+                      "width": 395,
+                      "height": 96,
+                      "fills": [
+                        {
+                          "type": "SOLID",
+                          "opacity": 1,
+                          "color": {
+                            "r": 0.10140000283718109,
+                            "g": 0.1109333336353302,
+                            "b": 0.12999999523162842,
+                            "a": 1,
+                            "hex": "#1a1c21"
+                          }
+                        }
+                      ],
+                      "fillStyle": {
+                        "name": "Library Style 1537cc99",
+                        "fullName": "[Library] Style 1537cc99",
+                        "estimated": true
+                      },
+                      "strokeWeight": 1,
+                      "strokeAlign": "OUTSIDE",
+                      "strokeCap": "NONE",
+                      "strokeJoin": "MITER",
+                      "characters": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+                      "fontSize": 15,
+                      "fontName": {
+                        "family": "Manrope",
+                        "style": "ExtraLight"
+                      },
+                      "fontWeight": 200,
+                      "letterSpacing": {
+                        "unit": "PERCENT",
+                        "value": 0
+                      },
+                      "lineHeight": {
+                        "unit": "PIXELS",
+                        "value": 17
+                      },
+                      "textAlignHorizontal": "LEFT",
+                      "textAlignVertical": "BOTTOM",
+                      "textAutoResize": "HEIGHT",
+                      "textCase": "ORIGINAL",
+                      "textDecoration": "NONE"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Line 6",
+          "type": "LINE",
+          "width": 1708,
+          "height": 0,
+          "strokes": [
+            {
+              "type": "SOLID",
+              "opacity": 1,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 1,
+                "hex": "#000000"
+              }
+            }
+          ],
+          "strokeWeight": 0.5,
+          "strokeAlign": "CENTER",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER"
+        },
+        {
+          "name": "Case Study 2 Title",
+          "type": "FRAME",
+          "width": 1708,
+          "height": 74,
+          "layoutMode": "HORIZONTAL",
+          "primaryAxisSizingMode": "FIXED",
+          "counterAxisSizingMode": "FIXED",
+          "primaryAxisAlignItems": "MIN",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 41,
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "UNIQLO",
+              "type": "TEXT",
+              "width": 1478,
+              "height": 86,
+              "fills": [
+                {
+                  "type": "SOLID",
+                  "opacity": 1,
+                  "color": {
+                    "r": 0.10140000283718109,
+                    "g": 0.1109333336353302,
+                    "b": 0.12999999523162842,
+                    "a": 1,
+                    "hex": "#1a1c21"
+                  }
+                }
+              ],
+              "fillStyle": {
+                "name": "Library Style 1537cc99",
+                "fullName": "[Library] Style 1537cc99",
+                "estimated": true
+              },
+              "strokeWeight": 4.616415977478027,
+              "strokeAlign": "OUTSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "characters": "UNIQLO",
+              "fontSize": 83,
+              "fontName": {
+                "family": "Manrope",
+                "style": "ExtraLight"
+              },
+              "fontWeight": 200,
+              "letterSpacing": {
+                "unit": "PERCENT",
+                "value": 0
+              },
+              "lineHeight": {
+                "unit": "PIXELS",
+                "value": 110.79398345947266
+              },
+              "textAlignHorizontal": "LEFT",
+              "textAlignVertical": "BOTTOM",
+              "textAutoResize": "NONE",
+              "textCase": "SMALL_CAPS_FORCED",
+              "textDecoration": "NONE"
+            },
+            {
+              "name": "Tags",
+              "type": "FRAME",
+              "width": 189,
+              "height": 74,
+              "layoutMode": "VERTICAL",
+              "primaryAxisSizingMode": "FIXED",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "itemSpacing": 5,
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "Tag1",
+                  "type": "INSTANCE",
+                  "width": 189,
+                  "height": 34.5,
+                  "layoutMode": "HORIZONTAL",
+                  "primaryAxisSizingMode": "FIXED",
+                  "counterAxisSizingMode": "FIXED",
+                  "primaryAxisAlignItems": "CENTER",
+                  "counterAxisAlignItems": "CENTER",
+                  "paddingLeft": 62,
+                  "paddingRight": 62,
+                  "itemSpacing": 11,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 1,
+                        "g": 1,
+                        "b": 1,
+                        "a": 1,
+                        "hex": "#ffffff"
+                      }
+                    }
+                  ],
+                  "strokes": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0.5,
+                        "g": 0.5,
+                        "b": 0.5,
+                        "a": 1,
+                        "hex": "#808080"
+                      }
+                    }
+                  ],
+                  "strokeWeight": 1,
+                  "strokeAlign": "INSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "mainComponent": {
+                    "name": "Tag1"
+                  }
+                },
+                {
+                  "name": "Tag1",
+                  "type": "INSTANCE",
+                  "width": 189,
+                  "height": 34.5,
+                  "layoutMode": "HORIZONTAL",
+                  "primaryAxisSizingMode": "FIXED",
+                  "counterAxisSizingMode": "FIXED",
+                  "primaryAxisAlignItems": "CENTER",
+                  "counterAxisAlignItems": "CENTER",
+                  "paddingLeft": 62,
+                  "paddingRight": 62,
+                  "itemSpacing": 11,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 1,
+                        "g": 1,
+                        "b": 1,
+                        "a": 1,
+                        "hex": "#ffffff"
+                      }
+                    }
+                  ],
+                  "strokes": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0.5,
+                        "g": 0.5,
+                        "b": 0.5,
+                        "a": 1,
+                        "hex": "#808080"
+                      }
+                    }
+                  ],
+                  "strokeWeight": 1,
+                  "strokeAlign": "INSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "mainComponent": {
+                    "name": "Tag1"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Line 5",
+          "type": "LINE",
+          "width": 1708,
+          "height": 0,
+          "strokes": [
+            {
+              "type": "SOLID",
+              "opacity": 1,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 1,
+                "hex": "#000000"
+              }
+            }
+          ],
+          "strokeWeight": 0.5,
+          "strokeAlign": "CENTER",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER"
+        },
+        {
+          "name": "Frame 14",
+          "type": "FRAME",
+          "width": 1708,
+          "height": 538.9080810546875,
+          "layoutMode": "VERTICAL",
+          "primaryAxisSizingMode": "AUTO",
+          "counterAxisSizingMode": "FIXED",
+          "primaryAxisAlignItems": "MIN",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 10,
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "Frame 14",
+              "type": "FRAME",
+              "width": 1708,
+              "height": 538.9080810546875,
+              "layoutMode": "HORIZONTAL",
+              "primaryAxisSizingMode": "FIXED",
+              "counterAxisSizingMode": "AUTO",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "itemSpacing": 10,
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "Rectangle 36",
+                  "type": "RECTANGLE",
+                  "width": 631,
+                  "height": 538.9080810546875,
+                  "fills": [
+                    {
+                      "type": "IMAGE",
+                      "opacity": 1,
+                      "imageHash": "fc0215d2e88344796a0619cd5ee99495a72d518b",
+                      "scaleMode": "FILL",
+                      "imageTransform": [
+                        [
+                          1,
+                          0,
+                          0
+                        ],
+                        [
+                          0,
+                          0.6894195675849915,
+                          0.15529020130634308
+                        ]
+                      ]
+                    }
+                  ],
+                  "strokeWeight": 0.4872586727142334,
+                  "strokeAlign": "INSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER"
+                },
+                {
+                  "name": "Frame 11",
+                  "type": "FRAME",
+                  "width": 1067,
+                  "height": 408,
+                  "layoutMode": "VERTICAL",
+                  "primaryAxisSizingMode": "FIXED",
+                  "counterAxisSizingMode": "FIXED",
+                  "primaryAxisAlignItems": "MIN",
+                  "counterAxisAlignItems": "MIN",
+                  "itemSpacing": 131,
+                  "strokeWeight": 1,
+                  "strokeAlign": "INSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "children": [
+                    {
+                      "name": "Frame 11",
+                      "type": "FRAME",
+                      "width": 1067,
+                      "height": 408,
+                      "layoutMode": "VERTICAL",
+                      "primaryAxisSizingMode": "FIXED",
+                      "counterAxisSizingMode": "FIXED",
+                      "primaryAxisAlignItems": "MIN",
+                      "counterAxisAlignItems": "MIN",
+                      "itemSpacing": 131,
+                      "strokeWeight": 1,
+                      "strokeAlign": "INSIDE",
+                      "strokeCap": "NONE",
+                      "strokeJoin": "MITER"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Frame 13",
+          "type": "FRAME",
+          "width": 1708,
+          "height": 553.6182250976562,
+          "layoutMode": "HORIZONTAL",
+          "primaryAxisSizingMode": "FIXED",
+          "counterAxisSizingMode": "AUTO",
+          "primaryAxisAlignItems": "MIN",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 10,
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "Frame 12",
+              "type": "FRAME",
+              "width": 1049,
+              "height": 408,
+              "layoutMode": "VERTICAL",
+              "primaryAxisSizingMode": "FIXED",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "itemSpacing": 131,
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+                  "type": "TEXT",
+                  "width": 395,
+                  "height": 96,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0.10140000283718109,
+                        "g": 0.1109333336353302,
+                        "b": 0.12999999523162842,
+                        "a": 1,
+                        "hex": "#1a1c21"
+                      }
+                    }
+                  ],
+                  "fillStyle": {
+                    "name": "Library Style 1537cc99",
+                    "fullName": "[Library] Style 1537cc99",
+                    "estimated": true
+                  },
+                  "strokeWeight": 1,
+                  "strokeAlign": "OUTSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "characters": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+                  "fontSize": 15,
+                  "fontName": {
+                    "family": "Manrope",
+                    "style": "ExtraLight"
+                  },
+                  "fontWeight": 200,
+                  "letterSpacing": {
+                    "unit": "PERCENT",
+                    "value": 0
+                  },
+                  "lineHeight": {
+                    "unit": "PIXELS",
+                    "value": 17
+                  },
+                  "textAlignHorizontal": "LEFT",
+                  "textAlignVertical": "BOTTOM",
+                  "textAutoResize": "HEIGHT",
+                  "textCase": "ORIGINAL",
+                  "textDecoration": "NONE"
+                }
+              ]
+            },
+            {
+              "name": "Rectangle 37",
+              "type": "RECTANGLE",
+              "width": 649,
+              "height": 553.6182250976562,
+              "fills": [
+                {
+                  "type": "IMAGE",
+                  "opacity": 1,
+                  "imageHash": "0d702817e5b2921f21416fe233cb52376c443f8a",
+                  "scaleMode": "FILL",
+                  "imageTransform": [
+                    [
+                      1,
+                      0,
+                      0
+                    ],
+                    [
+                      0,
+                      0.5843376517295837,
+                      0.20783117413520813
+                    ]
+                  ]
+                }
+              ],
+              "strokeWeight": 0.5046656131744385,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER"
+            }
+          ]
+        },
+        {
+          "name": "Line 7",
+          "type": "LINE",
+          "width": 1708,
+          "height": 0,
+          "strokes": [
+            {
+              "type": "SOLID",
+              "opacity": 1,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 1,
+                "hex": "#000000"
+              }
+            }
+          ],
+          "strokeWeight": 0.5,
+          "strokeAlign": "CENTER",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER"
+        },
+        {
+          "name": "Frame 23",
+          "type": "FRAME",
+          "width": 1708,
+          "height": 74,
+          "layoutMode": "HORIZONTAL",
+          "primaryAxisSizingMode": "FIXED",
+          "counterAxisSizingMode": "FIXED",
+          "primaryAxisAlignItems": "MIN",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 41,
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "SERVICES",
+              "type": "TEXT",
+              "width": 1478,
+              "height": 86,
+              "fills": [
+                {
+                  "type": "SOLID",
+                  "opacity": 1,
+                  "color": {
+                    "r": 0.10140000283718109,
+                    "g": 0.1109333336353302,
+                    "b": 0.12999999523162842,
+                    "a": 1,
+                    "hex": "#1a1c21"
+                  }
+                }
+              ],
+              "fillStyle": {
+                "name": "Library Style 1537cc99",
+                "fullName": "[Library] Style 1537cc99",
+                "estimated": true
+              },
+              "strokeWeight": 4.616415977478027,
+              "strokeAlign": "OUTSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "characters": "SERVICES",
+              "fontSize": 83,
+              "fontName": {
+                "family": "Manrope",
+                "style": "ExtraLight"
+              },
+              "fontWeight": 200,
+              "letterSpacing": {
+                "unit": "PERCENT",
+                "value": 0
+              },
+              "lineHeight": {
+                "unit": "PIXELS",
+                "value": 110.79398345947266
+              },
+              "textAlignHorizontal": "LEFT",
+              "textAlignVertical": "BOTTOM",
+              "textAutoResize": "NONE",
+              "textCase": "SMALL_CAPS_FORCED",
+              "textDecoration": "NONE"
+            },
+            {
+              "name": "Tags",
+              "type": "FRAME",
+              "width": 189,
+              "height": 74,
+              "layoutMode": "VERTICAL",
+              "primaryAxisSizingMode": "FIXED",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "itemSpacing": 5,
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "Tag1",
+                  "type": "INSTANCE",
+                  "width": 189,
+                  "height": 34.5,
+                  "layoutMode": "HORIZONTAL",
+                  "primaryAxisSizingMode": "FIXED",
+                  "counterAxisSizingMode": "FIXED",
+                  "primaryAxisAlignItems": "CENTER",
+                  "counterAxisAlignItems": "CENTER",
+                  "paddingLeft": 62,
+                  "paddingRight": 62,
+                  "itemSpacing": 11,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 1,
+                        "g": 1,
+                        "b": 1,
+                        "a": 1,
+                        "hex": "#ffffff"
+                      }
+                    }
+                  ],
+                  "strokes": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0.5,
+                        "g": 0.5,
+                        "b": 0.5,
+                        "a": 1,
+                        "hex": "#808080"
+                      }
+                    }
+                  ],
+                  "strokeWeight": 1,
+                  "strokeAlign": "INSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "mainComponent": {
+                    "name": "Tag1"
+                  }
+                },
+                {
+                  "name": "Tag1",
+                  "type": "INSTANCE",
+                  "width": 189,
+                  "height": 34.5,
+                  "layoutMode": "HORIZONTAL",
+                  "primaryAxisSizingMode": "FIXED",
+                  "counterAxisSizingMode": "FIXED",
+                  "primaryAxisAlignItems": "CENTER",
+                  "counterAxisAlignItems": "CENTER",
+                  "paddingLeft": 62,
+                  "paddingRight": 62,
+                  "itemSpacing": 11,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 1,
+                        "g": 1,
+                        "b": 1,
+                        "a": 1,
+                        "hex": "#ffffff"
+                      }
+                    }
+                  ],
+                  "strokes": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0.5,
+                        "g": 0.5,
+                        "b": 0.5,
+                        "a": 1,
+                        "hex": "#808080"
+                      }
+                    }
+                  ],
+                  "strokeWeight": 1,
+                  "strokeAlign": "INSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "mainComponent": {
+                    "name": "Tag1"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Line 8",
+          "type": "LINE",
+          "width": 1708,
+          "height": 0,
+          "strokes": [
+            {
+              "type": "SOLID",
+              "opacity": 1,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 1,
+                "hex": "#000000"
+              }
+            }
+          ],
+          "strokeWeight": 0.5,
+          "strokeAlign": "CENTER",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER"
+        },
+        {
+          "name": "Frame 22",
+          "type": "FRAME",
+          "width": 1708,
+          "height": 649,
+          "layoutMode": "HORIZONTAL",
+          "primaryAxisSizingMode": "FIXED",
+          "counterAxisSizingMode": "FIXED",
+          "primaryAxisAlignItems": "MIN",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 10,
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "Frame 25",
+              "type": "FRAME",
+              "width": 931,
+              "height": 471,
+              "layoutMode": "VERTICAL",
+              "primaryAxisSizingMode": "AUTO",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "CENTER",
+              "counterAxisAlignItems": "MIN",
+              "itemSpacing": 10,
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "Design",
+                  "type": "TEXT",
+                  "width": 759,
+                  "height": 75,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1,
+                        "hex": "#000000"
+                      }
+                    }
+                  ],
+                  "strokeWeight": 1,
+                  "strokeAlign": "OUTSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "characters": "\nDesign\n\n",
+                  "fontSize": "Symbol(figma.mixed)",
+                  "fontName": {
+                    "family": "Manrope",
+                    "style": "ExtraLight"
+                  },
+                  "fontWeight": 200,
+                  "letterSpacing": {
+                    "unit": "PERCENT",
+                    "value": 0
+                  },
+                  "lineHeight": {
+                    "unit": "PIXELS",
+                    "value": 27
+                  },
+                  "textAlignHorizontal": "LEFT",
+                  "textAlignVertical": "TOP",
+                  "textAutoResize": "NONE",
+                  "textCase": "ORIGINAL",
+                  "textDecoration": "NONE"
+                },
+                {
+                  "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+                  "type": "TEXT",
+                  "width": 425,
+                  "height": 386,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1,
+                        "hex": "#000000"
+                      }
+                    }
+                  ],
+                  "fillStyle": {
+                    "name": "Library Style 1537cc99",
+                    "fullName": "[Library] Style 1537cc99",
+                    "estimated": true
+                  },
+                  "strokeWeight": 1,
+                  "strokeAlign": "OUTSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "characters": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+                  "fontSize": 15,
+                  "fontName": {
+                    "family": "Manrope",
+                    "style": "ExtraLight"
+                  },
+                  "fontWeight": 200,
+                  "letterSpacing": {
+                    "unit": "PERCENT",
+                    "value": 0
+                  },
+                  "lineHeight": {
+                    "unit": "PIXELS",
+                    "value": 17
+                  },
+                  "textAlignHorizontal": "LEFT",
+                  "textAlignVertical": "TOP",
+                  "textAutoResize": "NONE",
+                  "textCase": "ORIGINAL",
+                  "textDecoration": "NONE"
+                }
+              ]
+            },
+            {
+              "name": "Frame 23",
+              "type": "FRAME",
+              "width": 767,
+              "height": 649,
+              "layoutMode": "NONE",
+              "primaryAxisSizingMode": "AUTO",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "fills": [
+                {
+                  "type": "SOLID",
+                  "opacity": 1,
+                  "color": {
+                    "r": 0.7836538553237915,
+                    "g": 0.7836538553237915,
+                    "b": 0.7836538553237915,
+                    "a": 1,
+                    "hex": "#c8c8c8"
+                  }
+                }
+              ],
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER"
+            }
+          ]
+        },
+        {
+          "name": "Frame 24",
+          "type": "FRAME",
+          "width": 1708,
+          "height": 649,
+          "layoutMode": "HORIZONTAL",
+          "primaryAxisSizingMode": "FIXED",
+          "counterAxisSizingMode": "FIXED",
+          "primaryAxisAlignItems": "MIN",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 10,
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "Frame 23",
+              "type": "FRAME",
+              "width": 767,
+              "height": 649,
+              "layoutMode": "NONE",
+              "primaryAxisSizingMode": "AUTO",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "fills": [
+                {
+                  "type": "SOLID",
+                  "opacity": 1,
+                  "color": {
+                    "r": 0.7836538553237915,
+                    "g": 0.7836538553237915,
+                    "b": 0.7836538553237915,
+                    "a": 1,
+                    "hex": "#c8c8c8"
+                  }
+                }
+              ],
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER"
+            },
+            {
+              "name": "Frame 56",
+              "type": "FRAME",
+              "width": 931,
+              "height": 649,
+              "layoutMode": "VERTICAL",
+              "primaryAxisSizingMode": "FIXED",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "itemSpacing": 10,
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "Develop",
+                  "type": "TEXT",
+                  "width": 759,
+                  "height": 85,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1,
+                        "hex": "#000000"
+                      }
+                    }
+                  ],
+                  "strokeWeight": 1,
+                  "strokeAlign": "OUTSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "characters": "Develop",
+                  "fontSize": 65,
+                  "fontName": {
+                    "family": "Manrope",
+                    "style": "ExtraLight"
+                  },
+                  "fontWeight": 200,
+                  "letterSpacing": {
+                    "unit": "PERCENT",
+                    "value": 0
+                  },
+                  "lineHeight": {
+                    "unit": "PIXELS",
+                    "value": 27
+                  },
+                  "textAlignHorizontal": "LEFT",
+                  "textAlignVertical": "CENTER",
+                  "textAutoResize": "NONE",
+                  "textCase": "ORIGINAL",
+                  "textDecoration": "NONE"
+                },
+                {
+                  "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+                  "type": "TEXT",
+                  "width": 425,
+                  "height": 311,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1,
+                        "hex": "#000000"
+                      }
+                    }
+                  ],
+                  "fillStyle": {
+                    "name": "Library Style 1537cc99",
+                    "fullName": "[Library] Style 1537cc99",
+                    "estimated": true
+                  },
+                  "strokeWeight": 1,
+                  "strokeAlign": "OUTSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "characters": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+                  "fontSize": 15,
+                  "fontName": {
+                    "family": "Manrope",
+                    "style": "ExtraLight"
+                  },
+                  "fontWeight": 200,
+                  "letterSpacing": {
+                    "unit": "PERCENT",
+                    "value": 0
+                  },
+                  "lineHeight": {
+                    "unit": "PIXELS",
+                    "value": 17
+                  },
+                  "textAlignHorizontal": "LEFT",
+                  "textAlignVertical": "TOP",
+                  "textAutoResize": "NONE",
+                  "textCase": "ORIGINAL",
+                  "textDecoration": "NONE"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Frame 25",
+          "type": "FRAME",
+          "width": 1708,
+          "height": 649,
+          "layoutMode": "HORIZONTAL",
+          "primaryAxisSizingMode": "FIXED",
+          "counterAxisSizingMode": "FIXED",
+          "primaryAxisAlignItems": "MIN",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 10,
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "Frame 56",
+              "type": "FRAME",
+              "width": 931,
+              "height": 649,
+              "layoutMode": "VERTICAL",
+              "primaryAxisSizingMode": "FIXED",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "itemSpacing": 10,
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "Distribute",
+                  "type": "TEXT",
+                  "width": 759,
+                  "height": 85,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1,
+                        "hex": "#000000"
+                      }
+                    }
+                  ],
+                  "strokeWeight": 1,
+                  "strokeAlign": "OUTSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "characters": "Distribute",
+                  "fontSize": 65,
+                  "fontName": {
+                    "family": "Manrope",
+                    "style": "ExtraLight"
+                  },
+                  "fontWeight": 200,
+                  "letterSpacing": {
+                    "unit": "PERCENT",
+                    "value": 0
+                  },
+                  "lineHeight": {
+                    "unit": "PIXELS",
+                    "value": 27
+                  },
+                  "textAlignHorizontal": "LEFT",
+                  "textAlignVertical": "CENTER",
+                  "textAutoResize": "NONE",
+                  "textCase": "ORIGINAL",
+                  "textDecoration": "NONE"
+                },
+                {
+                  "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+                  "type": "TEXT",
+                  "width": 425,
+                  "height": 311,
+                  "fills": [
+                    {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1,
+                        "hex": "#000000"
+                      }
+                    }
+                  ],
+                  "fillStyle": {
+                    "name": "Library Style 1537cc99",
+                    "fullName": "[Library] Style 1537cc99",
+                    "estimated": true
+                  },
+                  "strokeWeight": 1,
+                  "strokeAlign": "OUTSIDE",
+                  "strokeCap": "NONE",
+                  "strokeJoin": "MITER",
+                  "characters": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+                  "fontSize": 15,
+                  "fontName": {
+                    "family": "Manrope",
+                    "style": "ExtraLight"
+                  },
+                  "fontWeight": 200,
+                  "letterSpacing": {
+                    "unit": "PERCENT",
+                    "value": 0
+                  },
+                  "lineHeight": {
+                    "unit": "PIXELS",
+                    "value": 17
+                  },
+                  "textAlignHorizontal": "LEFT",
+                  "textAlignVertical": "TOP",
+                  "textAutoResize": "NONE",
+                  "textCase": "ORIGINAL",
+                  "textDecoration": "NONE"
+                }
+              ]
+            },
+            {
+              "name": "Frame 23",
+              "type": "FRAME",
+              "width": 767,
+              "height": 649,
+              "layoutMode": "NONE",
+              "primaryAxisSizingMode": "AUTO",
+              "counterAxisSizingMode": "FIXED",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "fills": [
+                {
+                  "type": "SOLID",
+                  "opacity": 1,
+                  "color": {
+                    "r": 0.7836538553237915,
+                    "g": 0.7836538553237915,
+                    "b": 0.7836538553237915,
+                    "a": 1,
+                    "hex": "#c8c8c8"
+                  }
+                }
+              ],
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "textContent": [
+    {
+      "name": "Redbull",
+      "text": "Redbull",
+      "path": "Full page flow: Initial Scroll State/Frame 13/CaseStudyHeader_01/Redbull",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "text": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+      "path": "Full page flow: Initial Scroll State/Frame 13/Case Study  1 Section 1 /Frame 12/Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "text": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+      "path": "Full page flow: Initial Scroll State/Frame 13/Case Study  1 Section 2/Frame 11/Frame 11/Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "UNIQLO",
+      "text": "UNIQLO",
+      "path": "Full page flow: Initial Scroll State/Frame 13/Case Study 2 Title/UNIQLO",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "text": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+      "path": "Full page flow: Initial Scroll State/Frame 13/Frame 14/Frame 14/Frame 11/Frame 11/Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "text": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+      "path": "Full page flow: Initial Scroll State/Frame 13/Frame 13/Frame 12/Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "SERVICES",
+      "text": "SERVICES",
+      "path": "Full page flow: Initial Scroll State/Frame 13/Frame 23/SERVICES",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "Design",
+      "text": "\nDesign\n\n",
+      "path": "Full page flow: Initial Scroll State/Frame 13/Frame 22/Frame 25/Design",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "text": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+      "path": "Full page flow: Initial Scroll State/Frame 13/Frame 22/Frame 25/Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "Develop",
+      "text": "Develop",
+      "path": "Full page flow: Initial Scroll State/Frame 13/Frame 24/Frame 56/Develop",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "text": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+      "path": "Full page flow: Initial Scroll State/Frame 13/Frame 24/Frame 56/Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "Distribute",
+      "text": "Distribute",
+      "path": "Full page flow: Initial Scroll State/Frame 13/Frame 25/Frame 56/Distribute",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "text": "Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, ",
+      "path": "Full page flow: Initial Scroll State/Frame 13/Frame 25/Frame 56/Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent, Welcome is a creative lab that engineers cultural relevance through media, talent,",
+      "nodeType": "TEXT"
+    }
+  ]
+}

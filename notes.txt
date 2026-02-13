@@ -1,0 +1,69 @@
+We are going to start building a website for an agency called welcome labs. The site is animation heavy and will rely on scroll states heavily. I have mapped out a bunch of this in figma
+
+Technical specs and deployment:
+
+We will be building a Node.js + Typescript/React site, deploying on Vercel and using the Sanity CMS (but we will add the schema later for now site content will be hard coded and the images will be packed directly in the deployed site).
+
+you will be referencing 
+
+1. info from the figma MCP server which you can connect to via this chat to get context
+2. screenshots you recieve from figma MCP and screenshots attached
+3. a JSON file that has an export of the figma
+
+The site has a few main sections and transitions.
+
+The first state of the site is a landing/home screen with a lot of white space and a small centered section with Logo, title, subheaders, image, and then links. In the upper left is a mail SVG icon (I will provide). This icon is sticky to the top left
+
+When you scroll down that content scrolls up and we see the site content below, in the figma this is called "Home Page/Landing page/Screen1". This consists of a top bar that has a large version of the logo. Below that are main site entries/pages which consist of a header and content. The content is seperated into full width modules. Each module is 2 columns.
+
+Our site will have 3 case studies and 1 section called Services for now. We can add more later
+
+As you continue to scroll the large logo transitions size to be much smaller and then the top bar that logo is in is sitcky to the top of the screen. The Case study title is also sticky to the top of the screen
+
+subsequent Content scrolls behind that header up and away like a normal page.
+
+UNTIL we get to the next header (in the case of the second one it will be a case study). When the scrolling of the page makes it so the next header gets to the current sticky header, the top(first) header will collapse to a smaller version. This can be seen in figma "Full page flow: Scroll State 2 project 1 collapses to thinner entry row" 
+
+However when you reach the next header, the first one (which is in its collapsed version) will stop being sticky and dissapear up and behind the main header. So the overarching idea is that the headers collaps down and remain sticky but there should only ever be 2 collapsed headers at a time. The third one to collapse pushes the first up and away.
+
+Scrolling in reverse revereses this process in the same way.
+
+Clicking a header that is collapsed autoscrolls the page back up to the beginning of the corresponding section for that clicked header.
+
+
+For fonts and color:
+
+Font I will provide once we start the site build out.
+
+Site BG color: F9F9F9
+Site black color (content text etc): 1A1C21
+
+Lines/strokes when they exist will be 0.5pt
+
+
+Some important info:
+
+Please rely on the figma to recreate the UI/UX design as closely as possible. Visual match is important. 
+
+These are the building blocks we are focusing on faithful reproduction not getting every unclarified feature working. Right now just site structure and the scroll transitions/behaviors.
+
+Your task:
+
+Read through and ingest all of this. Use the MCP, and provided info. Then ask a set of clarifying questions where necessary to make sure we are understanding each other 
+
+ Then please write a markdown documentation file for each feature (there might only need to be 3-4 files at this point). Then create a master summary doc that includes a table of contents.
+
+Do not write code just act as an expert web design engineer planning a site in detail.
+
+Your goals in planning are:
+
+Performance
+Stability
+Visual Excellence and faithfulness to the mockup.
+
+Things I would like recommendations on:
+
+The most performant dynamic way to do interface animation based on scroll.
+The best smooth scroll/scroll control libraries.
+
+

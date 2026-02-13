@@ -1,0 +1,544 @@
+{
+  "$comment": "This is structural design data exported by the Figma Raw plugin. It is formatted to help LLMs (Large Language Models) understand design structures and components from Figma designs.",
+  "name": "Home Page/Landing page/Screen1",
+  "type": "FRAME",
+  "width": 1728,
+  "height": 1109,
+  "layoutMode": "NONE",
+  "primaryAxisSizingMode": "FIXED",
+  "counterAxisSizingMode": "FIXED",
+  "primaryAxisAlignItems": "MIN",
+  "counterAxisAlignItems": "MIN",
+  "fills": [
+    {
+      "type": "SOLID",
+      "opacity": 1,
+      "color": {
+        "r": 0.9759615659713745,
+        "g": 0.9759615659713745,
+        "b": 0.9759615659713745,
+        "a": 1,
+        "hex": "#f9f9f9"
+      }
+    }
+  ],
+  "strokeWeight": 1,
+  "strokeAlign": "INSIDE",
+  "strokeCap": "NONE",
+  "strokeJoin": "MITER",
+  "children": [
+    {
+      "name": "Subtract",
+      "type": "BOOLEAN_OPERATION",
+      "width": 0,
+      "height": 0,
+      "fills": [
+        {
+          "type": "SOLID",
+          "opacity": 1,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1,
+            "hex": "#000000"
+          }
+        }
+      ],
+      "strokeWeight": 0,
+      "strokeAlign": "INSIDE",
+      "strokeCap": "NONE",
+      "strokeJoin": "MITER"
+    },
+    {
+      "name": "Body/main section",
+      "type": "FRAME",
+      "width": 314,
+      "height": 443.4677734375,
+      "layoutMode": "VERTICAL",
+      "primaryAxisSizingMode": "AUTO",
+      "counterAxisSizingMode": "FIXED",
+      "primaryAxisAlignItems": "MIN",
+      "counterAxisAlignItems": "MIN",
+      "itemSpacing": 22,
+      "strokeWeight": 1,
+      "strokeAlign": "INSIDE",
+      "strokeCap": "NONE",
+      "strokeJoin": "MITER",
+      "children": [
+        {
+          "name": "Logo",
+          "type": "FRAME",
+          "width": 36,
+          "height": 31.5,
+          "layoutMode": "VERTICAL",
+          "primaryAxisSizingMode": "AUTO",
+          "counterAxisSizingMode": "FIXED",
+          "primaryAxisAlignItems": "CENTER",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 39.75,
+          "strokeWeight": 0.75,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "Frame 4",
+              "type": "FRAME",
+              "width": 36,
+              "height": 31.500003814697266,
+              "layoutMode": "HORIZONTAL",
+              "primaryAxisSizingMode": "FIXED",
+              "counterAxisSizingMode": "AUTO",
+              "primaryAxisAlignItems": "MIN",
+              "counterAxisAlignItems": "MIN",
+              "itemSpacing": 40.5,
+              "strokeWeight": 0.75,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "children": [
+                {
+                  "name": "WelcomLogo",
+                  "type": "GROUP",
+                  "width": 36.154136657714844,
+                  "height": 31.500003814697266,
+                  "children": [
+                    {
+                      "name": "welcome - w logo 3 (Traced)",
+                      "type": "VECTOR",
+                      "width": 5.994790554046631,
+                      "height": 9.619166374206543,
+                      "fills": [
+                        {
+                          "type": "SOLID",
+                          "opacity": 1,
+                          "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 1,
+                            "hex": "#000000"
+                          }
+                        }
+                      ],
+                      "strokeWeight": 0.21351289749145508,
+                      "strokeAlign": "INSIDE",
+                      "strokeCap": "NONE",
+                      "strokeJoin": "MITER"
+                    },
+                    {
+                      "name": "welcome - w logo 3 (Traced)",
+                      "type": "VECTOR",
+                      "width": 5.9637041091918945,
+                      "height": 9.638605117797852,
+                      "fills": [
+                        {
+                          "type": "SOLID",
+                          "opacity": 1,
+                          "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 1,
+                            "hex": "#000000"
+                          }
+                        }
+                      ],
+                      "strokeWeight": 0.21351289749145508,
+                      "strokeAlign": "INSIDE",
+                      "strokeCap": "NONE",
+                      "strokeJoin": "MITER"
+                    },
+                    {
+                      "name": "welcome - w logo 3 (Traced)",
+                      "type": "VECTOR",
+                      "width": 6.844659805297852,
+                      "height": 9.6297607421875,
+                      "fills": [
+                        {
+                          "type": "SOLID",
+                          "opacity": 1,
+                          "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 1,
+                            "hex": "#000000"
+                          }
+                        }
+                      ],
+                      "strokeWeight": 0.21351289749145508,
+                      "strokeAlign": "INSIDE",
+                      "strokeCap": "NONE",
+                      "strokeJoin": "MITER"
+                    },
+                    {
+                      "name": "welcome - w logo 3 (Traced)",
+                      "type": "VECTOR",
+                      "width": 7.246271133422852,
+                      "height": 9.857715606689453,
+                      "fills": [
+                        {
+                          "type": "SOLID",
+                          "opacity": 1,
+                          "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 1,
+                            "hex": "#000000"
+                          }
+                        }
+                      ],
+                      "strokeWeight": 0.21351289749145508,
+                      "strokeAlign": "INSIDE",
+                      "strokeCap": "NONE",
+                      "strokeJoin": "MITER"
+                    },
+                    {
+                      "name": "welcome - w logo 3 (Traced)",
+                      "type": "VECTOR",
+                      "width": 7.21104097366333,
+                      "height": 9.878443717956543,
+                      "fills": [
+                        {
+                          "type": "SOLID",
+                          "opacity": 1,
+                          "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 1,
+                            "hex": "#000000"
+                          }
+                        }
+                      ],
+                      "strokeWeight": 0.21351289749145508,
+                      "strokeAlign": "INSIDE",
+                      "strokeCap": "NONE",
+                      "strokeJoin": "MITER"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Site title and description",
+          "type": "FRAME",
+          "width": 314,
+          "height": 163.685302734375,
+          "layoutMode": "VERTICAL",
+          "primaryAxisSizingMode": "AUTO",
+          "counterAxisSizingMode": "FIXED",
+          "primaryAxisAlignItems": "MIN",
+          "counterAxisAlignItems": "MIN",
+          "itemSpacing": 15,
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "children": [
+            {
+              "name": "Welcome LABS",
+              "type": "TEXT",
+              "width": 314,
+              "height": 17.685302734375,
+              "fills": [
+                {
+                  "type": "SOLID",
+                  "opacity": 1,
+                  "color": {
+                    "r": 0.10140000283718109,
+                    "g": 0.1109333336353302,
+                    "b": 0.12999999523162842,
+                    "a": 1,
+                    "hex": "#1a1c21"
+                  }
+                }
+              ],
+              "fillStyle": {
+                "name": "Library Style 1537cc99",
+                "fullName": "[Library] Style 1537cc99",
+                "estimated": true
+              },
+              "strokeWeight": 1,
+              "strokeAlign": "OUTSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "characters": "Welcome LABS\n\n",
+              "fontSize": 24,
+              "fontName": {
+                "family": "IBM Plex Sans",
+                "style": "ExtraLight"
+              },
+              "fontWeight": 200,
+              "letterSpacing": {
+                "unit": "PERCENT",
+                "value": 0
+              },
+              "lineHeight": {
+                "unit": "PIXELS",
+                "value": 24
+              },
+              "textAlignHorizontal": "LEFT",
+              "textAlignVertical": "TOP",
+              "textAutoResize": "NONE",
+              "textCase": "UPPER",
+              "textDecoration": "NONE"
+            },
+            {
+              "name": "We are experts at introducing new ideas to the culture through design, talent, tools, and distribution.",
+              "type": "TEXT",
+              "width": 281,
+              "height": 131,
+              "fills": [
+                {
+                  "type": "SOLID",
+                  "opacity": 1,
+                  "color": {
+                    "r": 0.10140000283718109,
+                    "g": 0.1109333336353302,
+                    "b": 0.12999999523162842,
+                    "a": 1,
+                    "hex": "#1a1c21"
+                  }
+                }
+              ],
+              "fillStyle": {
+                "name": "Library Style 1537cc99",
+                "fullName": "[Library] Style 1537cc99",
+                "estimated": true
+              },
+              "strokeWeight": 1,
+              "strokeAlign": "OUTSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER",
+              "characters": "We are experts at introducing new ideas to the culture\n\nthrough design, talent,      tools, and distribution.",
+              "fontSize": 24,
+              "fontName": {
+                "family": "IBM Plex Sans",
+                "style": "ExtraLight"
+              },
+              "fontWeight": 200,
+              "letterSpacing": {
+                "unit": "PERCENT",
+                "value": 0
+              },
+              "lineHeight": {
+                "unit": "PIXELS",
+                "value": 20
+              },
+              "textAlignHorizontal": "LEFT",
+              "textAlignVertical": "TOP",
+              "textAutoResize": "NONE",
+              "textCase": "ORIGINAL",
+              "textDecoration": "Symbol(figma.mixed)"
+            }
+          ]
+        },
+        {
+          "name": "Image cycling/carosel",
+          "type": "RECTANGLE",
+          "width": 166.9784393310547,
+          "height": 117.282470703125,
+          "fills": [
+            {
+              "type": "IMAGE",
+              "opacity": 1,
+              "imageHash": "4b52a0cb7b7a65820437a8f5fd591503cd6b740d",
+              "scaleMode": "FILL",
+              "imageTransform": [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  0.6364508867263794,
+                  0.1817745715379715
+                ]
+              ]
+            }
+          ],
+          "strokeWeight": 1,
+          "strokeAlign": "INSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER"
+        },
+        {
+          "name": "Client/Project links",
+          "type": "TEXT",
+          "width": 314,
+          "height": 65,
+          "fills": [
+            {
+              "type": "SOLID",
+              "opacity": 1,
+              "color": {
+                "r": 0.10140000283718109,
+                "g": 0.1109333336353302,
+                "b": 0.12999999523162842,
+                "a": 1,
+                "hex": "#1a1c21"
+              }
+            }
+          ],
+          "fillStyle": {
+            "name": "Library Style 1537cc99",
+            "fullName": "[Library] Style 1537cc99",
+            "estimated": true
+          },
+          "strokeWeight": 1,
+          "strokeAlign": "OUTSIDE",
+          "strokeCap": "NONE",
+          "strokeJoin": "MITER",
+          "characters": "REDBULL\nPUMA\nEBAY",
+          "fontSize": 24,
+          "fontName": {
+            "family": "IBM Plex Sans",
+            "style": "ExtraLight"
+          },
+          "fontWeight": 200,
+          "letterSpacing": {
+            "unit": "PERCENT",
+            "value": 0
+          },
+          "lineHeight": {
+            "unit": "PIXELS",
+            "value": 24
+          },
+          "textAlignHorizontal": "LEFT",
+          "textAlignVertical": "BOTTOM",
+          "textAutoResize": "HEIGHT",
+          "textCase": "SMALL_CAPS_FORCED",
+          "textDecoration": "UNDERLINE"
+        }
+      ]
+    },
+    {
+      "name": "Frame 54",
+      "type": "FRAME",
+      "width": 52,
+      "height": 41,
+      "layoutMode": "VERTICAL",
+      "primaryAxisSizingMode": "FIXED",
+      "counterAxisSizingMode": "FIXED",
+      "primaryAxisAlignItems": "CENTER",
+      "counterAxisAlignItems": "CENTER",
+      "paddingLeft": 11,
+      "paddingRight": 11,
+      "paddingTop": 8,
+      "paddingBottom": 8,
+      "itemSpacing": 10,
+      "fills": [
+        {
+          "type": "SOLID",
+          "opacity": 1,
+          "color": {
+            "r": 0.9759615659713745,
+            "g": 0.9759615659713745,
+            "b": 0.9759615659713745,
+            "a": 1,
+            "hex": "#f9f9f9"
+          }
+        }
+      ],
+      "strokeWeight": 1,
+      "strokeAlign": "INSIDE",
+      "strokeCap": "NONE",
+      "strokeJoin": "MITER",
+      "children": [
+        {
+          "name": "Group 231",
+          "type": "GROUP",
+          "width": 40,
+          "height": 29,
+          "children": [
+            {
+              "name": "Rectangle 1",
+              "type": "RECTANGLE",
+              "width": 40,
+              "height": 29,
+              "cornerRadius": 2,
+              "strokes": [
+                {
+                  "type": "SOLID",
+                  "opacity": 1,
+                  "color": {
+                    "r": 0.20000000298023224,
+                    "g": 0.21176470816135406,
+                    "b": 0.24705882370471954,
+                    "a": 1,
+                    "hex": "#33363f"
+                  }
+                }
+              ],
+              "strokeStyle": {
+                "name": "Library Style c46082f0",
+                "fullName": "[Library] Style c46082f0",
+                "estimated": true
+              },
+              "strokeWeight": 1,
+              "strokeAlign": "CENTER",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER"
+            },
+            {
+              "name": "Vector 3",
+              "type": "VECTOR",
+              "width": 40,
+              "height": 10,
+              "cornerRadius": 2,
+              "strokes": [
+                {
+                  "type": "SOLID",
+                  "opacity": 1,
+                  "color": {
+                    "r": 0.20000000298023224,
+                    "g": 0.21176470816135406,
+                    "b": 0.24705882370471954,
+                    "a": 1,
+                    "hex": "#33363f"
+                  }
+                }
+              ],
+              "strokeStyle": {
+                "name": "Library Style c46082f0",
+                "fullName": "[Library] Style c46082f0",
+                "estimated": true
+              },
+              "strokeWeight": 1,
+              "strokeAlign": "INSIDE",
+              "strokeCap": "NONE",
+              "strokeJoin": "MITER"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "textContent": [
+    {
+      "name": "Welcome LABS",
+      "text": "Welcome LABS\n\n",
+      "path": "Home Page/Landing page/Screen1/Body/main section/Site title and description/Welcome LABS",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "We are experts at introducing new ideas to the culture through design, talent, tools, and distribution.",
+      "text": "We are experts at introducing new ideas to the culture\n\nthrough design, talent,      tools, and distribution.",
+      "path": "Home Page/Landing page/Screen1/Body/main section/Site title and description/We are experts at introducing new ideas to the culture through design, talent, tools, and distribution.",
+      "nodeType": "TEXT"
+    },
+    {
+      "name": "Client/Project links",
+      "text": "REDBULL\nPUMA\nEBAY",
+      "path": "Home Page/Landing page/Screen1/Body/main section/Client/Project links",
+      "nodeType": "TEXT"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+Ok I want to make another change to how scroll works on the landing page. Instead of allowing continuous scroll from the very beginning we should structure it as follows:
+
+We start with the page locked in place. when the user scrolls we track/listen for it -  we wait until the scroll meets a certain threshhold. When that threshold is met, we trigger a scroll animation going from the landing page being in view, to animate scroll down to a specific point where page 2 fits the view of the screen. Ideally it stops when the logo/header, and the
