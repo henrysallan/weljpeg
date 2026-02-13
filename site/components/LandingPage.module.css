@@ -13,6 +13,8 @@
   align-items: flex-start;
   width: 314px;
   gap: 22px;
+  position: relative;
+  z-index: 1;
 }
 
 .logo {
@@ -20,13 +22,14 @@
 }
 
 .title {
-  font-size: 24px;
+  font-size: 20px;
+  font-weight: normal;
   line-height: 24px;
   letter-spacing: 0.02em;
 }
 
 .description {
-  font-size: 24px;
+  font-size: 20px;
   line-height: 20px;
   max-width: 281px;
 }
@@ -50,7 +53,7 @@
 }
 
 .clientLink {
-  font-size: 24px;
+  font-size: 20px;
   line-height: 24px;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -62,9 +65,25 @@
   opacity: 0.6;
 }
 
+.downArrow {
+  margin-top: 4px;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.downArrow:hover {
+  opacity: 0.8;
+}
+
 /* ---- Responsive ---- */
 
 @media (max-width: 639px) {
+  .landing {
+    justify-content: flex-start;
+    padding-left: var(--page-padding, 8px);
+  }
+
   .cluster {
     width: calc(100% - 40px);
     max-width: 314px;

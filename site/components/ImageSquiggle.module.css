@@ -1,0 +1,32 @@
+.container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.squiggleImage {
+  position: absolute;
+  object-fit: cover;
+  opacity: 0;
+  will-change: opacity, transform, left, top, width, height;
+  pointer-events: auto;
+  border-radius: 2px;
+  cursor: grab;
+  transform-origin: center center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.focusCaption {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text, #222);
+  white-space: pre-line;
+  pointer-events: none;
+  user-select: text;
+}

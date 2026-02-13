@@ -3,7 +3,8 @@
   align-items: center;
   justify-content: flex-end;
   width: 140px;
-  height: 24.5px;
+  flex: 1;
+  min-height: 20.5px;
   background: var(--color-tag-bg);
   border: 1px solid var(--color-tag-border);
   font-size: 14px;
@@ -13,6 +14,7 @@
   cursor: default;
   flex-shrink: 0;
   padding: 0 10px;
+  border-radius: 9999px;
 }
 
 @media (max-width: 767px) {

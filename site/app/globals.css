@@ -30,7 +30,7 @@
   --logo-bar-expanded: 316px;
   --logo-bar-collapsed: 52px;
   --header-expanded: 74px;
-  --header-collapsed: 34.5px;
+  --header-collapsed: 25.5px;
   --header-title-expanded: 83px;
   --header-title-collapsed: 35.6px;
 
@@ -144,7 +144,7 @@ ul, ol {
 
 @media (max-width: 639px) {
   :root {
-    --page-padding: 16px;
+    --page-padding: 8px;
   }
 }
 

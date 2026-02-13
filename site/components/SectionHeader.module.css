@@ -28,13 +28,16 @@
 
 /* Title */
 .title {
-  font-size: clamp(40px, 5vw, 83px);
+  font-size: clamp(20px, 5vw, 65px);
   font-weight: var(--font-weight);
   line-height: 1;
   white-space: nowrap;
   transform-origin: left center;
   will-change: transform;
   margin: 0;
+  /* Optical vertical centering: shift up slightly to compensate
+     for the font's descender space, making caps look centered. */
+  padding-bottom: 0.05em;
 }
 
 /* Tags container — stacked vertically when expanded, row when collapsed */
@@ -43,8 +46,9 @@
   flex-direction: column;
   gap: 5px;
   align-items: flex-end;
+  align-self: stretch;
   flex-shrink: 0;
-  padding: 10px 0;
+  padding: 5px 0;
   box-sizing: border-box;
 }
 
@@ -62,6 +66,7 @@
 
 .headerCollapsed .tags {
   flex-direction: row;
+  padding-top: 3px;
 }
 
 /* ---- Responsive ---- */
@@ -69,6 +74,10 @@
 @media (max-width: 639px) {
   .headerExpanded {
     height: 50px;
+  }
+
+  .title {
+    font-size: 38px;
   }
 
   .tags {

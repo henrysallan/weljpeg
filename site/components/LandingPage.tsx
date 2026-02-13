@@ -3,6 +3,7 @@
 import React from "react";
 import { WelcomeLogo } from "./WelcomeLogo";
 import { ImageCycler } from "./ImageCycler";
+import { ImageSquiggle } from "./ImageSquiggle";
 import styles from "./LandingPage.module.css";
 
 const LANDING_IMAGES = [
@@ -15,13 +16,15 @@ const LANDING_IMAGES = [
 export const LandingPage: React.FC = () => {
   return (
     <section id="landing-page" className={styles.landing}>
+      <ImageSquiggle />
       <div className={styles.cluster}>
         <WelcomeLogo className={styles.logo} width={36} height={31.5} />
 
         <h1 className={styles.title}>Welcome LABS</h1>
 
         <p className={styles.description}>
-          We are experts at introducing new ideas to the culture
+          Introducing new ideas to the culture
+          <br />
           <br />
           through{" "}
           <span className={styles.underline}>design</span>,{" "}
@@ -45,6 +48,25 @@ export const LandingPage: React.FC = () => {
             UNIQLO
           </a>
         </nav>
+
+        <svg
+          id="landing-down-arrow"
+          className={styles.downArrow}
+          width="20"
+          height="28"
+          viewBox="0 0 20 28"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <path
+            d="M10 1 L10 25 M3 19 L10 26 L17 19"
+            stroke="currentColor"
+            strokeWidth="1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
     </section>
   );

@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import Lenis from "lenis";
+import { transitionConfig } from "@/lib/levaConfig";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -12,9 +13,9 @@ gsap.registerPlugin(ScrollTrigger);
    Layout constants
    ================================================================ */
 let LOGO_BAR_H = 52; // measured at runtime from #logo-bar
-const HEADER_BLOCK_COLLAPSED_H = 35.5; // 0.5px sep + 34.5px row + 0.5px sep
-const HEADER_ROW_COLLAPSED_H = 34.5;
-const COLLAPSED_TITLE_SIZE = 35.6;
+const HEADER_BLOCK_COLLAPSED_H = 26.5; // 0.5px sep + 25.5px row + 0.5px sep
+const HEADER_ROW_COLLAPSED_H = 25.5;
+const COLLAPSED_TITLE_SIZE = 20.6;
 const MAX_VISIBLE_SLOTS = 2;
 
 /* ================================================================
@@ -44,6 +45,13 @@ export const ScrollManager: React.FC = () => {
      1. Lenis smooth scroll
      ------------------------------------------------ */
   useEffect(() => {
+    // Force scroll to top on load — prevents browser restoring
+    // a previous scroll position which breaks the landing gate.
+    window.scrollTo(0, 0);
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+
     const prefersReduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
@@ -51,7 +59,7 @@ export const ScrollManager: React.FC = () => {
     const lenis = new Lenis({
       lerp: prefersReduced ? 1 : 0.08,
       smoothWheel: !prefersReduced,
-      syncTouch: false,
+      syncTouch: true,
       wheelMultiplier: 0.7,
       touchMultiplier: 0.7,
       // Return false to swallow the event when gate is locked/transitioning
@@ -182,10 +190,15 @@ function setupAnimations(
           gate.tickCount = 0;
           gate.transitioning = true;
           gate.locked = false; // unlock so Lenis can animate
+          const p = transitionConfig.easePower;
           lenis.scrollTo(landingH, {
-            duration: 1.8,
-            easing: (t: number) =>
-              t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2,
+            duration: transitionConfig.duration,
+            easing: (t: number) => {
+              if (t < 0.5) {
+                return Math.pow(2, p - 1) * Math.pow(t, p);
+              }
+              return 1 - Math.pow(-2 * t + 2, p) / 2;
+            },
             onComplete: () => {
               gate.transitioning = false;
               gate.pageState = "content";
@@ -203,10 +216,15 @@ function setupAnimations(
             gate.tickCount = 0;
             gate.transitioning = true;
             gate.locked = true; // block normal scroll during return
+            const p = transitionConfig.easePower;
             lenis.scrollTo(0, {
-              duration: 1.8,
-              easing: (t: number) =>
-                t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2,
+              duration: transitionConfig.duration,
+              easing: (t: number) => {
+                if (t < 0.5) {
+                  return Math.pow(2, p - 1) * Math.pow(t, p);
+                }
+                return 1 - Math.pow(-2 * t + 2, p) / 2;
+              },
               onComplete: () => {
                 gate.transitioning = false;
                 gate.pageState = "landing";
@@ -228,6 +246,180 @@ function setupAnimations(
     };
 
     window.addEventListener("wheel", gateWheelHandler, { passive: true });
+
+    // Touch support for the gate (mobile)
+    let touchStartY = 0;
+    const gateTouchStartHandler = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+    };
+    const gateTouchEndHandler = (e: TouchEvent) => {
+      if (gate.transitioning) return;
+      const touchEndY = e.changedTouches[0].clientY;
+      const deltaY = touchStartY - touchEndY; // positive = swipe up (scroll down)
+      const minSwipe = 30; // minimum swipe distance in px
+
+      if (Math.abs(deltaY) < minSwipe) return;
+
+      const scrollingDown = deltaY > 0;
+      const scrollingUp = deltaY < 0;
+
+      if (gate.pageState === "landing" && scrollingDown) {
+        gate.transitioning = true;
+        gate.locked = false;
+        const p = transitionConfig.easePower;
+        lenis.scrollTo(landingH, {
+          duration: transitionConfig.duration,
+          easing: (t: number) => {
+            if (t < 0.5) {
+              return Math.pow(2, p - 1) * Math.pow(t, p);
+            }
+            return 1 - Math.pow(-2 * t + 2, p) / 2;
+          },
+          onComplete: () => {
+            gate.transitioning = false;
+            gate.pageState = "content";
+          },
+        });
+        return;
+      }
+
+      if (gate.pageState === "content" && scrollingUp) {
+        if (lenis.scroll <= landingH + 5) {
+          gate.transitioning = true;
+          gate.locked = true;
+          const p = transitionConfig.easePower;
+          lenis.scrollTo(0, {
+            duration: transitionConfig.duration,
+            easing: (t: number) => {
+              if (t < 0.5) {
+                return Math.pow(2, p - 1) * Math.pow(t, p);
+              }
+              return 1 - Math.pow(-2 * t + 2, p) / 2;
+            },
+            onComplete: () => {
+              gate.transitioning = false;
+              gate.pageState = "landing";
+            },
+          });
+        }
+      }
+    };
+
+    // Block native touch scroll when gate is locked
+    const blockTouchScroll = (e: TouchEvent) => {
+      if (gate.locked || gate.transitioning) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("touchstart", gateTouchStartHandler, { passive: true });
+    window.addEventListener("touchend", gateTouchEndHandler, { passive: true });
+    window.addEventListener("touchmove", blockTouchScroll, { passive: false });
+
+    // Intercept hash links (e.g. #section-redbull) on the landing page.
+    // Instead of a native hash jump (which breaks the header stack),
+    // we transition through the gate first, then smooth-scroll to the section.
+    const hashClickHandler = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest("a[href^='#section-']");
+      if (!anchor) return;
+
+      e.preventDefault();
+      const targetId = (anchor as HTMLAnchorElement).getAttribute("href")!.slice(1);
+      const targetEl = document.getElementById(targetId);
+      if (!targetEl) return;
+
+      if (gate.transitioning) return;
+
+      if (gate.pageState === "landing") {
+        // Transition through the gate first, then scroll to section
+        gate.transitioning = true;
+        gate.locked = false;
+        const p = transitionConfig.easePower;
+        lenis.scrollTo(landingH, {
+          duration: transitionConfig.duration,
+          easing: (t: number) => {
+            if (t < 0.5) {
+              return Math.pow(2, p - 1) * Math.pow(t, p);
+            }
+            return 1 - Math.pow(-2 * t + 2, p) / 2;
+          },
+          onComplete: () => {
+            gate.transitioning = false;
+            gate.pageState = "content";
+            // Now scroll to the target section
+            lenis.scrollTo(targetEl, {
+              offset: -LOGO_BAR_H,
+              duration: 0.8,
+            });
+          },
+        });
+      } else {
+        // Already past the gate, just scroll directly
+        lenis.scrollTo(targetEl, {
+          offset: -LOGO_BAR_H,
+          duration: 0.8,
+        });
+      }
+    };
+
+    document.addEventListener("click", hashClickHandler);
+
+    // Down-arrow click triggers the gate transition immediately
+    const downArrow = document.getElementById("landing-down-arrow");
+    const arrowClickHandler = () => {
+      if (gate.transitioning) return;
+      if (gate.pageState !== "landing") return;
+
+      gate.transitioning = true;
+      gate.locked = false;
+      const p = transitionConfig.easePower;
+      lenis.scrollTo(landingH, {
+        duration: transitionConfig.duration,
+        easing: (t: number) => {
+          if (t < 0.5) {
+            return Math.pow(2, p - 1) * Math.pow(t, p);
+          }
+          return 1 - Math.pow(-2 * t + 2, p) / 2;
+        },
+        onComplete: () => {
+          gate.transitioning = false;
+          gate.pageState = "content";
+        },
+      });
+    };
+
+    if (downArrow) {
+      downArrow.addEventListener("click", arrowClickHandler);
+    }
+
+    // "Go up" pill button — show when on content, hide on landing
+    const goUpBtn = document.getElementById("go-up-btn");
+    const updateGoUpVisibility = () => {
+      if (!goUpBtn) return;
+      if (gate.pageState === "content") {
+        goUpBtn.style.opacity = "1";
+        goUpBtn.style.pointerEvents = "auto";
+      } else {
+        goUpBtn.style.opacity = "0";
+        goUpBtn.style.pointerEvents = "none";
+      }
+    };
+
+    const goUpClickHandler = () => {
+      if (gate.transitioning || gate.pageState !== "content") return;
+
+      // Scroll to the top of content (just past the landing gate)
+      lenis.scrollTo(landingH, {
+        duration: 0.8,
+      });
+    };
+
+    if (goUpBtn) {
+      goUpBtn.addEventListener("click", goUpClickHandler);
+    }
+
+    // Update go-up visibility on every scroll tick (polls gate.pageState)
+    lenis.on("scroll", updateGoUpVisibility);
   }
 
   /* -- 3. Header sticky-stack -- */
@@ -324,10 +516,9 @@ function deriveStates(
   live: Record<string, LiveState>,
   collapseDistance: number
 ): DerivedState[] {
-  // Nudge all slots up 0.5px so slot 0 overlaps the logo bar bottom,
-  // closing the sub-pixel gap. The offset is constant (not per-slot)
-  // so slot-to-slot spacing stays exact.
-  const slotTop = (s: number) => LOGO_BAR_H - 0.5 + s * HEADER_BLOCK_COLLAPSED_H;
+  // Nudge all slots up so slot 0 overlaps the logo bar bottom separator,
+  // closing any sub-pixel gap.
+  const slotTop = (s: number) => LOGO_BAR_H - 1 + s * HEADER_BLOCK_COLLAPSED_H;
 
   // Step 1: Read every header's "natural top" -- where it would be
   // in document flow. For fixed/stacked headers we read their placeholder.
@@ -657,10 +848,12 @@ function applyStates(
       continue;
     }
 
-    // Fade out the top separator when this header is in slot 0
-    // (it sits directly under the logo bar, which has its own bottom line).
+    // Fade out the top separator when this header's top edge is touching
+    // the logo bar's bottom (within 2px). This prevents a double line
+    // between the logo bar and slot 0.
     if (topSep && topSep !== bottomSep) {
-      topSep.style.opacity = d.slot === 0 ? "0" : "";
+      const touchingLogoBar = Math.abs(d.topPx - (LOGO_BAR_H - 1)) < 2;
+      topSep.style.opacity = touchingLogoBar ? "0" : "";
     }
 
     if (!bottomSep) continue;
@@ -802,6 +995,9 @@ function returnToFlow(ref: HeaderRef) {
   title.style.fontSize = "";
   tags.style.flexDirection = "";
   tags.style.opacity = "";
+  tags.style.paddingTop = "";
+  tags.style.padding = "";
+  tags.style.alignSelf = "";
 
   // Clear any separator opacity override
   const bottomSep = block.querySelector("hr:last-of-type") as HTMLElement | null;
@@ -812,27 +1008,39 @@ function returnToFlow(ref: HeaderRef) {
 
 /** Lerp all visual properties based on collapse progress (0 = expanded, 1 = collapsed). */
 function interpolateHeader(ref: HeaderRef, t: number) {
-  const blockH = lerp(ref.expandedBlockH, HEADER_BLOCK_COLLAPSED_H, t);
-  const rowH = lerp(ref.expandedRowH, HEADER_ROW_COLLAPSED_H, t);
+  // Apply a subtle ease-out so the collapse decelerates as it
+  // approaches the fully-collapsed state (feels less abrupt).
+  const eased = 1 - Math.pow(1 - t, 1.4);
+
+  const blockH = lerp(ref.expandedBlockH, HEADER_BLOCK_COLLAPSED_H, eased);
+  const rowH = lerp(ref.expandedRowH, HEADER_ROW_COLLAPSED_H, eased);
   ref.block.style.height = `${blockH}px`;
   ref.row.style.height = `${rowH}px`;
 
-  const titleSize = lerp(ref.expandedTitleSize, COLLAPSED_TITLE_SIZE, t);
+  const titleSize = lerp(ref.expandedTitleSize, COLLAPSED_TITLE_SIZE, eased);
   ref.title.style.fontSize = `${titleSize}px`;
 
   // Tags crossfade: column -> fade out -> switch to row -> fade in
   if (t < 0.5) {
     ref.tags.style.flexDirection = "column";
     ref.tags.style.opacity = "1";
+    ref.tags.style.alignSelf = "";
+    ref.tags.style.padding = "";
   } else if (t < 0.65) {
     ref.tags.style.flexDirection = "column";
     ref.tags.style.opacity = `${1 - (t - 0.5) / 0.15}`;
+    ref.tags.style.alignSelf = "";
+    ref.tags.style.padding = "";
   } else if (t < 0.8) {
     ref.tags.style.flexDirection = "row";
     ref.tags.style.opacity = `${(t - 0.65) / 0.15}`;
+    ref.tags.style.alignSelf = "center";
+    ref.tags.style.padding = "3px 0";
   } else {
     ref.tags.style.flexDirection = "row";
     ref.tags.style.opacity = "1";
+    ref.tags.style.alignSelf = "center";
+    ref.tags.style.padding = "3px 0";
   }
 }
 

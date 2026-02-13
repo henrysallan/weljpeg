@@ -10,6 +10,7 @@
   background: var(--color-bg);
   display: flex;
   flex-direction: column;
+  transform: translateZ(0);
 }
 
 .topSep {
@@ -18,4 +19,43 @@
 
 .logoWrap {
   padding: 10px var(--page-padding);
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.goUpPill {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-tag-bg, transparent);
+  border: 1px solid var(--color-tag-border, currentColor);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--color-text);
+  white-space: nowrap;
+  cursor: pointer;
+  padding: 4px 14px 5px;
+  border-radius: 9999px;
+  font-family: inherit;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  transition: opacity 0.2s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.goUpPill:hover {
+  opacity: 0.6;
+}
+
+@media (max-width: 767px) {
+  .goUpPill {
+    font-size: 12px;
+    padding: 3px 10px;
+  }
 }

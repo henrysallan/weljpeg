@@ -15,7 +15,7 @@ interface LogoBarProps {
  * position: sticky keeps it there permanently.
  */
 export const LogoBar: React.FC<LogoBarProps> = ({ className }) => {
-  const scale = 28;               // change this one number to resize
+  const scale = 24;               // change this one number to resize
   const ratio = 36 / 41;          // aspect ratio (h:w = 36:41)
 
   return (
@@ -26,6 +26,7 @@ export const LogoBar: React.FC<LogoBarProps> = ({ className }) => {
       <Separator className={styles.topSep} />
       <div className={styles.logoWrap}>
         <WelcomeLogo width={scale} height={scale * ratio} />
+        <button id="go-up-btn" className={styles.goUpPill}>go up</button>
       </div>
       <Separator />
     </div>
