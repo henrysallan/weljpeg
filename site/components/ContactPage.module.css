@@ -1,0 +1,23 @@
+.contact {
+  height: 100dvh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.avatar {
+  width: 160px;
+  height: 160px;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+@media (max-width: 639px) {
+  .avatar {
+    width: 120px;
+    height: 120px;
+  }
+}

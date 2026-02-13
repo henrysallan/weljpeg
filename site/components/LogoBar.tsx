@@ -25,7 +25,9 @@ export const LogoBar: React.FC<LogoBarProps> = ({ className }) => {
     >
       <Separator className={styles.topSep} />
       <div className={styles.logoWrap}>
-        <WelcomeLogo width={scale} height={scale * ratio} />
+        <button id="logo-home-btn" className={styles.logoBtn} aria-label="Back to top">
+          <WelcomeLogo width={scale} height={scale * ratio} />
+        </button>
         <button id="go-up-btn" className={styles.goUpPill}>go up</button>
       </div>
       <Separator />

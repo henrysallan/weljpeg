@@ -5,9 +5,9 @@ import styles from "./MailIcon.module.css";
 
 export const MailIcon: React.FC = () => (
   <a
-    href="mailto:hello@welcomelabs.com"
+    href="#section-contact"
     className={styles.mailIcon}
-    aria-label="Contact us via email"
+    aria-label="Go to contact"
   >
     <svg
       width="30"

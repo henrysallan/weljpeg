@@ -408,14 +408,27 @@ function setupAnimations(
     const goUpClickHandler = () => {
       if (gate.transitioning || gate.pageState !== "content") return;
 
-      // Scroll to the top of content (just past the landing gate)
-      lenis.scrollTo(landingH, {
-        duration: 0.8,
-      });
+      // If already at (or near) the top of content, go to landing page
+      if (lenis.scroll <= landingH + 20) {
+        lenis.scrollTo(0, { duration: 0.8 });
+      } else {
+        // Scroll to the top of content (just past the landing gate)
+        lenis.scrollTo(landingH, { duration: 0.8 });
+      }
     };
 
     if (goUpBtn) {
       goUpBtn.addEventListener("click", goUpClickHandler);
+    }
+
+    // Logo click — scroll back to landing page
+    const logoHomeBtn = document.getElementById("logo-home-btn");
+    const logoClickHandler = () => {
+      if (gate.transitioning) return;
+      lenis.scrollTo(0, { duration: 0.8 });
+    };
+    if (logoHomeBtn) {
+      logoHomeBtn.addEventListener("click", logoClickHandler);
     }
 
     // Update go-up visibility on every scroll tick (polls gate.pageState)

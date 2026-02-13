@@ -24,6 +24,13 @@
   position: relative;
 }
 
+.logoBtn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
 .goUpPill {
   position: absolute;
   left: 50%;
