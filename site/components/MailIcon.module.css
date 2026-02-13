@@ -1,7 +1,7 @@
 .mailIcon {
   position: fixed;
-  top: 7px;
-  right: 8px;
+  top: 0px;
+  right: 0px;
   z-index: var(--z-mail-icon);
   width: 52px;
   height: 41px;

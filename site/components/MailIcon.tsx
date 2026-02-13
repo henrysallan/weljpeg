@@ -10,8 +10,8 @@ export const MailIcon: React.FC = () => (
     aria-label="Contact us via email"
   >
     <svg
-      width="41"
-      height="30"
+      width="30"
+      height="20"
       viewBox="0 0 41 30"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

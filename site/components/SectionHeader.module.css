@@ -30,7 +30,6 @@
 .title {
   font-size: clamp(40px, 5vw, 83px);
   font-weight: var(--font-weight);
-  font-variant: small-caps;
   line-height: 1;
   white-space: nowrap;
   transform-origin: left center;
@@ -45,6 +44,8 @@
   gap: 5px;
   align-items: flex-end;
   flex-shrink: 0;
+  padding: 10px 0;
+  box-sizing: border-box;
 }
 
 /* ---- Collapsed state (applied by scroll system) ---- */

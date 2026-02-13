@@ -7,6 +7,7 @@
 
 export interface BlockColumn {
   type: "image" | "text" | "titled-text";
+  align?: "top" | "center" | "bottom";
   image?: {
     src: string;
     alt: string;
@@ -61,23 +62,25 @@ export const caseStudies: CaseStudy[] = [
         splitRight: 2,
         leftContent: {
           type: "text",
+          align: "top",
           body: PLACEHOLDER_BODY,
         },
         rightContent: {
           type: "image",
-          image: { src: "/images/redbull-01.svg", alt: "Redbull campaign — party scene with Red Bull can" },
+          image: { src: "/images/redbull_1.png", alt: "Redbull campaign — party scene with Red Bull can" },
         },
       },
       {
         id: "redbull-2",
-        splitLeft: 2,
+        splitLeft: 8,
         splitRight: 6,
         leftContent: {
           type: "image",
-          image: { src: "/images/redbull-02.svg", alt: "Redbull campaign — youth culture event" },
+          image: { src: "/images/redbull_2.png", alt: "Redbull campaign — youth culture event" },
         },
         rightContent: {
           type: "text",
+          align: "bottom",
           body: PLACEHOLDER_BODY,
         },
       },
@@ -85,7 +88,7 @@ export const caseStudies: CaseStudy[] = [
   },
   {
     id: "uniqlo",
-    title: "UNIQLO",
+    title: "Uniqlo",
     tags: ["Strategy", "Strategy"],
     blocks: [
       {
@@ -94,10 +97,11 @@ export const caseStudies: CaseStudy[] = [
         splitRight: 5,
         leftContent: {
           type: "image",
-          image: { src: "/images/uniqlo-01.svg", alt: "UNIQLO campaign — ice cream scene" },
+          image: { src: "/images/uniqlo_2.png", alt: "UNIQLO campaign — ice cream scene" },
         },
         rightContent: {
           type: "text",
+          align: "top",
           body: PLACEHOLDER_BODY,
         },
       },
@@ -107,11 +111,12 @@ export const caseStudies: CaseStudy[] = [
         splitRight: 3,
         leftContent: {
           type: "text",
+          align: "top",
           body: PLACEHOLDER_BODY,
         },
         rightContent: {
           type: "image",
-          image: { src: "/images/uniqlo-02.svg", alt: "UNIQLO campaign — musician outdoors" },
+          image: { src: "/images/uniqlo_3.png", alt: "UNIQLO campaign — musician outdoors" },
         },
       },
     ],
@@ -127,6 +132,7 @@ export const caseStudies: CaseStudy[] = [
         splitRight: 2,
         leftContent: {
           type: "text",
+          align: "bottom",
           body: PLACEHOLDER_BODY,
         },
         rightContent: {
@@ -144,6 +150,7 @@ export const caseStudies: CaseStudy[] = [
         },
         rightContent: {
           type: "text",
+          align: "bottom",
           body: PLACEHOLDER_BODY,
         },
       },
@@ -166,6 +173,7 @@ export const servicesSection: ServicesSection = {
       splitRight: 3,
       leftContent: {
         type: "titled-text",
+        align: "top",
         subHeading: "Design",
         body: PLACEHOLDER_BODY_SHORT,
       },
@@ -184,6 +192,7 @@ export const servicesSection: ServicesSection = {
       },
       rightContent: {
         type: "titled-text",
+        align: "top",
         subHeading: "Develop",
         body: PLACEHOLDER_BODY_SHORT,
       },
@@ -194,6 +203,7 @@ export const servicesSection: ServicesSection = {
       splitRight: 3,
       leftContent: {
         type: "titled-text",
+        align: "top",
         subHeading: "Distribute",
         body: PLACEHOLDER_BODY_SHORT,
       },

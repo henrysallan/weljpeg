@@ -9,5 +9,6 @@
 .sectionContent {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 10px;
+  padding: 10px 0;
 }

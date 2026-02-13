@@ -10,6 +10,7 @@ interface SectionHeaderProps {
   tags: string[];
   sectionId: string;
   className?: string;
+  hideTopSeparator?: boolean;
 }
 
 /**
@@ -22,6 +23,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   tags,
   sectionId,
   className,
+  hideTopSeparator,
 }) => {
   return (
     <div
@@ -29,7 +31,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
       className={`${styles.headerBlock} ${className ?? ""}`}
       data-section={sectionId}
     >
-      <Separator />
+      {!hideTopSeparator && <Separator />}
       <div
         id={`header-${sectionId}`}
         className={`${styles.header} ${styles.headerExpanded}`}

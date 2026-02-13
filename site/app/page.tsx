@@ -17,8 +17,8 @@ export default function Home() {
       {/* Main Content */}
       <main id="main-content">
         <LogoBar />
-        {allSections.map((section) => (
-          <Section key={section.id} data={section} />
+        {allSections.map((section, i) => (
+          <Section key={section.id} data={section} hideTopSeparator={i === 0} />
         ))}
       </main>
     </>

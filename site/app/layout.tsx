@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { MailIcon } from "@/components/MailIcon";
 
-const manrope = Manrope({
-  subsets: ["latin"],
-  weight: "200",
+const manrope = localFont({
+  src: "../public/fonts/Manrope-VariableFont_wght.ttf",
   variable: "--font-manrope",
   display: "swap",
+  weight: "200 800",
 });
 
 export const metadata: Metadata = {

@@ -9,12 +9,13 @@ import type { CaseStudy, ServicesSection } from "@/lib/data";
 interface SectionProps {
   data: CaseStudy | ServicesSection;
   className?: string;
+  hideTopSeparator?: boolean;
 }
 
 /**
  * Full section — header + separator + content blocks.
  */
-export const Section: React.FC<SectionProps> = ({ data, className }) => {
+export const Section: React.FC<SectionProps> = ({ data, className, hideTopSeparator }) => {
   return (
     <section
       id={`section-${data.id}`}
@@ -25,6 +26,7 @@ export const Section: React.FC<SectionProps> = ({ data, className }) => {
         title={data.title}
         tags={data.tags}
         sectionId={data.id}
+        hideTopSeparator={hideTopSeparator}
       />
 
       <div className={styles.sectionContent}>

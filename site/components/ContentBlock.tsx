@@ -40,10 +40,12 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({
 
 const Column: React.FC<{ data: BlockColumn }> = ({ data }) => {
   const alignClass =
-    data.type === "text"
+    data.align === "bottom"
       ? styles.columnAlignBottom
-      : data.type === "titled-text"
+      : data.align === "top"
       ? styles.columnAlignTop
+      : data.align === "center"
+      ? styles.columnAlignCenter
       : "";
 
   return (

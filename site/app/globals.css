@@ -28,7 +28,7 @@
 
   /* Dimensions (desktop reference) */
   --logo-bar-expanded: 316px;
-  --logo-bar-collapsed: 41px;
+  --logo-bar-collapsed: 52px;
   --header-expanded: 74px;
   --header-collapsed: 34.5px;
   --header-title-expanded: 83px;
@@ -100,11 +100,9 @@ ul, ol {
 .separator {
   width: calc(100% - 2 * var(--page-padding));
   margin: 0 auto;
-  height: 1px;
+  height: var(--separator-weight);
   background: var(--separator-color);
   border: none;
-  transform: scaleY(0.5);
-  transform-origin: top;
 }
 
 /* ============================================================

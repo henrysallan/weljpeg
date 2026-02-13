@@ -8,25 +8,40 @@ import Lenis from "lenis";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* -- Layout constants -- */
-const LOGO_BAR_H = 41;
-const HEADER_BLOCK_COLLAPSED_H = 36.5; // 1px sep + 34.5px row + 1px sep
+/* ================================================================
+   Layout constants
+   ================================================================ */
+let LOGO_BAR_H = 52; // measured at runtime from #logo-bar
+const HEADER_BLOCK_COLLAPSED_H = 35.5; // 0.5px sep + 34.5px row + 0.5px sep
 const HEADER_ROW_COLLAPSED_H = 34.5;
+const COLLAPSED_TITLE_SIZE = 35.6;
+const MAX_VISIBLE_SLOTS = 2;
+
+/* ================================================================
+   Landing gate state — shared between Lenis config and setup
+   ================================================================ */
+const gate = {
+  locked: true,         // page starts locked on landing
+  transitioning: false, // true while the scroll animation plays
+  tickCount: 0,
+  pageState: "landing" as "landing" | "content",
+  TICK_THRESHOLD: 2,
+};
 
 /**
- * ScrollManager - invisible component that wires up:
- * 1. Lenis smooth scroll
- * 2. Landing -> Content snap transition
- * 3. Section header sticky-stack system
+ * ScrollManager -- invisible component that wires up:
+ *   1. Lenis smooth scroll
+ *   2. Landing -> Content snap
+ *   3. Section header sticky-stack (declarative two-phase reconciler)
  *
- * The logo bar is purely CSS sticky -- no GSAP needed.
- * All animations are scroll-linked (scrubbed) and fully reversible.
+ * The logo bar is purely CSS sticky -- no JS needed.
+ * All header animations are scroll-linked and fully reversible.
  */
 export const ScrollManager: React.FC = () => {
   const lenisRef = useRef<Lenis | null>(null);
 
   /* ------------------------------------------------
-     1. Lenis smooth scroll setup
+     1. Lenis smooth scroll
      ------------------------------------------------ */
   useEffect(() => {
     const prefersReduced = window.matchMedia(
@@ -34,38 +49,46 @@ export const ScrollManager: React.FC = () => {
     ).matches;
 
     const lenis = new Lenis({
-      lerp: prefersReduced ? 1 : 0.1,
-      duration: 1.2,
+      lerp: prefersReduced ? 1 : 0.08,
       smoothWheel: !prefersReduced,
       syncTouch: false,
-      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      wheelMultiplier: 0.7,
+      touchMultiplier: 0.7,
+      // Return false to swallow the event when gate is locked/transitioning
+      virtualScroll: (e) => {
+        if (gate.transitioning) return false;
+        if (gate.locked) return false;
+        return true;
+      },
     });
+
+    // Also block native scroll when locked (belt-and-suspenders)
+    const blockNativeScroll = (e: WheelEvent) => {
+      if (gate.locked || gate.transitioning) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("wheel", blockNativeScroll, { passive: false });
 
     lenisRef.current = lenis;
-
-    // Sync Lenis with GSAP ScrollTrigger
     lenis.on("scroll", ScrollTrigger.update);
-
-    gsap.ticker.add((time) => {
-      lenis.raf(time * 1000);
-    });
-
+    gsap.ticker.add((time) => lenis.raf(time * 1000));
     gsap.ticker.lagSmoothing(0);
 
     return () => {
+      window.removeEventListener("wheel", blockNativeScroll);
       lenis.destroy();
     };
   }, []);
 
   /* ------------------------------------------------
-     2-4. GSAP ScrollTrigger animations
+     2-3. GSAP ScrollTrigger animations
      ------------------------------------------------ */
   useGSAP(() => {
     const prefersReduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
-    // Wait one frame for DOM measurements to settle
     requestAnimationFrame(() => {
       setupAnimations(prefersReduced, lenisRef);
     });
@@ -78,72 +101,153 @@ export const ScrollManager: React.FC = () => {
   return null;
 };
 
-/* ============================================================
-   Animation setup - called after DOM is ready
-   ============================================================ */
+/* ================================================================
+   Types
+   ================================================================ */
+
+/** Static info about a header -- never changes after setup. */
+interface HeaderRef {
+  id: string;
+  block: HTMLElement;
+  row: HTMLElement;
+  section: HTMLElement;
+  title: HTMLElement;
+  tags: HTMLElement;
+  expandedBlockH: number;
+  expandedRowH: number;
+  expandedTitleSize: number;
+}
+
+/** Desired state for one header, computed fresh each frame. */
+interface DerivedState {
+  id: string;
+  /** What this header should be doing right now. */
+  mode: "expanded" | "collapsing" | "collapsed" | "exiting" | "dismissed";
+  /** 0 = fully expanded, 1 = fully collapsed. Only meaningful when
+   *  mode is "collapsing" or "collapsed". */
+  progress: number;
+  /** Desired viewport-Y for the top of this header (fixed positioning). */
+  topPx: number;
+  /** Desired opacity (used only during exit). */
+  opacity: number;
+  /** Which slot this header occupies (0 or 1), or -1 if none. */
+  slot: number;
+  /** z-index to apply. */
+  zIndex: number;
+}
+
+/** Mutable per-header state that persists between frames for diffing. */
+interface LiveState {
+  currentMode: string;
+  lastProgress: number;
+  lastTopPx: number;
+  lastOpacity: number;
+  /** The viewport-Y at which this header first contacted the stack.
+   *  Set once when transitioning expanded -> collapsing. */
+  contactY: number;
+}
+
+/* ================================================================
+   Setup
+   ================================================================ */
 
 function setupAnimations(
   prefersReduced: boolean,
   lenisRef: React.RefObject<Lenis | null>
 ) {
-  /* -- 2. Landing -> Content snap -- */
+  /* -- 2. Landing -> Content gate -- */
   const landing = document.getElementById("landing-page");
-  if (landing) {
-    ScrollTrigger.create({
-      trigger: landing,
-      start: "top top",
-      end: "bottom top",
-      snap: prefersReduced
-        ? undefined
-        : {
-            snapTo: [0, 1],
-            duration: { min: 0.4, max: 0.8 },
-            ease: "power2.inOut",
-          },
-    });
+  const lenis = lenisRef.current;
+
+  if (landing && lenis) {
+    const landingH = landing.offsetHeight;
+
+    // Reset gate state
+    gate.locked = true;
+    gate.transitioning = false;
+    gate.tickCount = 0;
+    gate.pageState = "landing";
+
+    // Count wheel ticks even while locked (virtualScroll swallows
+    // them from Lenis, but our native wheel listener still fires).
+    const gateWheelHandler = (e: WheelEvent) => {
+      if (gate.transitioning) return;
+
+      const scrollingDown = e.deltaY > 0;
+      const scrollingUp = e.deltaY < 0;
+
+      if (gate.pageState === "landing" && scrollingDown) {
+        gate.tickCount++;
+        if (gate.tickCount >= gate.TICK_THRESHOLD) {
+          gate.tickCount = 0;
+          gate.transitioning = true;
+          gate.locked = false; // unlock so Lenis can animate
+          lenis.scrollTo(landingH, {
+            duration: 1.8,
+            easing: (t: number) =>
+              t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2,
+            onComplete: () => {
+              gate.transitioning = false;
+              gate.pageState = "content";
+            },
+          });
+        }
+        return;
+      }
+
+      if (gate.pageState === "content" && scrollingUp) {
+        // Only activate gate near the top of content
+        if (lenis.scroll <= landingH + 5) {
+          gate.tickCount++;
+          if (gate.tickCount >= gate.TICK_THRESHOLD) {
+            gate.tickCount = 0;
+            gate.transitioning = true;
+            gate.locked = true; // block normal scroll during return
+            lenis.scrollTo(0, {
+              duration: 1.8,
+              easing: (t: number) =>
+                t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2,
+              onComplete: () => {
+                gate.transitioning = false;
+                gate.pageState = "landing";
+                // Stay locked on landing
+              },
+            });
+          }
+          return;
+        }
+      }
+
+      // Reset ticks if wrong direction
+      if (
+        (gate.pageState === "landing" && scrollingUp) ||
+        (gate.pageState === "content" && scrollingDown)
+      ) {
+        gate.tickCount = 0;
+      }
+    };
+
+    window.addEventListener("wheel", gateWheelHandler, { passive: true });
   }
 
-  /* -- 3. Header-block sticky-stack -- */
+  /* -- 3. Header sticky-stack -- */
   const sectionIds = ["redbull", "uniqlo", "puma", "services"];
 
-  // Ordered stack of stacked header IDs (oldest first). Max 2 visible.
-  const collapsedStack: string[] = [];
+  const headerRefs: HeaderRef[] = [];
+  const liveStates: Record<string, LiveState> = {};
 
-  // Transition state when a 3rd header enters:
-  // - exitingId: header being pushed out of slot 0 (slides up + fades)
-  // - slidingId: header shifting from slot 1 to slot 0 (top lerps)
-  // Both are driven by the incoming header's collapse progress.
-  const exitState: { exitingId: string | null; slidingId: string | null } = {
-    exitingId: null,
-    slidingId: null,
-  };
-
-  // Cache element references + expanded measurements
-  interface HeaderInfo {
-    block: HTMLElement;
-    row: HTMLElement;
-    section: HTMLElement;
-    title: HTMLElement;
-    tags: HTMLElement;
-    expandedBlockH: number;
-    expandedRowH: number;
-    expandedTitleSize: number;
-    lastProgress: number; // -1 = not stacked
-    contactY: number; // viewport Y where this header first contacted the stack
-  }
-  const headers: Record<string, HeaderInfo> = {};
-
-  sectionIds.forEach((sectionId) => {
+  for (const sectionId of sectionIds) {
     const block = document.getElementById(`header-block-${sectionId}`);
     const row = document.getElementById(`header-${sectionId}`);
     const section = document.getElementById(`section-${sectionId}`);
-    if (!block || !row || !section) return;
+    if (!block || !row || !section) continue;
 
     const title = row.querySelector<HTMLElement>("[class*='title']");
     const tags = row.querySelector<HTMLElement>("[class*='tags']");
-    if (!title || !tags) return;
+    if (!title || !tags) continue;
 
-    headers[sectionId] = {
+    headerRefs.push({
+      id: sectionId,
       block,
       row,
       section,
@@ -152,31 +256,46 @@ function setupAnimations(
       expandedBlockH: block.offsetHeight,
       expandedRowH: row.offsetHeight,
       expandedTitleSize: parseFloat(getComputedStyle(title).fontSize),
+    });
+
+    liveStates[sectionId] = {
+      currentMode: "expanded",
       lastProgress: -1,
+      lastTopPx: -1,
+      lastOpacity: -1,
       contactY: 0,
     };
 
-    // Click collapsed header -> scroll to section
+    // Click collapsed header -> scroll to its section
     block.addEventListener("click", () => {
       const state = block.dataset.state || "expanded";
-      if (state === "stacked") {
-        const slot = collapsedStack.indexOf(sectionId);
-        const stickyTop =
-          slot === 0 ? LOGO_BAR_H : LOGO_BAR_H + HEADER_BLOCK_COLLAPSED_H;
+      if (state !== "expanded") {
         lenisRef.current?.scrollTo(section, {
-          offset: -stickyTop,
+          offset: -LOGO_BAR_H,
           duration: 0.8,
         });
       }
     });
-  });
+  }
 
-  // The scroll distance over which the collapse animation plays.
-  // Matches the height difference so it feels 1:1 with scroll.
-  const firstInfo = headers[sectionIds[0]];
-  const COLLAPSE_DISTANCE = firstInfo
-    ? firstInfo.expandedBlockH - HEADER_BLOCK_COLLAPSED_H
+  const firstRef = headerRefs[0];
+  const RAW_COLLAPSE_DISTANCE = firstRef
+    ? firstRef.expandedBlockH - HEADER_BLOCK_COLLAPSED_H
     : 40;
+  // Multiplier > 1 stretches the collapse over more scroll distance,
+  // making it feel slower/more gradual.
+  const COLLAPSE_SPEED = 2.5;
+  const COLLAPSE_DISTANCE = RAW_COLLAPSE_DISTANCE * COLLAPSE_SPEED;
+
+  /* Fade the logo bar's top separator once it's stuck at the top */
+  const logoBar = document.getElementById("logo-bar");
+  const logoTopSep = logoBar?.querySelector<HTMLElement>("hr:first-of-type");
+
+  // Measure actual logo bar height from the DOM (getBoundingClientRect
+  // gives sub-pixel accuracy, unlike offsetHeight which rounds)
+  if (logoBar) {
+    LOGO_BAR_H = logoBar.getBoundingClientRect().height;
+  }
 
   /* Frame-by-frame reconciliation */
   ScrollTrigger.create({
@@ -184,391 +303,481 @@ function setupAnimations(
     start: "top bottom",
     end: "bottom top",
     onUpdate: () => {
-      reconcileHeaderStack(sectionIds, headers, collapsedStack, exitState, COLLAPSE_DISTANCE);
+      // Fade top separator when logo bar is stuck (top ≈ 0)
+      if (logoBar && logoTopSep) {
+        const barTop = logoBar.getBoundingClientRect().top;
+        logoTopSep.style.opacity = barTop <= 1 ? "0" : "";
+      }
+      reconcile(headerRefs, liveStates, COLLAPSE_DISTANCE);
     },
   });
 }
 
-/* ============================================================
-   reconcileHeaderStack -- called every scroll frame
-   ============================================================ */
+/* ================================================================
+   PHASE 1: DERIVE
+   Pure function. Reads DOM positions, returns desired state for
+   every header. Zero DOM writes.
+   ================================================================ */
 
-function reconcileHeaderStack(
-  sectionIds: string[],
-  headers: Record<string, {
-    block: HTMLElement;
-    row: HTMLElement;
-    section: HTMLElement;
-    title: HTMLElement;
-    tags: HTMLElement;
-    expandedBlockH: number;
-    expandedRowH: number;
-    expandedTitleSize: number;
-    lastProgress: number;
-    contactY: number;
-  }>,
-  collapsedStack: string[],
-  exitState: { exitingId: string | null; slidingId: string | null },
+function deriveStates(
+  refs: HeaderRef[],
+  live: Record<string, LiveState>,
   collapseDistance: number
-) {
-  const slot0Top = LOGO_BAR_H;
-  const slot1Top = LOGO_BAR_H + HEADER_BLOCK_COLLAPSED_H;
+): DerivedState[] {
+  // Nudge all slots up 0.5px so slot 0 overlaps the logo bar bottom,
+  // closing the sub-pixel gap. The offset is constant (not per-slot)
+  // so slot-to-slot spacing stays exact.
+  const slotTop = (s: number) => LOGO_BAR_H - 0.5 + s * HEADER_BLOCK_COLLAPSED_H;
 
-  /* ---- READ PHASE ---- */
-  const measurements: Record<string, {
-    naturalTop: number;
-    state: string;
-  }> = {};
-
-  for (const id of sectionIds) {
-    const info = headers[id];
-    if (!info) continue;
-    const state = info.block.dataset.state || "expanded";
-
+  // Step 1: Read every header's "natural top" -- where it would be
+  // in document flow. For fixed/stacked headers we read their placeholder.
+  const naturalTops: Record<string, number> = {};
+  for (const ref of refs) {
+    const state = ref.block.dataset.state || "expanded";
     if (state === "expanded") {
-      measurements[id] = {
-        naturalTop: info.block.getBoundingClientRect().top,
-        state,
-      };
+      naturalTops[ref.id] = ref.block.getBoundingClientRect().top;
     } else {
-      // stacked, exiting, or dismissed: read placeholder position
-      const ph = info.block.parentElement?.querySelector(
-        `[data-placeholder-for="${info.block.id}"]`
+      const ph = ref.block.parentElement?.querySelector(
+        `[data-placeholder-for="${ref.block.id}"]`
       ) as HTMLElement | null;
-      measurements[id] = {
-        naturalTop: ph ? ph.getBoundingClientRect().top : -9999,
-        state,
-      };
+      naturalTops[ref.id] = ph ? ph.getBoundingClientRect().top : -9999;
     }
   }
 
-  /* ---- LOGIC + WRITE ---- */
-
-  // Pass 1: Cancel exit/slide transitions when scrolling back up
-  // and the stack has room. (Actual un-stacking happens in Pass 3
-  // when progress reaches 0, so the reverse animation is smooth.)
-  if (collapsedStack.length > 0 && exitState.exitingId) {
-    const lastId = collapsedStack[collapsedStack.length - 1];
-    const m = measurements[lastId];
-    if (m) {
-      const headersAbove = collapsedStack.length - 1;
-      const contactLine = LOGO_BAR_H + headersAbove * HEADER_BLOCK_COLLAPSED_H;
-      // If the last stacked header is pulling away from the stack, the user
-      // is scrolling up, so cancel the exit/slide transitions.
-      if (m.naturalTop > contactLine) {
-        const exitInfo = headers[exitState.exitingId];
-        if (exitInfo && collapsedStack.length < 2) {
-          // Restore exiting header to slot 0
-          exitInfo.block.dataset.state = "stacked";
-          exitInfo.block.style.top = `${slot0Top}px`;
-          exitInfo.block.style.transform = "";
-          exitInfo.block.style.opacity = "";
-          exitInfo.block.style.visibility = "";
-          exitInfo.block.style.zIndex = "80";
-          exitInfo.lastProgress = 1;
-          collapsedStack.unshift(exitState.exitingId);
-          exitState.exitingId = null;
-
-          // Also snap the sliding header back to slot 1
-          if (exitState.slidingId) {
-            const slideInfo = headers[exitState.slidingId];
-            if (slideInfo) {
-              slideInfo.block.style.top = `${slot1Top}px`;
-              slideInfo.block.style.zIndex = "70";
-            }
-            exitState.slidingId = null;
-          }
-        }
-      }
+  // Step 2: Walk headers in section order and determine which ones
+  // want to be stacked. A header wants to stack when its naturalTop
+  // is at or above the contact line (bottom of the current stack).
+  //
+  // We build an ordered list of "wants to stack" headers. The contact
+  // line rises as we add headers, so we iterate until stable.
+  const wantsStack: string[] = [];
+  for (const ref of refs) {
+    const contactLine = slotTop(Math.min(wantsStack.length, MAX_VISIBLE_SLOTS));
+    if (naturalTops[ref.id] <= contactLine) {
+      wantsStack.push(ref.id);
     }
   }
 
-  // Pass 2: Check if any expanded header should enter the stack (scroll down)
-  for (const sectionId of sectionIds) {
-    const info = headers[sectionId];
-    const m = measurements[sectionId];
-    if (!info || !m || m.state !== "expanded") continue;
+  // Step 3: From wantsStack, determine slots and exit/dismiss.
+  // Only the last MAX_VISIBLE_SLOTS are visible. Everything before
+  // those is dismissed. The last one that's not yet fully collapsed
+  // is "collapsing" (actively animating).
+  const results: DerivedState[] = [];
 
-    const contactLine =
-      LOGO_BAR_H +
-      Math.min(collapsedStack.length, 2) * HEADER_BLOCK_COLLAPSED_H;
+  for (const ref of refs) {
+    const idx = wantsStack.indexOf(ref.id);
 
-    if (m.naturalTop <= contactLine) {
-      // Contact! This header has reached the stack.
-      if (collapsedStack.length >= 2) {
-        // Start pushing the oldest out (scroll-linked, not instant)
-        const oldestId = collapsedStack.shift()!;
-        const oldest = headers[oldestId];
-        if (oldest) {
-          oldest.block.dataset.state = "exiting";
-          oldest.lastProgress = -1; // force interpolation
-          exitState.exitingId = oldestId;
-        }
-
-        // The remaining header slides from slot 1 -> slot 0
-        // (scroll-linked, not instant)
-        if (collapsedStack[0]) {
-          exitState.slidingId = collapsedStack[0];
-        }
-      }
-
-      // Enter the stack
-      const slot = collapsedStack.length;
-      collapsedStack.push(sectionId);
-      enterStack(
-        info,
-        slot === 0 ? slot0Top : slot1Top,
-        sectionIds.indexOf(sectionId),
-        contactLine
-      );
-      measurements[sectionId] = { ...m, state: "stacked" };
-    }
-  }
-
-  // Pass 3: Interpolate all stacked headers based on scroll progress
-  // Also track the incoming (last) header's progress for the exit animation.
-  let incomingProgress = 0;
-
-  for (let slot = 0; slot < collapsedStack.length; slot++) {
-    const id = collapsedStack[slot];
-    const info = headers[id];
-    if (!info) continue;
-    if (info.block.dataset.state !== "stacked") continue;
-
-    const m = measurements[id];
-    if (!m) continue;
-
-    // Use the stored contactY (where it actually touched the stack)
-    // to compute progress — not a recomputed slot-based contactLine.
-    const distPastContact = info.contactY - m.naturalTop;
-    const progress = Math.max(
-      0,
-      Math.min(1, distPastContact / collapseDistance)
-    );
-
-    // If the last stacked header has fully reversed back to progress 0,
-    // un-stack it and return it to document flow.
-    if (
-      progress <= 0 &&
-      slot === collapsedStack.length - 1 &&
-      !exitState.exitingId
-    ) {
-      collapsedStack.pop();
-      expandHeaderBlock(info);
-      // Re-run the loop since indices shifted
-      slot--;
+    if (idx === -1) {
+      // This header does NOT want to be in the stack -- it's expanded.
+      results.push({
+        id: ref.id,
+        mode: "expanded",
+        progress: 0,
+        topPx: 0,
+        opacity: 1,
+        slot: -1,
+        zIndex: 0,
+      });
       continue;
     }
 
-    // Track incoming header's progress (the last one in the stack)
-    if (slot === collapsedStack.length - 1) {
-      incomingProgress = progress;
+    // How many visible headers are after this one in the stack?
+    const totalInStack = wantsStack.length;
+    const visibleStartIdx = Math.max(0, totalInStack - MAX_VISIBLE_SLOTS);
+
+    if (idx < visibleStartIdx) {
+      // --- This header is older than the visible window ---
+      // It should be dismissed. But if there's a header actively
+      // collapsing into the stack (the newest), the MOST RECENTLY
+      // dismissed header (idx === visibleStartIdx - 1) should be
+      // in "exiting" state, with its exit driven by the newest
+      // header's collapse progress.
+
+      if (idx === visibleStartIdx - 1) {
+        // This is the header being pushed out right now.
+        // Its exit progress is driven by the incoming header's
+        // collapse progress.
+        const incomingId = wantsStack[totalInStack - 1];
+        const incomingProgress = computeProgress(
+          incomingId, refs, live, naturalTops, collapseDistance
+        );
+
+        if (incomingProgress < 1) {
+          // Still animating -- this header is mid-exit.
+          const slideUp = incomingProgress * HEADER_BLOCK_COLLAPSED_H;
+          results.push({
+            id: ref.id,
+            mode: "exiting",
+            progress: 1, // still visually collapsed
+            topPx: slotTop(0) - slideUp,
+            opacity: 1,
+            slot: -1,
+            zIndex: 80,
+          });
+          continue;
+        }
+      }
+
+      // Fully dismissed.
+      results.push({
+        id: ref.id,
+        mode: "dismissed",
+        progress: 1,
+        topPx: 0,
+        opacity: 0,
+        slot: -1,
+        zIndex: 0,
+      });
+      continue;
     }
 
-    if (Math.abs(progress - info.lastProgress) < 0.001) continue;
-    info.lastProgress = progress;
+    // --- This header is in the visible window ---
+    const visibleSlot = idx - visibleStartIdx; // 0 or 1
+    const progress = computeProgress(
+      ref.id, refs, live, naturalTops, collapseDistance
+    );
 
-    interpolateHeader(info, progress);
+    // If progress is 0 and this is the last in the stack,
+    // it should actually be expanded (it has scrolled back to
+    // its contact point).
+    if (progress <= 0 && idx === totalInStack - 1) {
+      results.push({
+        id: ref.id,
+        mode: "expanded",
+        progress: 0,
+        topPx: 0,
+        opacity: 1,
+        slot: -1,
+        zIndex: 0,
+      });
+      continue;
+    }
 
-    // Interpolate top from contact position to final slot position.
-    // Skip headers that are mid-slide (handled in Pass 4b).
-    if (exitState.slidingId !== id) {
-      const targetTop = slot === 0 ? slot0Top : slot1Top;
-      info.block.style.top = `${lerp(info.contactY, targetTop, progress)}px`;
+    // Determine target top position.
+    // If there's an exiting header (visibleStartIdx > 0 and the
+    // exit is still in progress), this header's slot is shifted:
+    // - slot 0 header is actually sliding FROM slot 1 TO slot 0
+    //   driven by the incoming progress.
+    // - slot 1 header is the incoming one, lerping from contactY
+    //   to slotTop(1).
+    let targetTop: number;
+    const isIncoming = idx === totalInStack - 1 && progress < 1;
+
+    if (isIncoming) {
+      // Incoming: lerp from contactY to slot target
+      targetTop = lerp(live[ref.id].contactY, slotTop(visibleSlot), progress);
+    } else if (
+      visibleSlot === 0 &&
+      visibleStartIdx > 0 &&
+      totalInStack > MAX_VISIBLE_SLOTS
+    ) {
+      // This header was in slot 1 and is sliding to slot 0 as the
+      // oldest exits. Drive the slide by the incoming header's progress.
+      const incomingId = wantsStack[totalInStack - 1];
+      const incomingProgress = computeProgress(
+        incomingId, refs, live, naturalTops, collapseDistance
+      );
+      targetTop = lerp(slotTop(1), slotTop(0), incomingProgress);
+    } else {
+      targetTop = slotTop(visibleSlot);
+    }
+
+    const mode = progress >= 1 ? "collapsed" : "collapsing";
+
+    results.push({
+      id: ref.id,
+      mode,
+      progress,
+      topPx: targetTop,
+      opacity: 1,
+      slot: visibleSlot,
+      zIndex: 80 - visibleSlot * 10,
+    });
+  }
+
+  return results;
+}
+
+/** Compute collapse progress (0-1) for a single header. */
+function computeProgress(
+  id: string,
+  refs: HeaderRef[],
+  live: Record<string, LiveState>,
+  naturalTops: Record<string, number>,
+  collapseDistance: number
+): number {
+  const ls = live[id];
+  if (!ls || ls.contactY === 0) return 0;
+  const dist = ls.contactY - naturalTops[id];
+  return clamp(dist / collapseDistance, 0, 1);
+}
+
+/* ================================================================
+   PHASE 2: APPLY
+   Diffs derived state against current DOM and applies minimal
+   mutations. Manages placeholders and inline styles.
+   ================================================================ */
+
+function applyStates(
+  refs: HeaderRef[],
+  derived: DerivedState[],
+  live: Record<string, LiveState>
+) {
+  for (let i = 0; i < refs.length; i++) {
+    const ref = refs[i];
+    const d = derived[i];
+    const ls = live[ref.id];
+    const prevMode = ls.currentMode;
+
+    // --- State transitions ---
+
+    if (d.mode === "expanded" && prevMode !== "expanded") {
+      // Returning to document flow.
+      returnToFlow(ref);
+      ls.currentMode = "expanded";
+      ls.lastProgress = -1;
+      ls.lastTopPx = -1;
+      ls.lastOpacity = -1;
+      ls.contactY = 0;
+      continue;
+    }
+
+    if (d.mode === "expanded") {
+      // Already expanded, nothing to do.
+      continue;
+    }
+
+    if (
+      (d.mode === "collapsing" || d.mode === "collapsed") &&
+      prevMode === "expanded"
+    ) {
+      // Entering the stack for the first time.
+      goFixed(ref, d, ls);
+      ls.currentMode = d.mode;
+    }
+
+    if (d.mode === "dismissed" && prevMode !== "dismissed") {
+      // Fully dismissed.
+      ref.block.dataset.state = "dismissed";
+      ref.block.style.visibility = "hidden";
+      ref.block.style.transform = "";
+      ref.block.style.opacity = "";
+      ls.currentMode = "dismissed";
+      ls.lastProgress = -1;
+      ls.lastTopPx = -1;
+      ls.lastOpacity = -1;
+      continue;
+    }
+
+    if (d.mode === "dismissed") {
+      // Already dismissed, skip.
+      continue;
+    }
+
+    if (d.mode === "exiting") {
+      if (prevMode === "dismissed") {
+        // Un-dismiss: restore visibility for exit animation.
+        ref.block.style.visibility = "";
+        ref.block.dataset.state = "exiting";
+      }
+      ls.currentMode = "exiting";
+    } else {
+      // collapsing or collapsed
+      if (prevMode === "dismissed" || prevMode === "exiting") {
+        // Restore into the stack (scrolled back up).
+        ref.block.style.visibility = "";
+        ref.block.style.transform = "";
+        ref.block.style.opacity = "";
+        ref.block.dataset.state = "stacked";
+      }
+      ls.currentMode = d.mode;
+      ref.block.dataset.state = "stacked";
+    }
+
+    // --- Continuous updates (every frame) ---
+
+    // Progress-driven visual interpolation
+    if (
+      d.mode === "collapsing" ||
+      d.mode === "collapsed" ||
+      d.mode === "exiting"
+    ) {
+      const progressChanged = Math.abs(d.progress - ls.lastProgress) > 0.0005;
+      const topChanged = Math.abs(d.topPx - ls.lastTopPx) > 0.1;
+      const opacityChanged = Math.abs(d.opacity - ls.lastOpacity) > 0.005;
+
+      if (progressChanged) {
+        interpolateHeader(ref, d.progress);
+        ls.lastProgress = d.progress;
+      }
+
+      if (topChanged) {
+        ref.block.style.top = `${d.topPx}px`;
+        ls.lastTopPx = d.topPx;
+      }
+
+      if (d.mode === "exiting") {
+        // Exit animation: slide up via transform + fade
+        const slideUp = (1 - d.opacity) * HEADER_BLOCK_COLLAPSED_H;
+        ref.block.style.transform = `translateY(${-slideUp}px)`;
+        if (opacityChanged) {
+          ref.block.style.opacity = `${d.opacity}`;
+          ls.lastOpacity = d.opacity;
+        }
+      } else {
+        // Not exiting: clear any residual transform/opacity
+        if (ref.block.style.transform) ref.block.style.transform = "";
+        if (ref.block.style.opacity !== "" && ref.block.style.opacity !== "1") {
+          ref.block.style.opacity = "";
+        }
+      }
+
+      ref.block.style.zIndex = `${d.zIndex}`;
     }
   }
 
-  // Pass 3b: Restore dismissed headers when scrolling back up.
-  // If the stack has room (< 2) and there are dismissed headers
-  // whose sections are still in view, bring the most recent one back.
-  if (collapsedStack.length < 2 && !exitState.exitingId) {
-    // Find the earliest stacked header to know which dismissed
-    // headers are before it
-    const firstStackedIdx = collapsedStack.length > 0
-      ? sectionIds.indexOf(collapsedStack[0])
-      : sectionIds.length;
+  // --- Separator dedup pass ---
+  // When two fixed headers are touching (one's bottom meets another's
+  // top), hide the upper header's bottom separator so there's a single
+  // line between them instead of a double.
+  for (let i = 0; i < refs.length; i++) {
+    const d = derived[i];
+    const bottomSep = refs[i].block.querySelector(
+      "hr:last-of-type"
+    ) as HTMLElement | null;
+    const topSep = refs[i].block.querySelector(
+      "hr:first-of-type"
+    ) as HTMLElement | null;
 
-    for (let i = firstStackedIdx - 1; i >= 0; i--) {
-      const prevId = sectionIds[i];
-      const prev = headers[prevId];
-      if (!prev) continue;
-      if (prev.block.dataset.state !== "dismissed") continue;
+    // Only applies to headers that are fixed (in a slot or exiting)
+    if (d.mode === "expanded" || d.mode === "dismissed") {
+      if (bottomSep) bottomSep.style.opacity = "";
+      // Restore top separator when returning to expanded
+      if (topSep && topSep !== bottomSep) topSep.style.opacity = "";
+      continue;
+    }
 
-      const pm = measurements[prevId];
-      if (!pm) continue;
+    // Fade out the top separator when this header is in slot 0
+    // (it sits directly under the logo bar, which has its own bottom line).
+    if (topSep && topSep !== bottomSep) {
+      topSep.style.opacity = d.slot === 0 ? "0" : "";
+    }
 
-      // Only restore if its placeholder is still above the contact line
-      // (i.e., the section hasn't scrolled back into view)
-      const restoreContact = LOGO_BAR_H +
-        collapsedStack.length * HEADER_BLOCK_COLLAPSED_H;
-      if (pm.naturalTop <= restoreContact) {
-        // Bring it back into the stack at the first available slot
-        const slot = collapsedStack.length;
-        prev.block.dataset.state = "stacked";
-        prev.block.style.visibility = "";
-        prev.block.style.transform = "";
-        prev.block.style.opacity = "";
-        prev.block.style.top = `${slot === 0 ? slot0Top : slot1Top}px`;
-        prev.block.style.zIndex = `${80 - slot * 10}`;
-        prev.lastProgress = 1; // already fully collapsed
-        collapsedStack.unshift(prevId); // oldest first
+    if (!bottomSep) continue;
+
+    // Compute this header's visual bottom edge
+    const blockH = lerp(refs[i].expandedBlockH, HEADER_BLOCK_COLLAPSED_H, d.progress);
+    const bottomEdge = d.topPx + blockH;
+
+    // Check if any other non-expanded header's top is within 2px
+    let touching = false;
+    for (let j = 0; j < derived.length; j++) {
+      if (j === i) continue;
+      const other = derived[j];
+      if (other.mode === "expanded" || other.mode === "dismissed") continue;
+      if (Math.abs(other.topPx - bottomEdge) < 2) {
+        touching = true;
         break;
       }
     }
+
+    bottomSep.style.opacity = touching ? "0" : "";
+  }
+}
+
+/* ================================================================
+   reconcile -- called every scroll frame
+   ================================================================ */
+
+function reconcile(
+  refs: HeaderRef[],
+  live: Record<string, LiveState>,
+  collapseDistance: number
+) {
+  // Before deriving, ensure contactY is set for any header that
+  // is about to cross the contact line for the first time.
+  updateContactPoints(refs, live);
+
+  const derived = deriveStates(refs, live, collapseDistance);
+  applyStates(refs, derived, live);
+}
+
+/**
+ * Scan expanded headers and set their contactY if they're at or
+ * near the contact line. This must happen BEFORE deriveStates so
+ * that computeProgress has a valid contactY to work with.
+ */
+function updateContactPoints(
+  refs: HeaderRef[],
+  live: Record<string, LiveState>
+) {
+  // Count how many headers are currently non-expanded (in the stack
+  // or dismissed). We need this to know where the contact line is.
+  let stackCount = 0;
+  for (const ref of refs) {
+    const mode = live[ref.id].currentMode;
+    if (mode !== "expanded") stackCount++;
   }
 
-  // Pass 4: Interpolate exiting + sliding headers (scroll-linked)
-  const transitionT = incomingProgress;
+  // Now check each expanded header to see if it's at or past the
+  // contact line. We walk in order so we account for multiple
+  // headers entering in the same frame.
+  for (const ref of refs) {
+    const ls = live[ref.id];
+    if (ls.currentMode !== "expanded") continue;
 
-  // 4a: Exiting header slides up and fades out
-  if (exitState.exitingId) {
-    const exitInfo = headers[exitState.exitingId];
-    if (exitInfo) {
-      if (Math.abs(transitionT - exitInfo.lastProgress) > 0.001) {
-        exitInfo.lastProgress = transitionT;
-        const slideUp = transitionT * HEADER_BLOCK_COLLAPSED_H;
-        exitInfo.block.style.transform = `translateY(${-slideUp}px)`;
-        exitInfo.block.style.opacity = `${1 - transitionT}`;
-      }
+    const contactLine =
+      LOGO_BAR_H + Math.min(stackCount, MAX_VISIBLE_SLOTS) * HEADER_BLOCK_COLLAPSED_H;
+    const naturalTop = ref.block.getBoundingClientRect().top;
 
-      // When fully pushed out, finalize
-      if (transitionT >= 0.99) {
-        exitInfo.block.dataset.state = "dismissed";
-        exitInfo.block.style.visibility = "hidden";
-        exitInfo.block.style.transform = "";
-        exitInfo.block.style.opacity = "";
-        exitInfo.lastProgress = -1;
-        exitState.exitingId = null;
-      }
-    }
-  }
-
-  // 4b: Sliding header moves from slot 1 -> slot 0
-  if (exitState.slidingId) {
-    const slideInfo = headers[exitState.slidingId];
-    if (slideInfo) {
-      const currentTop = lerp(slot1Top, slot0Top, transitionT);
-      slideInfo.block.style.top = `${currentTop}px`;
-
-      // When transition completes, snap to final position
-      if (transitionT >= 0.99) {
-        slideInfo.block.style.top = `${slot0Top}px`;
-        slideInfo.block.style.zIndex = "80";
-        exitState.slidingId = null;
-      }
+    if (naturalTop <= contactLine && ls.contactY === 0) {
+      // First contact -- capture the exact contact line position.
+      ls.contactY = contactLine;
+      stackCount++;
     }
   }
 }
 
-/* ============================================================
-   Header-block state transitions
-   ============================================================ */
+/* ================================================================
+   DOM mutation helpers
+   ================================================================ */
 
-/** Called once when a header first contacts the stack. Sets up
- *  fixed positioning + placeholder but keeps expanded size.
- *  Starts at the header's current viewport position so there
- *  is no visual pop. interpolateHeader() then smoothly drives
- *  it to the collapsed slot position each frame. */
-function enterStack(
-  info: {
-    block: HTMLElement;
-    row: HTMLElement;
-    expandedBlockH: number;
-    lastProgress: number;
-    contactY: number;
-  },
-  stickyTop: number,
-  index: number,
-  contactLine: number
-) {
-  const { block } = info;
+/** Transition a header from expanded (in-flow) to fixed. */
+function goFixed(ref: HeaderRef, d: DerivedState, ls: LiveState) {
+  const { block } = ref;
 
-  // Use the exact computed contact line (bottom of the stack)
-  // rather than getBoundingClientRect which can be sub-pixel off.
-  info.contactY = contactLine;
-
-  // Create placeholder before going fixed
+  // Create placeholder if needed
   let ph = block.parentElement?.querySelector(
     `[data-placeholder-for="${block.id}"]`
   ) as HTMLElement | null;
   if (!ph) {
     ph = document.createElement("div");
     ph.dataset.placeholderFor = block.id;
-    ph.style.height = `${info.expandedBlockH}px`;
+    ph.style.height = `${ref.expandedBlockH}px`;
     ph.style.visibility = "hidden";
     ph.style.pointerEvents = "none";
     block.parentElement?.insertBefore(ph, block);
   }
 
   block.dataset.state = "stacked";
-  info.lastProgress = -1; // force first interpolation
-
   Object.assign(block.style, {
     position: "fixed",
-    // Start at the exact contact line so there's no sub-pixel gap.
-    top: `${contactLine}px`,
+    top: `${d.topPx}px`,
     left: "0",
     width: "100%",
     overflow: "hidden",
-    zIndex: `${80 - index * 10}`,
+    zIndex: `${d.zIndex}`,
     cursor: "pointer",
   });
+
+  ls.lastTopPx = d.topPx;
 }
 
-/** Lerp all visual properties based on scroll progress (0-1). */
-function interpolateHeader(
-  info: {
-    block: HTMLElement;
-    row: HTMLElement;
-    title: HTMLElement;
-    tags: HTMLElement;
-    expandedBlockH: number;
-    expandedRowH: number;
-    expandedTitleSize: number;
-  },
-  t: number
-) {
-  // Height
-  const blockH = lerp(info.expandedBlockH, HEADER_BLOCK_COLLAPSED_H, t);
-  const rowH = lerp(info.expandedRowH, HEADER_ROW_COLLAPSED_H, t);
-  info.block.style.height = `${blockH}px`;
-  info.row.style.height = `${rowH}px`;
+/** Return a fixed header to normal document flow. */
+function returnToFlow(ref: HeaderRef) {
+  const { block, row, title, tags } = ref;
 
-  // Title font-size
-  const titleSize = lerp(info.expandedTitleSize, COLLAPSED_TITLE_SIZE, t);
-  info.title.style.fontSize = `${titleSize}px`;
-
-  // Tags crossfade: column -> fade out -> switch to row -> fade in
-  // 0.0 - 0.5 : column layout, full opacity (clipped by shrinking header)
-  // 0.5 - 0.65: fade out (still column)
-  // 0.65       : switch to row
-  // 0.65 - 0.8: fade in (now row)
-  // 0.8 - 1.0 : row layout, full opacity
-  if (t < 0.5) {
-    info.tags.style.flexDirection = "column";
-    info.tags.style.opacity = "1";
-  } else if (t < 0.65) {
-    info.tags.style.flexDirection = "column";
-    info.tags.style.opacity = `${1 - (t - 0.5) / 0.15}`;
-  } else if (t < 0.8) {
-    info.tags.style.flexDirection = "row";
-    info.tags.style.opacity = `${(t - 0.65) / 0.15}`;
-  } else {
-    info.tags.style.flexDirection = "row";
-    info.tags.style.opacity = "1";
-  }
-}
-
-function expandHeaderBlock(info: {
-  block: HTMLElement;
-  row: HTMLElement;
-  title: HTMLElement;
-  tags: HTMLElement;
-  lastProgress: number;
-}) {
-  const { block, row, title, tags } = info;
   block.dataset.state = "expanded";
-  info.lastProgress = -1;
   gsap.set(block, { clearProps: "y,opacity" });
 
   // Remove placeholder
@@ -586,30 +795,55 @@ function expandHeaderBlock(info: {
   block.style.zIndex = "";
   block.style.cursor = "";
   block.style.visibility = "";
+  block.style.transform = "";
+  block.style.opacity = "";
 
   row.style.height = "";
   title.style.fontSize = "";
   tags.style.flexDirection = "";
   tags.style.opacity = "";
+
+  // Clear any separator opacity override
+  const bottomSep = block.querySelector("hr:last-of-type") as HTMLElement | null;
+  if (bottomSep) bottomSep.style.opacity = "";
+  const topSep = block.querySelector("hr:first-of-type") as HTMLElement | null;
+  if (topSep && topSep !== bottomSep) topSep.style.opacity = "";
 }
 
-/** Instant dismiss -- used only as a fallback. Normal exits
- *  are scroll-linked via the exiting state in Pass 4. */
-function dismissHeaderBlock(info: {
-  block: HTMLElement;
-  lastProgress: number;
-}) {
-  info.block.dataset.state = "dismissed";
-  info.lastProgress = -1;
-  info.block.style.visibility = "hidden";
-  info.block.style.transform = "";
-  info.block.style.opacity = "";
+/** Lerp all visual properties based on collapse progress (0 = expanded, 1 = collapsed). */
+function interpolateHeader(ref: HeaderRef, t: number) {
+  const blockH = lerp(ref.expandedBlockH, HEADER_BLOCK_COLLAPSED_H, t);
+  const rowH = lerp(ref.expandedRowH, HEADER_ROW_COLLAPSED_H, t);
+  ref.block.style.height = `${blockH}px`;
+  ref.row.style.height = `${rowH}px`;
+
+  const titleSize = lerp(ref.expandedTitleSize, COLLAPSED_TITLE_SIZE, t);
+  ref.title.style.fontSize = `${titleSize}px`;
+
+  // Tags crossfade: column -> fade out -> switch to row -> fade in
+  if (t < 0.5) {
+    ref.tags.style.flexDirection = "column";
+    ref.tags.style.opacity = "1";
+  } else if (t < 0.65) {
+    ref.tags.style.flexDirection = "column";
+    ref.tags.style.opacity = `${1 - (t - 0.5) / 0.15}`;
+  } else if (t < 0.8) {
+    ref.tags.style.flexDirection = "row";
+    ref.tags.style.opacity = `${(t - 0.65) / 0.15}`;
+  } else {
+    ref.tags.style.flexDirection = "row";
+    ref.tags.style.opacity = "1";
+  }
 }
 
-/* ---- Helpers ---- */
-
-const COLLAPSED_TITLE_SIZE = 35.6;
+/* ================================================================
+   Helpers
+   ================================================================ */
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
+}
+
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v));
 }

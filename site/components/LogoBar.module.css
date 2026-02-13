@@ -4,12 +4,18 @@
    all sections. */
 .logoBar {
   width: 100%;
-  height: var(--logo-bar-collapsed);
   position: sticky;
   top: 0;
   z-index: var(--z-logo-bar);
   background: var(--color-bg);
   display: flex;
-  align-items: center;
-  padding: 0 var(--page-padding);
+  flex-direction: column;
+}
+
+.topSep {
+  transition: opacity 0.25s ease;
+}
+
+.logoWrap {
+  padding: 10px var(--page-padding);
 }

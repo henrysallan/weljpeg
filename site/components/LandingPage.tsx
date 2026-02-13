@@ -6,10 +6,10 @@ import { ImageCycler } from "./ImageCycler";
 import styles from "./LandingPage.module.css";
 
 const LANDING_IMAGES = [
-  "/images/redbull-01.svg",
-  "/images/redbull-02.svg",
-  "/images/uniqlo-01.svg",
-  "/images/uniqlo-02.svg",
+  "/images/redbull_1.png",
+  "/images/redbull_2.png",
+  "/images/uniqlo_2.png",
+  "/images/uniqlo_3.png",
 ];
 
 export const LandingPage: React.FC = () => {

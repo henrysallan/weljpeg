@@ -2,6 +2,7 @@
 
 import React from "react";
 import { WelcomeLogo } from "./WelcomeLogo";
+import { Separator } from "./Separator";
 import styles from "./LogoBar.module.css";
 
 interface LogoBarProps {
@@ -14,12 +15,19 @@ interface LogoBarProps {
  * position: sticky keeps it there permanently.
  */
 export const LogoBar: React.FC<LogoBarProps> = ({ className }) => {
+  const scale = 28;               // change this one number to resize
+  const ratio = 36 / 41;          // aspect ratio (h:w = 36:41)
+
   return (
     <div
       id="logo-bar"
       className={`${styles.logoBar} ${className ?? ""}`}
     >
-      <WelcomeLogo width={41} height={36} />
+      <Separator className={styles.topSep} />
+      <div className={styles.logoWrap}>
+        <WelcomeLogo width={scale} height={scale * ratio} />
+      </div>
+      <Separator />
     </div>
   );
 };
