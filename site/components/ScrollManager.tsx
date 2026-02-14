@@ -52,6 +52,14 @@ export const ScrollManager: React.FC = () => {
       history.scrollRestoration = 'manual';
     }
 
+    // Reset gate to a known good state before Lenis is created.
+    // This prevents stale state from a previous mount (HMR / Strict Mode)
+    // from permanently blocking virtualScroll.
+    gate.locked = true;
+    gate.transitioning = false;
+    gate.tickCount = 0;
+    gate.pageState = "landing";
+
     const prefersReduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
@@ -97,8 +105,13 @@ export const ScrollManager: React.FC = () => {
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
+    // Use a double-rAF to ensure the DOM is fully laid out and
+    // Lenis (from the useEffect) is initialised before we read
+    // element dimensions and attach gate handlers.
     requestAnimationFrame(() => {
-      setupAnimations(prefersReduced, lenisRef);
+      requestAnimationFrame(() => {
+        setupAnimations(prefersReduced, lenisRef);
+      });
     });
 
     return () => {
@@ -169,7 +182,6 @@ function setupAnimations(
 
   if (landing && lenis) {
     const landingH = landing.offsetHeight;
-
     // Reset gate state
     gate.locked = true;
     gate.transitioning = false;
@@ -433,6 +445,11 @@ function setupAnimations(
 
     // Update go-up visibility on every scroll tick (polls gate.pageState)
     lenis.on("scroll", updateGoUpVisibility);
+  } else {
+    // Safety: if we couldn't find the landing page or Lenis isn't
+    // ready, unlock the gate so the user isn't permanently stuck.
+    gate.locked = false;
+    gate.pageState = "content";
   }
 
   /* -- 3. Header sticky-stack -- */
@@ -1034,19 +1051,20 @@ function interpolateHeader(ref: HeaderRef, t: number) {
   ref.title.style.fontSize = `${titleSize}px`;
 
   // Tags crossfade: column -> fade out -> switch to row -> fade in
-  if (t < 0.5) {
+  // Use eased progress so tags stay in sync with height/font sizing
+  if (eased < 0.5) {
     ref.tags.style.flexDirection = "column";
     ref.tags.style.opacity = "1";
     ref.tags.style.alignSelf = "";
     ref.tags.style.padding = "";
-  } else if (t < 0.65) {
+  } else if (eased < 0.65) {
     ref.tags.style.flexDirection = "column";
-    ref.tags.style.opacity = `${1 - (t - 0.5) / 0.15}`;
+    ref.tags.style.opacity = `${1 - (eased - 0.5) / 0.15}`;
     ref.tags.style.alignSelf = "";
     ref.tags.style.padding = "";
-  } else if (t < 0.8) {
+  } else if (eased < 0.8) {
     ref.tags.style.flexDirection = "row";
-    ref.tags.style.opacity = `${(t - 0.65) / 0.15}`;
+    ref.tags.style.opacity = `${(eased - 0.65) / 0.15}`;
     ref.tags.style.alignSelf = "center";
     ref.tags.style.padding = "3px 0";
   } else {
