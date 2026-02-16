@@ -14,6 +14,7 @@
   padding: 0 var(--page-padding);
   background: var(--color-bg);
   position: relative;
+  z-index: 2;
   overflow: hidden;
   box-sizing: border-box;
   max-width: 1728px;
@@ -52,6 +53,47 @@
   box-sizing: border-box;
 }
 
+/* ---- Expanded content (description + metadata) ---- */
+
+.expandedContent {
+  display: flex;
+  gap: 40px;
+  padding: 0px var(--page-padding) 20px;
+  max-width: 1728px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: flex-start;
+}
+
+.descCol {
+  min-width: 0;
+  max-width: 350px;
+  padding-left: 5px;
+}
+
+.descText {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.metaCol {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.metaLine {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.metaLabel {
+  opacity: 0.45;
+}
+
 /* ---- Collapsed state (applied by scroll system) ---- */
 
 .headerCollapsed {
@@ -83,10 +125,24 @@
   .tags {
     display: none;
   }
+
+  .expandedContent {
+    flex-direction: column;
+    gap: 16px;
+    padding: 14px var(--page-padding) 20px;
+  }
+
+  .metaCol {
+    min-width: 0;
+  }
 }
 
 @media (min-width: 640px) and (max-width: 1023px) {
   .headerExpanded {
     height: 60px;
+  }
+
+  .expandedContent {
+    gap: 24px;
   }
 }

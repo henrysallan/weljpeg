@@ -1,7 +1,7 @@
 # Welcome Labs — Site Architecture & Planning Summary
 
-> **Document version:** 1.0  
-> **Last updated:** 2026-02-10  
+> **Document version:** 2.0  
+> **Last updated:** 2026-02-15  
 > **Project:** Welcome Labs Agency Website  
 > **Stack:** Next.js (React + TypeScript) · Vercel · Sanity CMS (Phase 2)  
 > **Design source:** Figma (JSON exports + Figma MCP)
@@ -12,23 +12,24 @@
 
 | #  | Document                                                                  | Description                                                    |
 | -- | ------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| 01 | [Landing Page](./01-landing-page.md)                                     | Hero/intro screen, logo mark, image cycler, client links, mail icon |
-| 02 | [Scroll System & Animations](./02-scroll-system-and-animations.md)       | GSAP + Lenis setup, logo interpolation, header sticky-stack, snap transitions, performance |
-| 03 | [Section Layout & Content](./03-section-layout-and-content.md)           | 8-column grid, content blocks, section headers, tags, data structures, services section |
+| 01 | [Landing Page](./01-landing-page.md)                                     | Hero/intro screen, logo mark, image squiggle, image cycler, client links, mail icon |
+| 02 | [Scroll System & Animations](./02-scroll-system-and-animations.md)       | Lenis + gate system, header sticky-stack, page transitions     |
+| 03 | [Section Layout & Content](./03-section-layout-and-content.md)           | Grid layout, content blocks, section headers, tags, data structures, services section |
 | 04 | [Responsive & Breakpoints](./04-responsive-and-breakpoints.md)           | Mobile-first breakpoints, layout adaptations, typography scaling, touch, performance |
+| 05 | [Header Stack System](./05-header-stack-system.md)                       | Declarative two-phase reconciler, collapse animation, sticky-stack lifecycle |
 
 ---
 
 ## Project Overview
 
-Welcome Labs is a creative agency. The website is a portfolio-style single-page experience built around **scroll-driven animations** and a minimal, whitespace-heavy aesthetic. The site showcases 3 case studies and a services section, each presented as full-width content modules with a sophisticated header collapse/sticky-stack system.
+Welcome Labs is a creative agency. The website is a portfolio-style single-page experience built around **scroll-driven animations** and a minimal, whitespace-heavy aesthetic. The site showcases 3 case studies and a services section, each presented as full-width content modules with a sophisticated header collapse/sticky-stack system. A full-viewport landing page features an interactive animated image layer (ImageSquiggle) behind the content cluster.
 
 ---
 
 ## Core Design Principles
 
 1. **Whitespace is the design.** The visual identity relies on generous negative space, ultra-light typography (Manrope ExtraLight 200), and restrained colour (near-white background, near-black text).
-2. **Scroll is the interaction.** Every significant UI transition is driven by scroll position. Animations are continuous, reversible, and scrubbed to the scroll — not triggered-and-forgotten.
+2. **Scroll is the interaction.** Section header animations are driven by scroll position. The landing→content transition uses a gated snap system.
 3. **Performance is non-negotiable.** 60fps sustained during all scroll animations. No jank, no dropped frames, even on mid-range mobile devices.
 4. **Mobile is first-class.** The site must feel as polished on an iPhone SE as it does on a 4K monitor.
 
@@ -38,20 +39,38 @@ Welcome Labs is a creative agency. The website is a portfolio-style single-page 
 
 | Layer              | Choice            | Rationale                                                  |
 | ------------------ | ----------------- | ---------------------------------------------------------- |
-| Framework          | **Next.js** (App Router) | SSR, image optimisation, Vercel-native deployment     |
+| Framework          | **Next.js 16** (App Router) | SSR, image optimisation, Vercel-native deployment     |
 | Language           | **TypeScript**    | Type safety for complex scroll state management            |
-| UI Library         | **React 18+**     | Component model, hooks for animation lifecycle             |
-| Animation          | **GSAP + ScrollTrigger** | Best-in-class scroll-linked animation, hardware-accelerated |
+| UI Library         | **React 19**      | Component model, hooks for animation lifecycle             |
+| Animation          | **GSAP + ScrollTrigger** | Scroll-linked header stack reconciliation, hardware-accelerated |
 | Smooth scroll      | **Lenis**         | Normalised, buttery scroll with GSAP integration           |
 | React/GSAP bridge  | **@gsap/react**   | `useGSAP` hook for safe setup/teardown                     |
-| Styling            | **CSS Modules** or **vanilla CSS** | Simple, no runtime cost, full control over animations |
+| Debug/Tuning       | **Leva**          | Runtime control panel for animation timing & ImageSquiggle params |
+| Styling            | **CSS Modules**   | Simple, no runtime cost, full control over animations      |
+| Font loading       | **next/font/local** | Self-hosted Manrope variable font (200–800 weight)       |
 | CMS (Phase 2)      | **Sanity**        | Structured content, image pipeline, live preview           |
 | Deployment         | **Vercel**        | Zero-config Next.js hosting, edge CDN, analytics           |
-| Images (Phase 1)   | **Static `/public`** | Bundled with deployment, Next.js `<Image>` optimised    |
+| Images (Phase 1)   | **Static `/public`** | Bundled with deployment, native `<img>` elements        |
+
+### Dependencies (package.json)
+
+```json
+{
+  "@gsap/react": "^2.1.2",
+  "gsap": "^3.14.2",
+  "lenis": "^1.3.17",
+  "leva": "^0.10.1",
+  "next": "16.1.6",
+  "react": "19.2.3",
+  "react-dom": "19.2.3"
+}
+```
 
 ---
 
 ## Global Design Tokens
+
+From `globals.css`:
 
 ```css
 :root {
@@ -79,10 +98,10 @@ Welcome Labs is a creative agency. The website is a portfolio-style single-page 
   --separator-color: var(--color-black);
 
   /* Dimensions (desktop reference) */
-  --logo-bar-expanded: 326px;
-  --logo-bar-collapsed: 41px;
+  --logo-bar-expanded: 316px;   /* not currently used — logo bar is always collapsed */
+  --logo-bar-collapsed: 52px;
   --header-expanded: 74px;
-  --header-collapsed: 34.5px;
+  --header-collapsed: 25.5px;
   --header-title-expanded: 83px;
   --header-title-collapsed: 35.6px;
 
@@ -96,98 +115,127 @@ Welcome Labs is a creative agency. The website is a portfolio-style single-page 
 }
 ```
 
+### Responsive padding overrides
+
+```css
+@media (max-width: 639px)  { --page-padding: 8px; }
+@media (min-width: 640px) and (max-width: 767px) { --page-padding: 20px; }
+```
+
 ---
 
 ## Key Animations Summary
 
-| Animation                        | Trigger                        | Type         | Library              |
-| -------------------------------- | ------------------------------ | ------------ | -------------------- |
-| Landing → Content snap           | First scroll from landing page | Snap         | GSAP ScrollTrigger   |
-| Logo bar size interpolation      | Scroll through logo bar zone   | Continuous scrub | GSAP ScrollTrigger |
-| Header expand → collapse         | Header reaches sticky position | Continuous scrub | GSAP ScrollTrigger |
-| Header dismiss (slide behind bar)| 3rd header collapses           | Timed (200ms) | GSAP Core           |
-| Collapsed header click → scroll  | Click on collapsed header      | Programmatic | Lenis `scrollTo()`  |
-| Image hard-cut cycling           | Timer interval                 | Interval     | React `useEffect`    |
+| Animation                        | Trigger                          | Type              | Library / Mechanism          |
+| -------------------------------- | -------------------------------- | ----------------- | ---------------------------- |
+| Landing → Content gate           | Wheel tick count (≥2) or swipe   | Programmatic snap | Lenis `scrollTo()` + custom gate |
+| Content → Landing gate (reverse) | Wheel up near content top        | Programmatic snap | Lenis `scrollTo()` + custom gate |
+| Header expand → collapse         | Header reaches stack contact line | Continuous scrub  | ScrollTrigger `onUpdate` + manual reconciler |
+| Header dismiss (exit stack)      | 3rd header enters stack          | Scroll-linked     | Driven by incoming header progress |
+| Collapsed header click → scroll  | Click on collapsed header        | Programmatic      | Lenis `scrollTo()`           |
+| Image hard-cut cycling           | Timer interval (3500ms)          | Interval          | React `useEffect` + `setInterval` |
+| ImageSquiggle animation          | Continuous cycle timer           | GSAP tweens       | GSAP Core + requestAnimationFrame |
+| Image focus/unfocus              | Click on squiggle image          | GSAP tween        | GSAP Core                    |
+| Image drag & throw               | Mouse drag on squiggle image     | Physics RAF loop  | requestAnimationFrame        |
+| Logo bar top sep fade            | Logo bar stuck at top            | Scroll-linked     | ScrollTrigger `onUpdate`     |
+| Go-up pill visibility            | Gate state change                | State-driven      | Lenis scroll callback        |
 
 ---
 
 ## Section Inventory
 
-| Section    | Type        | Header title | Content blocks | Status        |
-| ---------- | ----------- | ------------ | -------------- | ------------- |
-| Redbull    | Case Study  | "Redbull"    | 2              | Figma complete |
-| UNIQLO     | Case Study  | "UNIQLO"     | 2              | Figma complete |
-| Puma       | Case Study  | "Puma"       | 2              | Placeholder    |
-| Services   | Services    | "Services"   | 3 (Design, Develop, Distribute) | Figma complete |
+| Section    | Type        | Header title | Tags                        | Content blocks | Status         |
+| ---------- | ----------- | ------------ | --------------------------- | -------------- | -------------- |
+| Redbull    | Case Study  | "Redbull"    | Strategy, Experiential      | 2              | Images present |
+| Uniqlo     | Case Study  | "Uniqlo"     | Strategy, Strategy          | 2              | Images present |
+| Puma       | Case Study  | "Puma"       | Strategy, Strategy          | 2              | Placeholder (no images) |
+| Services   | Services    | "SERVICES"   | Strategy, Strategy          | 3 (Design, Develop, Distribute) | Placeholder (no images) |
+| Contact    | Contact     | —            | —                           | Avatar image   | Implemented    |
 
 ---
 
 ## Component Map
 
 ```
-App
-├── MailIcon                          (global, position: fixed)
-├── LandingPage
-│   ├── WelcomeLogo (small)
-│   ├── SiteIntro (title + description)
-│   ├── ImageCycler
-│   └── ClientLinks
+RootLayout (layout.tsx)
+├── MailIcon                          (position: fixed, z-index: 100)
 │
-├── MainContent
-│   ├── LogoBar
-│   │   └── WelcomeLogo (large → small, animated)
-│   │
-│   ├── Separator
-│   │
-│   ├── Section (× 4: redbull, uniqlo, puma, services)
-│   │   ├── SectionHeader
-│   │   │   ├── Title
-│   │   │   └── TagPill (× 2)
-│   │   ├── Separator
-│   │   ├── ContentBlock (× 2–3)
-│   │   │   ├── ImageColumn
-│   │   │   └── TextColumn / TitledTextColumn
-│   │   └── Separator
-│   │
-│   └── (future: Footer)
-│
-└── ScrollManager                     (Lenis + GSAP setup, invisible)
+└── Home (page.tsx)
+    ├── ScrollManager                 (invisible — Lenis + gate + header reconciler)
+    │
+    ├── LandingPage                   (100dvh hero)
+    │   ├── ImageSquiggle             (full-viewport animated image layer, z: 0)
+    │   │   └── Leva panel            (hidden by default, toggle with "L" key)
+    │   └── Cluster (z: 1)
+    │       ├── WelcomeLogo (small, 36×31.5)
+    │       ├── <h1> title
+    │       ├── <p> description (with underlined keywords)
+    │       ├── ImageCycler (167×117, hard-cut, 3500ms)
+    │       ├── ClientLinks nav (REDBULL, PUMA, UNIQLO)
+    │       └── Down arrow SVG
+    │
+    └── <main id="main-content">
+        ├── LogoBar                   (sticky, ~52px, "W" logo + "go up" pill)
+        │
+        ├── Section (× 4: redbull, uniqlo, puma, services)
+        │   ├── SectionHeader
+        │   │   ├── Separator (top, conditional)
+        │   │   ├── Header row
+        │   │   │   ├── <h2> Title
+        │   │   │   └── Tags container
+        │   │   │       └── TagPill (× 2)
+        │   │   └── Separator (bottom)
+        │   └── Section content
+        │       └── ContentBlock (× 2–3)
+        │           ├── Column (left)
+        │           └── Column (right)
+        │
+        └── ContactPage               (100dvh, centred avatar image)
 ```
 
 ---
 
-## Implementation Phases
+## Implementation Status
 
-### Phase 1: Structure & Scroll (Current)
-- [ ] Project scaffolding (Next.js + TypeScript)
-- [ ] Global styles, design tokens, font loading (Manrope)
-- [ ] Landing page (static layout, image cycler with hardcoded images)
-- [ ] Logo bar with scroll-driven size interpolation
-- [ ] Section headers (expanded state, static)
-- [ ] Content blocks with 8-column grid
-- [ ] Separator lines
-- [ ] Scroll system: Lenis + GSAP ScrollTrigger setup
-- [ ] Landing → content snap transition
-- [ ] Header sticky-stack system (collapse, dismiss, reverse)
-- [ ] Collapsed header click-to-scroll
-- [ ] Responsive breakpoints & mobile layout
-- [ ] Mail icon (static, fixed position)
+### Phase 1: Structure & Scroll — ✅ Mostly Complete
+- [x] Project scaffolding (Next.js + TypeScript)
+- [x] Global styles, design tokens, font loading (Manrope, self-hosted variable font)
+- [x] Landing page with ImageSquiggle animated background
+- [x] Image cycler with hardcoded images (hard-cut, 3500ms)
+- [x] Logo bar — always collapsed, CSS sticky (no size interpolation animation)
+- [x] Section headers (expanded state, static)
+- [x] Content blocks with `fr`-based grid
+- [x] Separator lines (0.5px)
+- [x] Scroll system: Lenis + custom gate for landing↔content snap
+- [x] Header sticky-stack system (declarative two-phase reconciler)
+- [x] Collapsed header click-to-scroll
+- [x] Responsive breakpoints & mobile layout
+- [x] Mail icon (fixed position, links to #section-contact)
+- [x] Contact page section with avatar
+- [x] Down arrow on landing page
+- [x] "Go up" pill button in logo bar
+- [x] Logo click → scroll to top
+- [x] Hash link interception (client links → gate transition → scroll to section)
+- [x] Touch support for gate (swipe detection)
+- [x] Leva debug panel for ImageSquiggle + page transition timing
+- [ ] Logo bar size interpolation (large → small) — **NOT IMPLEMENTED**
+- [ ] `prefers-reduced-motion` — partially implemented (Lenis config only)
 - [ ] Performance testing & optimisation
 
-### Phase 2: Content & CMS
+### Phase 2: Content & CMS — Not Started
 - [ ] Sanity CMS schema for case studies and services
 - [ ] Content migration from hardcoded to Sanity
 - [ ] Image pipeline (Sanity CDN, hot-spot cropping)
 - [ ] Live preview integration
 
-### Phase 3: Polish & Features
+### Phase 3: Polish & Features — Not Started
 - [ ] Tag pill filtering system
-- [ ] Contact/mail interaction
 - [ ] Page transitions (if multi-page)
-- [ ] SEO metadata
+- [ ] SEO metadata (basic title/description present)
 - [ ] Analytics
 - [ ] Accessibility audit
 - [ ] Cross-browser testing
+- [ ] Switch from `<img>` to Next.js `<Image>` for optimisation
 
 ---
 
@@ -207,14 +255,21 @@ App
 
 | Decision                                | Rationale                                                   |
 | --------------------------------------- | ----------------------------------------------------------- |
-| GSAP over Framer Motion for scroll      | Superior scrub/pin/snap control, better performance under heavy scroll binding |
+| GSAP over Framer Motion for scroll      | Superior scrub/pin control, better performance under heavy scroll binding |
 | Lenis over native smooth-scroll         | Consistent cross-browser feel, lerp-based smoothing, GSAP sync |
-| 8-column grid over 12                   | Matches Figma ratios cleanly, simpler at this content density |
-| `transform: scale()` for font animation | Avoids layout thrashing, keeps text rendering crisp at final size |
-| CSS custom properties for design tokens | No runtime overhead, works with any styling approach          |
-| `smoothTouch: false`                    | Native mobile scrolling feels better than synthetic smoothing |
-| Mobile-first CSS                        | Simplifies responsive logic, aligns with mobile priority     |
-| Manrope ExtraLight (200) everywhere     | Unified typography, single font weight to load               |
+| Custom gate system over GSAP snap       | More control over landing↔content transition, wheel tick counting, touch support |
+| `fr` units over strict 8-col grid       | Simpler implementation, `gridTemplateColumns: ${splitLeft}fr ${splitRight}fr` |
+| CSS `position: sticky` for logo bar     | No JS needed — always collapsed size, sticks at top naturally |
+| Logo bar size interpolation deferred    | Simplified to always-collapsed; large→small animation not yet built |
+| Direct `font-size` animation for headers | Simpler than scale-transform approach; performance acceptable |
+| CSS Modules for styling                 | No runtime overhead, scoped by default, full control         |
+| Self-hosted Manrope variable font       | Performance (no external requests), `next/font/local`        |
+| Leva for runtime tuning                 | Rapid iteration on ImageSquiggle params and transition timing |
+| `syncTouch: true` in Lenis              | Better touch scroll feel than `smoothTouch: false`           |
+| Native `<img>` over Next.js `<Image>`   | Simplicity for Phase 1; will migrate to `<Image>` later     |
+| `100dvh` for landing/contact pages      | Handles iOS Safari dynamic viewport correctly                |
+| `history.scrollRestoration = 'manual'`  | Prevents browser scroll restore from breaking the gate system |
+| Declarative header reconciler           | Solved state drift bugs from previous event-driven approach  |
 
 ---
 
@@ -222,12 +277,14 @@ App
 
 | Item                                     | Status       | Notes                                       |
 | ---------------------------------------- | ------------ | ------------------------------------------- |
-| Font file hosting (Google Fonts vs self-host) | To decide  | Self-host recommended for performance        |
-| Tag pill text content                    | Placeholder "Strategy" | Will be real category labels from CMS       |
-| Third case study (Puma) content          | Placeholder  | Awaiting creative assets                    |
-| Contact/mail icon behaviour              | TBD          | Modal? Mailto? Contact page?                |
-| Footer                                   | Not designed | Awaiting Figma design                       |
-| Multi-page routing                       | TBD          | Currently single-page; may need routes for case study deep-dives |
-| Image carousel timing                    | Default 3.5s | Confirm with stakeholder                    |
+| Logo bar size interpolation              | Deferred     | Currently always collapsed; large→small animation planned but not built |
+| Tag pill text content                    | Placeholder  | Redbull has "Strategy" + "Experiential"; others have "Strategy" × 2 |
+| Third case study (Puma) content          | Placeholder  | No images yet, empty `src` strings          |
+| Services section images                  | Placeholder  | No images yet, empty `src` strings          |
+| Contact page behaviour                   | Basic        | Shows avatar image; no form/mailto yet      |
+| Footer                                   | Not designed | Not in codebase                             |
+| Multi-page routing                       | TBD          | Currently single-page                       |
+| Image carousel timing                    | 3500ms       | Implemented, configurable via prop           |
 | Max collapsed headers on mobile          | 2 (same as desktop) | May reduce to 1 if vertical space is too tight |
-| `prefers-reduced-motion` details         | Spec'd       | Needs QA pass                               |
+| `prefers-reduced-motion` details         | Partial      | Lenis config respects it; animations do not  |
+| Migrate `<img>` to Next.js `<Image>`    | TODO         | For automatic optimisation and responsive `srcset` |

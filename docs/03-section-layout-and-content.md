@@ -1,500 +1,300 @@
-# Feature Doc: Section Layout & Content Structure
+# Feature Doc: Section Layout & Content
 
-> **Document version:** 1.0  
-> **Last updated:** 2026-02-10  
-> **Figma references:**  
-> - `Full page flow: Initial Scroll State`  
-> - `Full page flow: Scroll State 2 project 1 collapses to thinner entry row`
+> **Document version:** 2.0
+> **Last updated:** 2025-02-15
+> **Implementation:** `components/Section.tsx`, `components/SectionHeader.tsx`, `components/ContentBlock.tsx`, `components/TagPill.tsx`, `components/Separator.tsx`, `components/ContactPage.tsx`, `lib/data.ts`
 
 ---
 
-## 1. Overview
+## 1. Page Structure
 
-The main content area below the landing page is composed of **sections**. Each section has a **header** and one or more **content blocks**. There are two section types:
-
-1. **Case Study** — Redbull, UNIQLO, Puma (3 total)
-2. **Services** — a single section with 3 content blocks (Design, Develop, Distribute)
-
-All sections follow a consistent structural pattern but have different internal content layouts.
-
----
-
-## 2. Page Structure (DOM Order)
+The page is rendered in `page.tsx`:
 
 ```
-<main>
-  ├── <LandingPage />                          100vh intro
-  │
-  ├── <LogoBar />                              Sticky top bar with "W" logo
-  │   └── 0.5px separator line
-  │
-  ├── <Section id="redbull">                   Case Study 1
-  │   ├── <SectionHeader title="Redbull" />
-  │   ├── 0.5px separator line
-  │   ├── <ContentBlock layout="6/2" />        Section 1: text-left, image-right
-  │   └── <ContentBlock layout="2/6" />        Section 2: image-left, text-right
-  │
-  ├── 0.5px separator line
-  │
-  ├── <Section id="uniqlo">                    Case Study 2
-  │   ├── <SectionHeader title="UNIQLO" />
-  │   ├── 0.5px separator line
-  │   ├── <ContentBlock layout="3/5" />        Image-left, text-right
-  │   └── <ContentBlock layout="5/3" />        Text-left, image-right
-  │
-  ├── 0.5px separator line
-  │
-  ├── <Section id="puma">                      Case Study 3
-  │   ├── <SectionHeader title="Puma" />
-  │   ├── 0.5px separator line
-  │   ├── <ContentBlock layout="6/2" />        Placeholder
-  │   └── <ContentBlock layout="2/6" />        Placeholder
-  │
-  ├── 0.5px separator line
-  │
-  ├── <Section id="services">                  Services
-  │   ├── <SectionHeader title="Services" />
-  │   ├── 0.5px separator line
-  │   ├── <ContentBlock layout="5/3">          Design
-  │   │     └── sub-heading + body + image
-  │   ├── <ContentBlock layout="3/5">          Develop
-  │   │     └── image + sub-heading + body
-  │   └── <ContentBlock layout="5/3">          Distribute
-  │         └── sub-heading + body + image
-  │
+<ScrollManager />          (renders null, side-effects only)
+<LandingPage />            (100dvh hero)
+<main id="main-content">
+  <LogoBar />              (sticky, ~52px)
+  {allSections.map(section =>
+    <Section key={id} ... hideTopSeparator={index === 0} />
+  )}
+  <ContactPage />          (100dvh contact section)
 </main>
 ```
 
----
+### allSections (from `lib/data.ts`)
 
-## 3. The Logo Bar
+The `allSections` array contains all case-study and services sections in render order:
 
-The logo bar is the persistent top element of the main content area. It contains the Welcome "W" logo mark and sits above all section headers.
-
-### 3.1 Expanded State (Initial)
-
-| Property       | Value                        |
-| -------------- | ---------------------------- |
-| Width          | Full viewport (1728 px ref)  |
-| Height         | ~326 px                      |
-| Padding        | 10 px all sides              |
-| Background     | `#F9F9F9`                    |
-| Content        | Large "W" logo (left-aligned within inner frame) |
-| Right side     | Mail icon area (but mail icon is `position: fixed`, so this is just spacing) |
-
-The inner frame (`Frame 9` → `Frame 6` → `Frame 4`) holds the logo SVG at ~350 × 306 px.
-
-### 3.2 Collapsed State (Sticky)
-
-| Property       | Value                        |
-| -------------- | ---------------------------- |
-| Width          | Full viewport                |
-| Height         | ~41 px                       |
-| Background     | `#F9F9F9`                    |
-| Content        | Small "W" logo (~36 × 31.5 px, left-aligned) |
-| Position       | `sticky`, `top: 0`           |
-| z-index        | 90                           |
-
-### 3.3 Transition
-
-See [02-scroll-system-and-animations.md](./02-scroll-system-and-animations.md) §4 for the continuous interpolation details.
+1. **Redbull** (type: `CaseStudy`, id: `redbull`)
+2. **Puma** (type: `CaseStudy`, id: `puma`)
+3. **Uniqlo** (type: `CaseStudy`, id: `uniqlo`)
+4. **Services** (type: `ServicesSection`, id: `services`)
 
 ---
 
-## 4. Section Header
+## 2. Section Component
 
-Every section (case study or services) begins with a section header. This is the element that participates in the sticky-stack system.
+`Section.tsx` wraps each entry in `allSections`. It renders:
 
-### 4.1 Expanded State
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  REDBULL                                  ┌─────────┐  │
-│  (83px, Manrope ExtraLight, small-caps)   │Strategy │  │
-│                                           ├─────────┤  │
-│                                           │Strategy │  │
-│                                           └─────────┘  │
-└─────────────────────────────────────────────────────────┘
+```tsx
+<section id={`section-${sectionId}`} data-section-id={sectionId}>
+  <SectionHeader
+    sectionId={sectionId}
+    title={title}
+    tags={tags}
+    hideTopSeparator={hideTopSeparator}
+  />
+  {blocks.map(block => <ContentBlock key={i} block={block} />)}
+</section>
 ```
 
-| Property              | Value                              |
-| --------------------- | ---------------------------------- |
-| Width                 | Full content width (1708 px ref, ie viewport minus 10px padding each side) |
-| Height                | 74 px (fixed)                      |
-| Layout                | Horizontal: title (left) + tags frame (right) |
-| Gap                   | 41 px between title and tags       |
-| Title font size       | 83 px                              |
-| Title font            | Manrope ExtraLight (200)           |
-| Title colour          | `#1A1C21`                          |
-| Title line-height     | ~110.8 px                          |
-| Title text-transform  | `font-variant: small-caps`         |
-| Title vertical align  | Centre (vertically centred in 74px container) |
-| Tags                  | 2 × Tag pill components, stacked vertically with 5px gap |
-| Border                | 0.5px line above and below (separate `<hr>` elements in DOM) |
+### CSS (Section.module.css)
 
-### 4.2 Collapsed State
+- `margin-bottom: 0` -- sections butt up against each other
+- `min-height: 100dvh` -- each section fills at least one viewport
 
+---
+
+## 3. SectionHeader Component
+
+Each section has a header that starts expanded in the document flow and becomes sticky/collapsed as the user scrolls past it.
+
+### DOM Structure
+
+```html
+<div id="header-block-{sectionId}" class="headerBlock">
+  <!-- optional top separator (hidden for first section) -->
+  <Separator />
+  <div class="headerRow">
+    <h2 class="title">{title}</h2>
+    <div class="tags">
+      {tags.map(tag => <TagPill key={i} label={tag} />)}
+    </div>
+  </div>
+  <Separator />
+</div>
 ```
-┌─────────────────────────────────────────────────────────┐
-│  REDBULL                  ┌─────────┐ ┌─────────┐      │
-│  (~35.6px)                │Strategy │ │Strategy │      │
-└─────────────────────────────────────────────────────────┘
+
+### Dimensions (Expanded State -- from CSS)
+
+| Element     | Desktop (>= 1024px) | Tablet (640-1023px) | Mobile (< 640px) |
+| ----------- | -------------------- | ------------------- | ----------------- |
+| Header block| height: 70px         | height: 60px        | height: 50px      |
+| Title font  | clamp(20px,5vw,65px) | same                | same              |
+
+### Collapsed State (set by ScrollManager)
+
+When collapsed by the header stack reconciler:
+- `position: fixed; top: {slotTop}px`
+- `height: 26.5px` (HEADER_BLOCK_COLLAPSED_H)
+- Header row height: `25.5px` (HEADER_ROW_COLLAPSED_H)
+- Title font-size: `20.6px` (COLLAPSED_TITLE_SIZE)
+- Tags switch from column layout to inline row
+- `z-index: 50`
+- `background: var(--color-bg)` (#F9F9F9)
+
+### Click-to-Scroll
+
+Collapsed headers are clickable. Clicking a collapsed header scrolls to that section via Lenis.
+
+---
+
+## 4. TagPill Component
+
+Renders a single tag label in a pill-shaped container.
+
+### CSS (TagPill.module.css)
+
+| Property        | Value              |
+| --------------- | ------------------ |
+| width           | 140px              |
+| min-height      | 20.5px             |
+| border-radius   | 9999px (full pill) |
+| border          | 0.5px solid var(--color-text) |
+| font-size       | 14px               |
+| font-weight     | var(--font-weight) (200) |
+| text-align      | center             |
+| display         | flex, align-items: center, justify-content: center |
+
+**Note:** The original Figma design showed rectangular tag shapes (189px wide, 34.5px tall). The code uses a smaller pill shape (140px wide, 20.5px min-height, fully rounded corners).
+
+---
+
+## 5. Separator Component
+
+`Separator.tsx` renders a 1px horizontal line:
+
+```tsx
+<div style={{ width: "100%", height: "1px", background: "var(--color-text)" }} />
 ```
 
-| Property              | Value                              |
-| --------------------- | ---------------------------------- |
-| Height                | ~34.5 px                           |
-| Title font size       | ~35.6 px (visual, via scale)       |
-| Tags                  | Same 2 pills, now side-by-side horizontally with 5px gap |
-| Position              | `sticky`, `top` calculated based on stack position |
-| Cursor                | `pointer` (clickable to auto-scroll back to section) |
-| Background            | `#F9F9F9` (must be opaque to cover content scrolling behind) |
-
-### 4.3 Tag Pills
-
-| Property       | Value                        |
-| -------------- | ---------------------------- |
-| Width          | 189 px (fixed)               |
-| Height         | 34.5 px                      |
-| Background     | `#FFFFFF`                    |
-| Border         | 1px solid `#808080`          |
-| Padding        | 0 62px (horizontally centred text) |
-| Text           | "Strategy" (placeholder)     |
-| Font           | Manrope ExtraLight (200)     |
-| Alignment      | Centre (both axes)           |
-| Border radius  | 0 (rectangular)              |
-| Interaction    | Will be clickable filters (future). For now: static. |
+These are used as top and bottom borders of section headers. The ScrollManager's separator dedup pass hides duplicate lines when headers are stacked.
 
 ---
 
-## 5. Content Blocks
+## 6. ContentBlock Component
 
-Content blocks are the full-width modules that sit below a section header. They contain the actual case study or services content.
+Renders a two-column grid for each content block within a section.
 
-### 5.1 Grid System
+### Grid System
 
-Content blocks use an **8-column grid** that allows flexible split ratios.
+```tsx
+gridTemplateColumns: `${splitLeft}fr ${splitRight}fr`
+```
 
-| Grid property    | Value                          |
-| ---------------- | ------------------------------ |
-| Columns          | 8 equal columns                |
-| Gutter (gap)     | 10 px (from Figma `itemSpacing: 10`) |
-| Container width  | 1708 px (viewport - 20px padding) |
-| Column width     | (1708 - 7×10) / 8 ≈ **204.75 px** per column |
+**Important:** The grid uses `fr` (fractional) units, NOT a fixed 8-column system. The `splitLeft` and `splitRight` values from the data define the ratio.
 
-### 5.2 Split Ratios
+Common splits:
+- `4 / 4` -- equal halves (most blocks)
+- `8 / 6` -- wider left column (Redbull block 2)
 
-Content blocks consist of 2 children (columns) that divide the 8-column grid:
+### Column Types
 
-| Split notation | Left columns | Right columns | Left width (approx) | Right width (approx) |
-| -------------- | ------------ | ------------- | -------------------- | --------------------- |
-| `6/2`          | 6            | 2             | ~1243 px             | ~420 px               |
-| `2/6`          | 2            | 6             | ~420 px              | ~1243 px              |
-| `5/3`          | 5            | 3             | ~1030 px             | ~633 px               |
-| `3/5`          | 3            | 5             | ~633 px              | ~1030 px              |
-| `4/4`          | 4            | 4             | ~832 px              | ~832 px               |
+Each column in a block has a `type` field:
 
-The split ratio is defined per content block and will eventually be configurable in Sanity CMS. For now, hardcoded per section.
+| Type          | Renders                                              |
+| ------------- | ---------------------------------------------------- |
+| `image`       | `<img>` tag with `object-fit: cover; width: 100%`   |
+| `text`        | `<p>` with body copy, `max-width: 425px`             |
+| `titled-text` | `<h3>` sub-heading + `<p>` body copy                 |
 
-### 5.3 Content Block Types
+### Column Alignment
 
-#### Type A: Image + Text (Case Study)
+Each column has an `align` field: `"top"` | `"center"` | `"bottom"`, applied via CSS classes:
 
-Two columns:
-- **Image column:** A single image, `object-fit: cover`, fills the full column height.
-- **Text column:** Body text (15px Manrope ExtraLight, `#1A1C21`, line-height 17px) positioned at the bottom of the column using `align-items: flex-end` or `justify-content: flex-end`.
+- `alignTop` -- `align-self: flex-start`
+- `alignCenter` -- `align-self: center`
+- `alignBottom` -- `align-self: flex-end`
 
-Text block dimensions from Figma:
-- Width: ~395 px (constrained within its column)
-- Content: Placeholder body copy
-- Vertical alignment: **bottom** of the text frame (`textAlignVertical: "BOTTOM"` in Figma)
+### Responsive
 
-#### Type B: Image + Titled Text (Services)
+Below 768px, the grid collapses to single column (`1fr !important` via media query in ContentBlock.module.css).
 
-Two columns:
-- **Text column:** Contains a sub-heading (e.g., "Design", "Develop", "Distribute") at 65px Manrope ExtraLight, followed by body text at 15px.
-- **Image column:** A placeholder image/colour block (`#C8C8C8` grey, 767 × 649 px).
+### Images
 
-### 5.4 Case Study Content Layouts (from Figma)
-
-#### Redbull (Case Study 1)
-
-| Block    | Split  | Left column                     | Right column                    | Heights     |
-| -------- | ------ | ------------------------------- | ------------------------------- | ----------- |
-| Section 1 | ~6/2 | Text block (395×96 px, bottom-aligned) within 997px frame, 131px internal spacing | Image (670 × 471 px) | ~471 px    |
-| Section 2 | ~2/6 | Image (1296 × 905 px)          | Text block (395×96 px, bottom-aligned) within 402px frame | ~905 px    |
-
-#### UNIQLO (Case Study 2)
-
-| Block    | Split  | Left column                     | Right column                    | Heights     |
-| -------- | ------ | ------------------------------- | ------------------------------- | ----------- |
-| Section 1 | ~3/5 | Image (631 × 539 px)           | Text block within 1067px frame  | ~539 px     |
-| Section 2 | ~5/3 | Text block within 1049px frame  | Image (649 × 554 px)           | ~554 px     |
-
-#### Puma (Case Study 3) — Placeholder
-
-| Block    | Split  | Left column     | Right column    | Heights     |
-| -------- | ------ | --------------- | --------------- | ----------- |
-| Section 1 | 6/2  | Text placeholder | Image placeholder | ~471 px   |
-| Section 2 | 2/6  | Image placeholder | Text placeholder | ~905 px   |
-
-### 5.5 Services Content Layout
-
-The Services section contains 3 content blocks, each with a **sub-heading**, **body text**, and an **image**.
-
-| Block      | Split | Left column                  | Right column                    | Height  |
-| ---------- | ----- | ---------------------------- | ------------------------------- | ------- |
-| Design     | 5/3   | Sub-heading (65px) + Body text (15px, 425×386 px) | Grey placeholder image (767×649 px) | 649 px  |
-| Develop    | 3/5   | Grey placeholder image (767×649 px) | Sub-heading (65px) + Body text (15px, 425×311 px) | 649 px  |
-| Distribute | 5/3   | Sub-heading (65px) + Body text (15px, 425×311 px) | Grey placeholder image (767×649 px) | 649 px  |
-
-### 5.6 Services Sub-headings
-
-| Property       | Value                        |
-| -------------- | ---------------------------- |
-| Font           | Manrope ExtraLight (200)     |
-| Size           | 65 px                        |
-| Colour         | `#000000`                    |
-| Line height    | 27 px (tight — text overflows visually, this is a display style) |
-| Text transform | None (title case as authored) |
+All images use native HTML `<img>` tags (not Next.js `<Image>`). The `loading` attribute is not set (browser default). Image paths follow the pattern: `/images/{client}_{number}.png` (e.g., `/images/redbull_1.png`).
 
 ---
 
-## 6. Separator Lines
+## 7. Content Data (`lib/data.ts`)
 
-Thin horizontal lines separate major structural elements.
-
-| Property   | Value         |
-| ---------- | ------------- |
-| Width      | 1708 px (full content width) |
-| Height     | 0.5 px        |
-| Colour     | `#000000`     |
-| Position   | In document flow (not sticky) |
-
-### Placement Rules
-
-- **Between logo bar and first section header**
-- **Between each section header and its first content block** (above and below the header, forming a bordered row)
-- **Between each section** (after the last content block of one section, before the header of the next)
-
-Lines are **not** placed between content blocks within the same section.
-
----
-
-## 7. Content Data Structure (Hardcoded for Now, Sanity-Ready)
+### Interfaces
 
 ```typescript
-interface CaseStudy {
-  id: string;                    // e.g. "redbull"
-  title: string;                 // e.g. "Redbull"
-  tags: string[];                // e.g. ["Strategy", "Strategy"]
-  blocks: ContentBlock[];
-}
-
-interface ContentBlock {
-  id: string;
-  splitLeft: number;             // 1-8 (columns for left)
-  splitRight: number;            // 1-8 (columns for right)
-  leftContent: BlockColumn;
-  rightContent: BlockColumn;
-}
-
 interface BlockColumn {
-  type: 'image' | 'text' | 'titled-text';
-  image?: {
-    src: string;                 // static import path
-    alt: string;
-  };
-  body?: string;                 // paragraph text
-  subHeading?: string;           // for services sub-sections
+  type: "image" | "text" | "titled-text";
+  content: string;
+  alt?: string;
+  align: "top" | "center" | "bottom";
+  title?: string;
+}
+
+interface ContentBlockData {
+  splitLeft: number;
+  splitRight: number;
+  columns: [BlockColumn, BlockColumn];
+}
+
+interface CaseStudy {
+  type: "case-study";
+  id: string;
+  title: string;
+  tags: string[];
+  blocks: ContentBlockData[];
 }
 
 interface ServicesSection {
-  id: 'services';
-  title: string;                 // "Services"
+  type: "services";
+  id: string;
+  title: string;
   tags: string[];
-  blocks: ServiceBlock[];        // 3 blocks: Design, Develop, Distribute
+  blocks: ContentBlockData[];
 }
-
-// ServiceBlock extends ContentBlock with subHeading support
 ```
 
-### 7.1 Hardcoded Content (Phase 1)
+### Section Inventory
 
-```typescript
-const caseStudies: CaseStudy[] = [
-  {
-    id: 'redbull',
-    title: 'Redbull',
-    tags: ['Strategy', 'Strategy'],
-    blocks: [
-      {
-        id: 'redbull-1',
-        splitLeft: 6,
-        splitRight: 2,
-        leftContent: { type: 'text', body: '/* placeholder */' },
-        rightContent: { type: 'image', image: { src: '/images/redbull-01.jpg', alt: 'Redbull campaign' } },
-      },
-      {
-        id: 'redbull-2',
-        splitLeft: 2,
-        splitRight: 6,
-        leftContent: { type: 'image', image: { src: '/images/redbull-02.jpg', alt: 'Redbull campaign' } },
-        rightContent: { type: 'text', body: '/* placeholder */' },
-      },
-    ],
-  },
-  {
-    id: 'uniqlo',
-    title: 'UNIQLO',
-    tags: ['Strategy', 'Strategy'],
-    blocks: [
-      {
-        id: 'uniqlo-1',
-        splitLeft: 3,
-        splitRight: 5,
-        leftContent: { type: 'image', image: { src: '/images/uniqlo-01.jpg', alt: 'UNIQLO campaign' } },
-        rightContent: { type: 'text', body: '/* placeholder */' },
-      },
-      {
-        id: 'uniqlo-2',
-        splitLeft: 5,
-        splitRight: 3,
-        leftContent: { type: 'text', body: '/* placeholder */' },
-        rightContent: { type: 'image', image: { src: '/images/uniqlo-02.jpg', alt: 'UNIQLO campaign' } },
-      },
-    ],
-  },
-  {
-    id: 'puma',
-    title: 'Puma',
-    tags: ['Strategy', 'Strategy'],
-    blocks: [
-      {
-        id: 'puma-1',
-        splitLeft: 6,
-        splitRight: 2,
-        leftContent: { type: 'text', body: '/* placeholder */' },
-        rightContent: { type: 'image', image: { src: '/images/puma-01.jpg', alt: 'Puma campaign' } },
-      },
-      {
-        id: 'puma-2',
-        splitLeft: 2,
-        splitRight: 6,
-        leftContent: { type: 'image', image: { src: '/images/puma-02.jpg', alt: 'Puma campaign' } },
-        rightContent: { type: 'text', body: '/* placeholder */' },
-      },
-    ],
-  },
-];
+#### Redbull
+- **ID:** `redbull`
+- **Title:** `"Redbull"`
+- **Tags:** `["Strategy", "Experiential"]`
+- **Blocks:** 3 content blocks
+  - Block 1: image (left, `redbull_1.png`) + text (right, body copy). Split: 4/4.
+  - Block 2: image (left, `redbull_2.png`, align bottom) + text (right, align bottom). Split: **8/6** (asymmetric).
+  - Block 3: image (left, `redbull_3.png`) + text (right). Split: 4/4.
 
-const servicesSection: ServicesSection = {
-  id: 'services',
-  title: 'Services',
-  tags: ['Strategy', 'Strategy'],
-  blocks: [
-    {
-      id: 'services-design',
-      splitLeft: 5,
-      splitRight: 3,
-      leftContent: { type: 'titled-text', subHeading: 'Design', body: '/* placeholder */' },
-      rightContent: { type: 'image', image: { src: '/images/services-design.jpg', alt: 'Design services' } },
-    },
-    {
-      id: 'services-develop',
-      splitLeft: 3,
-      splitRight: 5,
-      leftContent: { type: 'image', image: { src: '/images/services-develop.jpg', alt: 'Development services' } },
-      rightContent: { type: 'titled-text', subHeading: 'Develop', body: '/* placeholder */' },
-    },
-    {
-      id: 'services-distribute',
-      splitLeft: 5,
-      splitRight: 3,
-      leftContent: { type: 'titled-text', subHeading: 'Distribute', body: '/* placeholder */' },
-      rightContent: { type: 'image', image: { src: '/images/services-distribute.jpg', alt: 'Distribution services' } },
-    },
-  ],
-};
-```
+#### Puma
+- **ID:** `puma`
+- **Title:** `"Puma"`
+- **Tags:** `["Strategy"]`
+- **Blocks:** 3 content blocks, all split 4/4.
+
+#### Uniqlo
+- **ID:** `uniqlo`
+- **Title:** `"Uniqlo"`
+- **Tags:** `["Strategy"]`
+- **Blocks:** 3 content blocks, all split 4/4.
+
+#### Services
+- **ID:** `services`
+- **Title:** `"SERVICES"` (uppercase)
+- **Tags:** `["Strategy"]`
+- **Blocks:** 3 blocks using `titled-text` type for sub-sections (Creative, Production, Talent & Partnerships). Sub-heading font: `clamp(36px, 4vw, 65px)`.
 
 ---
 
-## 8. Images
+## 8. ContactPage Component
 
-### Phase 1 (Current)
-- All images are static assets bundled in `/public/images/`.
-- Images should be optimised (WebP with JPEG fallback).
-- Use Next.js `<Image>` component for automatic optimisation, lazy loading, and responsive `srcset`.
-- Placeholder images: solid grey `#C8C8C8` blocks for services, actual project photos for case studies.
+`ContactPage.tsx` renders the final section of the page.
 
-### Phase 2 (Sanity CMS)
-- Images served from Sanity CDN via `@sanity/image-url`.
-- Hot-spot / crop data from Sanity used for `object-position`.
-- The component structure should already support swapping `src` from a static path to a Sanity image URL builder.
-
----
-
-## 9. Body Text
-
-All body/paragraph text across sections uses:
-
-| Property       | Value                  |
-| -------------- | ---------------------- |
-| Font           | Manrope ExtraLight 200 |
-| Size           | 15 px                  |
-| Line height    | 17 px                  |
-| Colour         | `#1A1C21`              |
-| Max width      | ~395–425 px (constrained within column, not full column width) |
-| Vertical align | Bottom of frame (case studies), Top of frame (services) |
-
----
-
-## 10. Component Hierarchy
-
+```tsx
+<section id="section-contact" className={styles.contactPage}>
+  <img src="/images/avi.png" alt="Contact avatar" className={styles.avatar} />
+</section>
 ```
-<MainContent>
-  <LogoBar />
+
+### CSS (ContactPage.module.css)
+
+- `height: 100dvh` -- full viewport height
+- `display: flex; align-items: center; justify-content: center`
+- Avatar image: `width: 200px; height: 200px; border-radius: 50%; object-fit: cover`
+- `background: var(--color-bg)`
+
+The mail icon (`MailIcon.tsx`) links to `#section-contact` to scroll here.
+
+---
+
+## 9. LogoBar Component
+
+Always visible at the top of `<main>`. Sticky-positioned.
+
+### DOM Structure
+
+```html
+<div class="logoBar">
   <Separator />
-
-  {caseStudies.map(study => (
-    <Section key={study.id}>
-      <SectionHeader
-        title={study.title}
-        tags={study.tags}
-        sectionId={study.id}     // for scroll-to-section on click
-      />
-      <Separator />
-      {study.blocks.map(block => (
-        <ContentBlock
-          key={block.id}
-          splitLeft={block.splitLeft}
-          splitRight={block.splitRight}
-          leftContent={block.leftContent}
-          rightContent={block.rightContent}
-        />
-      ))}
-      <Separator />
-    </Section>
-  ))}
-
-  <Section key="services">
-    <SectionHeader title="Services" tags={['Strategy','Strategy']} sectionId="services" />
-    <Separator />
-    {servicesSection.blocks.map(block => (
-      <ContentBlock key={block.id} ... />
-    ))}
-  </Section>
-</MainContent>
+  <div class="logoRow">
+    <button id="logo-home-btn">
+      <WelcomeLogo width={24} height={...} color="black" />
+    </button>
+    <button id="go-up-btn" class="goUpPill">
+      go up
+    </button>
+  </div>
+  <Separator />
+</div>
 ```
 
-### Component Props Summary
+### CSS (LogoBar.module.css)
 
-| Component        | Key Props                                                             |
-| ---------------- | --------------------------------------------------------------------- |
-| `LogoBar`        | `collapsed: boolean` (driven by scroll), `logoScale: number`          |
-| `SectionHeader`  | `title`, `tags[]`, `sectionId`, `state: 'expanded'|'collapsed'|'dismissed'` |
-| `ContentBlock`   | `splitLeft`, `splitRight`, `leftContent`, `rightContent`              |
-| `BlockColumn`    | `type`, `image?`, `body?`, `subHeading?`                              |
-| `Separator`      | None (pure presentational)                                            |
-| `TagPill`        | `label`                                                               |
+- `position: sticky; top: 0; z-index: 60`
+- `height: var(--logo-bar-collapsed)` = 52px (includes separator lines)
+- `background: var(--color-bg)` (#F9F9F9)
+- Go-up pill: `border: 0.5px solid var(--color-text)`, `border-radius: 9999px`, `font-size: 14px`, hover `opacity: 0.6`
+
+### Behaviour
+
+- **Logo button:** Clicking scrolls to top (landing page) and re-locks gate
+- **Go-up pill:** Same behaviour
+- Both handlers are wired in `ScrollManager.tsx`

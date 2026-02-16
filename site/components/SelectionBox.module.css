@@ -1,0 +1,38 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  pointer-events: none;
+}
+
+.box {
+  position: absolute;
+  border: 0.5px solid rgba(0, 100, 255, 0.8);
+  background: rgba(0, 100, 255, 0.1);
+  pointer-events: none;
+}
+
+.shard {
+  position: absolute;
+  background: rgba(0, 100, 255, 0.1);
+  border: 0.5px solid rgba(0, 100, 255, 0.8);
+  pointer-events: none;
+  transform-origin: center center;
+}
+
+.rippleShard {
+  position: absolute;
+  background: rgba(0, 100, 255, 0.1);
+  border: 0.5px solid rgba(0, 100, 255, 0.8);
+  pointer-events: none;
+  transform-origin: center center;
+  transform: scale(0);
+  opacity: 0;
+  animation: ripplePulse var(--ripple-dur, 0.4s) var(--ripple-delay, 0s) ease-out forwards;
+}
+
+@keyframes ripplePulse {
+  0%   { transform: scale(0); opacity: 0; }
+  40%  { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0); opacity: 0; }
+}

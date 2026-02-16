@@ -65,8 +65,9 @@
 
 .subHeading {
   font-size: clamp(36px, 4vw, 65px);
+  font-weight: var(--font-weight);
   line-height: 1;
-  color: var(--color-black);
+  color: var(--color-text);
   margin-bottom: 16px;
 }
 

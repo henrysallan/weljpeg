@@ -1,0 +1,61 @@
+/* Hide native cursor globally when component is mounted */
+.cursorHidden,
+.cursorHidden * {
+  cursor: none !important;
+}
+
+/* Lines container — full viewport, masked around cursor */
+.lines {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  --mx: -100px;
+  --my: -100px;
+  --mask-r: 30px;
+  --line-w: 1px;
+  -webkit-mask-image: radial-gradient(
+    circle var(--mask-r) at var(--mx) var(--my),
+    transparent 0 100%,
+    black 0
+  );
+  mask-image: radial-gradient(
+    circle var(--mask-r) at var(--mx) var(--my),
+    transparent 0 100%,
+    black 0
+  );
+}
+
+.vLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--mx);
+  width: var(--line-w);
+  background: var(--color-text, #1a1c21);
+  transform: translateX(-50%);
+}
+
+.hLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--my);
+  height: var(--line-w);
+  background: var(--color-text, #1a1c21);
+  transform: translateY(-50%);
+}
+
+/* Custom cursor dot */
+.dot {
+  position: fixed;
+  z-index: 99999;
+  pointer-events: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: white;
+  mix-blend-mode: difference;
+  transform: translate(-50%, -50%);
+}
+

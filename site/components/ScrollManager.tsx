@@ -17,6 +17,8 @@ const HEADER_BLOCK_COLLAPSED_H = 26.5; // 0.5px sep + 25.5px row + 0.5px sep
 const HEADER_ROW_COLLAPSED_H = 25.5;
 const COLLAPSED_TITLE_SIZE = 20.6;
 const MAX_VISIBLE_SLOTS = 2;
+// Multiplier: 1 = collapse consumes exactly the px it shrinks (1:1 scroll).
+const COLLAPSE_SPEED = 1;
 
 /* ================================================================
    Landing gate state — shared between Lenis config and setup
@@ -134,6 +136,10 @@ interface HeaderRef {
   section: HTMLElement;
   title: HTMLElement;
   tags: HTMLElement;
+  expandedContent: HTMLElement | null;
+  sectionContent: HTMLElement | null;
+  bottomSep: HTMLElement | null;
+  placeholder: HTMLElement | null;
   expandedBlockH: number;
   expandedRowH: number;
   expandedTitleSize: number;
@@ -468,6 +474,15 @@ function setupAnimations(
     const tags = row.querySelector<HTMLElement>("[class*='tags']");
     if (!title || !tags) continue;
 
+    const expandedContent = block.querySelector<HTMLElement>("[class*='expandedContent']");
+    const sectionContent = section.querySelector<HTMLElement>("[class*='sectionContent']");
+    const bottomSep = block.querySelector<HTMLElement>("hr:last-of-type");
+
+    // Promote animated elements to their own compositor layers
+    block.style.willChange = "height, top, transform, opacity";
+    row.style.willChange = "height";
+    title.style.willChange = "font-size";
+
     headerRefs.push({
       id: sectionId,
       block,
@@ -475,6 +490,10 @@ function setupAnimations(
       section,
       title,
       tags,
+      expandedContent,
+      sectionContent,
+      bottomSep,
+      placeholder: null, // set when goFixed creates it
       expandedBlockH: block.offsetHeight,
       expandedRowH: row.offsetHeight,
       expandedTitleSize: parseFloat(getComputedStyle(title).fontSize),
@@ -506,7 +525,6 @@ function setupAnimations(
     : 40;
   // Multiplier > 1 stretches the collapse over more scroll distance,
   // making it feel slower/more gradual.
-  const COLLAPSE_SPEED = 2.5;
   const COLLAPSE_DISTANCE = RAW_COLLAPSE_DISTANCE * COLLAPSE_SPEED;
 
   /* Fade the logo bar's top separator once it's stuck at the top */
@@ -558,10 +576,9 @@ function deriveStates(
     if (state === "expanded") {
       naturalTops[ref.id] = ref.block.getBoundingClientRect().top;
     } else {
-      const ph = ref.block.parentElement?.querySelector(
-        `[data-placeholder-for="${ref.block.id}"]`
-      ) as HTMLElement | null;
-      naturalTops[ref.id] = ph ? ph.getBoundingClientRect().top : -9999;
+      naturalTops[ref.id] = ref.placeholder
+        ? ref.placeholder.getBoundingClientRect().top
+        : -9999;
     }
   }
 
@@ -742,7 +759,8 @@ function computeProgress(
 function applyStates(
   refs: HeaderRef[],
   derived: DerivedState[],
-  live: Record<string, LiveState>
+  live: Record<string, LiveState>,
+  collapseDistance: number
 ) {
   for (let i = 0; i < refs.length; i++) {
     const ref = refs[i];
@@ -922,7 +940,7 @@ function reconcile(
   updateContactPoints(refs, live);
 
   const derived = deriveStates(refs, live, collapseDistance);
-  applyStates(refs, derived, live);
+  applyStates(refs, derived, live, collapseDistance);
 }
 
 /**
@@ -970,9 +988,7 @@ function goFixed(ref: HeaderRef, d: DerivedState, ls: LiveState) {
   const { block } = ref;
 
   // Create placeholder if needed
-  let ph = block.parentElement?.querySelector(
-    `[data-placeholder-for="${block.id}"]`
-  ) as HTMLElement | null;
+  let ph = ref.placeholder;
   if (!ph) {
     ph = document.createElement("div");
     ph.dataset.placeholderFor = block.id;
@@ -980,6 +996,7 @@ function goFixed(ref: HeaderRef, d: DerivedState, ls: LiveState) {
     ph.style.visibility = "hidden";
     ph.style.pointerEvents = "none";
     block.parentElement?.insertBefore(ph, block);
+    ref.placeholder = ph;
   }
 
   block.dataset.state = "stacked";
@@ -993,6 +1010,20 @@ function goFixed(ref: HeaderRef, d: DerivedState, ls: LiveState) {
     cursor: "pointer",
   });
 
+  // Set static (one-time) props for collapse animation elements
+  if (ref.expandedContent) {
+    ref.expandedContent.style.position = "absolute";
+    ref.expandedContent.style.left = "0";
+    ref.expandedContent.style.right = "0";
+    ref.expandedContent.style.pointerEvents = "none";
+  }
+  if (ref.bottomSep) {
+    ref.bottomSep.style.position = "absolute";
+    ref.bottomSep.style.bottom = "0";
+    ref.bottomSep.style.left = "0";
+    ref.bottomSep.style.width = "100%";
+  }
+
   ls.lastTopPx = d.topPx;
 }
 
@@ -1004,10 +1035,10 @@ function returnToFlow(ref: HeaderRef) {
   gsap.set(block, { clearProps: "y,opacity" });
 
   // Remove placeholder
-  const ph = block.parentElement?.querySelector(
-    `[data-placeholder-for="${block.id}"]`
-  );
-  if (ph) ph.remove();
+  if (ref.placeholder) {
+    ref.placeholder.remove();
+    ref.placeholder = null;
+  }
 
   block.style.position = "";
   block.style.top = "";
@@ -1029,42 +1060,76 @@ function returnToFlow(ref: HeaderRef) {
   tags.style.padding = "";
   tags.style.alignSelf = "";
 
-  // Clear any separator opacity override
-  const bottomSep = block.querySelector("hr:last-of-type") as HTMLElement | null;
-  if (bottomSep) bottomSep.style.opacity = "";
+  // Clear expanded content styles
+  if (ref.expandedContent) {
+    ref.expandedContent.style.position = "";
+    ref.expandedContent.style.top = "";
+    ref.expandedContent.style.left = "";
+    ref.expandedContent.style.right = "";
+    ref.expandedContent.style.pointerEvents = "";
+  }
+
+  // Clear any separator overrides
+  if (ref.bottomSep) {
+    ref.bottomSep.style.opacity = "";
+    ref.bottomSep.style.position = "";
+    ref.bottomSep.style.bottom = "";
+    ref.bottomSep.style.left = "";
+    ref.bottomSep.style.width = "";
+  }
   const topSep = block.querySelector("hr:first-of-type") as HTMLElement | null;
-  if (topSep && topSep !== bottomSep) topSep.style.opacity = "";
+  if (topSep && topSep !== ref.bottomSep) topSep.style.opacity = "";
 }
 
-/** Lerp all visual properties based on collapse progress (0 = expanded, 1 = collapsed). */
+/** Lerp all visual properties based on collapse progress (0 = expanded, 1 = collapsed).
+ *
+ *  Single smooth pass — all properties interpolate together.
+ *  The expanded content is taken out of flow (position: absolute) so the
+ *  bottom separator always sits directly after the header row. The block's
+ *  overflow: hidden clips the absolutely-positioned content as the block
+ *  height shrinks. No phases, no layout snaps.
+ */
 function interpolateHeader(ref: HeaderRef, t: number) {
-  // Apply a subtle ease-out so the collapse decelerates as it
-  // approaches the fully-collapsed state (feels less abrupt).
-  const eased = 1 - Math.pow(1 - t, 1.4);
+  // Linear — no easing. With COLLAPSE_SPEED=1, every px of scroll =
+  // every px of header shrink, so content stays perfectly pinned to
+  // the header's bottom edge.
 
-  const blockH = lerp(ref.expandedBlockH, HEADER_BLOCK_COLLAPSED_H, eased);
-  const rowH = lerp(ref.expandedRowH, HEADER_ROW_COLLAPSED_H, eased);
+  // Block height
+  const blockH = lerp(ref.expandedBlockH, HEADER_BLOCK_COLLAPSED_H, t);
   ref.block.style.height = `${blockH}px`;
+
+  // Row height
+  const rowH = lerp(ref.expandedRowH, HEADER_ROW_COLLAPSED_H, t);
   ref.row.style.height = `${rowH}px`;
 
-  const titleSize = lerp(ref.expandedTitleSize, COLLAPSED_TITLE_SIZE, eased);
+  // Title
+  const titleSize = lerp(ref.expandedTitleSize, COLLAPSED_TITLE_SIZE, t);
   ref.title.style.fontSize = `${titleSize}px`;
 
+  // Expanded content: anchor just below the current row.
+  // Only the `top` changes per frame; static props are set once.
+  if (ref.expandedContent) {
+    ref.expandedContent.style.top = `${0.5 + rowH}px`;
+  }
+
+  // Pin bottom separator (cached, no querySelector per frame)
+  // Static props are set once in initExpandedContentStyles.
+
+
   // Tags crossfade: column -> fade out -> switch to row -> fade in
-  // Use eased progress so tags stay in sync with height/font sizing
-  if (eased < 0.5) {
+  if (t < 0.5) {
     ref.tags.style.flexDirection = "column";
     ref.tags.style.opacity = "1";
     ref.tags.style.alignSelf = "";
     ref.tags.style.padding = "";
-  } else if (eased < 0.65) {
+  } else if (t < 0.65) {
     ref.tags.style.flexDirection = "column";
-    ref.tags.style.opacity = `${1 - (eased - 0.5) / 0.15}`;
+    ref.tags.style.opacity = `${1 - (t - 0.5) / 0.15}`;
     ref.tags.style.alignSelf = "";
     ref.tags.style.padding = "";
-  } else if (eased < 0.8) {
+  } else if (t < 0.8) {
     ref.tags.style.flexDirection = "row";
-    ref.tags.style.opacity = `${(eased - 0.65) / 0.15}`;
+    ref.tags.style.opacity = `${(t - 0.65) / 0.15}`;
     ref.tags.style.alignSelf = "center";
     ref.tags.style.padding = "3px 0";
   } else {

@@ -98,8 +98,8 @@ ul, ol {
    ============================================================ */
 
 .separator {
-  width: calc(100% - 2 * var(--page-padding));
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   height: var(--separator-weight);
   background: var(--separator-color);
   border: none;

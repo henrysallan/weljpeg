@@ -1,189 +1,248 @@
 # Feature Doc: Landing Page (Hero / Intro Screen)
 
-> **Document version:** 1.0  
-> **Last updated:** 2026-02-10  
+> **Document version:** 2.0
+> **Last updated:** 2025-02-15
 > **Figma reference:** `Home Page/Landing page/Screen1`
+> **Implementation:** `components/LandingPage.tsx`, `components/ImageSquiggle.tsx`, `components/ImageCycler.tsx`
 
 ---
 
 ## 1. Overview
 
-The landing page is the first thing a visitor sees. It is a minimal, almost entirely whitespace screen with a small, vertically-stacked content cluster positioned roughly centre-screen (horizontally centred, vertically ~28 % from top on a 1728 × 1109 viewport). The aesthetic is intentionally restrained — the negative space **is** the design.
+The landing page is the first thing a visitor sees. It is a minimal, almost entirely whitespace screen with a small, vertically-stacked content cluster centred in the viewport. Behind the cluster, a full-viewport animated image layer (**ImageSquiggle**) displays Instagram images in configurable animated patterns (arc, linear, scatter-fall). The aesthetic is intentionally restrained -- the negative space **is** the design.
 
-The landing page lives in the normal document flow; the main site content sits directly below it in the DOM. However, the *experience* of transitioning from the landing page to the main content is **not** a free scroll — it is an **automated, eased scroll animation** that snaps the viewport cleanly to the top of the main content area (see [02-scroll-system-and-animations.md](./02-scroll-system-and-animations.md)).
+The landing page lives in the normal document flow; the main site content sits directly below it in the DOM. The transition from landing to content is controlled by a **gate system** in `ScrollManager` that requires 2 wheel ticks (or a swipe on mobile) before triggering an eased scroll animation past the landing page. See [02-scroll-system-and-animations.md](./02-scroll-system-and-animations.md).
 
 ---
 
 ## 2. Visual Anatomy
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                                              ✉ (mail)   │  ← sticky top-right
-│                                                         │
-│                                                         │
-│                                                         │
-│                        ∷∷                               │  ← Welcome "W" logo mark
-│                        WELCOME LABS                     │  ← site title
-│                        We are experts at                │
-│                        introducing new ideas            │
-│                        to the culture                   │
-│                                                         │
-│                        through design, talent,          │  ← underlined keywords
-│                        tools, and distribution.         │
-│                                                         │
-│                        ┌──────────────┐                 │
-│                        │  [image]     │                 │  ← cycling image
-│                        └──────────────┘                 │
-│                        REDBULL                          │  ← client links (underlined)
-│                        PUMA                             │
-│                        EBAY                             │
-│                                                         │
-│                                                         │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
++-----------------------------------------------------------+
+|                                              mail icon     |  fixed top-right (in layout.tsx)
+|                                                            |
+|        ~~~ animated images (ImageSquiggle, z:0) ~~~        |
+|                                                            |
+|                        ::                                  |  Welcome "W" logo mark (z:1)
+|                        Welcome LABS                        |  site title
+|                        Introducing new ideas               |
+|                        to the culture                      |
+|                                                            |
+|                        through design, talent,             |  underlined keywords
+|                        tools, and distribution.            |
+|                                                            |
+|                        +--------------+                    |
+|                        |  [image]     |                    |  cycling image (ImageCycler)
+|                        +--------------+                    |
+|                        REDBULL                             |  client links (underlined)
+|                        PUMA                                |
+|                        UNIQLO                              |
+|                                                            |
+|                        v (down arrow)                      |  down arrow SVG
+|                                                            |
++-----------------------------------------------------------+
 ```
 
-### 2.1 Dimensions (from Figma, at 1728 px viewport)
+### 2.1 Dimensions (from code)
 
 | Element                    | Width     | Height    | Notes                                        |
 | -------------------------- | --------- | --------- | -------------------------------------------- |
-| Viewport / frame           | 1728 px   | 1109 px   | Full-viewport landing page                   |
-| Body / main section        | 314 px    | ~443 px   | Auto-height, 314 px fixed width              |
+| Landing section            | 100%      | 100dvh    | Full dynamic viewport height                 |
+| Content cluster            | 314 px    | auto      | Fixed width, flex column, 22px gap           |
 | Logo mark                  | 36 px     | 31.5 px   | SVG, 5-part vector "W" mark                  |
-| Site title text            | 314 px    | ~18 px    | `WELCOME LABS` (uppercase)                   |
-| Description text           | 281 px    | ~131 px   | Multi-line with underlined keywords           |
-| Image cycling area         | ~167 px   | ~117 px   | Aspect ratio ≈ 1.42 : 1                     |
-| Client links               | 314 px    | ~65 px    | 3 lines, underlined, small-caps forced       |
-| Mail icon (top-right)      | 52 × 41   | —         | Envelope icon, sticky                        |
+| Site title text            | auto      | ~24 px    | `Welcome LABS` (mixed case)                  |
+| Description text           | max 281px | auto      | Multi-line with underlined keywords           |
+| Image cycling area         | 167 px    | auto      | Aspect ratio 167/117 via CSS                 |
+| Client links               | auto      | auto      | 3 lines, underlined, 4px gap                 |
+| Down arrow SVG             | 20 x 28   | --        | Clickable, triggers gate transition           |
 
 ### 2.2 Positioning
 
-- **Body cluster:** Horizontally centred in the viewport. Vertically positioned at approximately 28 % from the top edge (315 px at 1109 px viewport height). On different viewport sizes this should remain visually centred — use flexbox centering rather than absolute pixel offsets.
-- **Mail icon:** Fixed to the **top-right** corner of the viewport. Persists across **all** scroll states and all pages. `position: fixed; top: ~7px; right: ~8px;` (adjust with design tokens). `z-index` must be above all other stacking contexts.
+- **Content cluster:** Centred both horizontally and vertically via flexbox (`align-items: center; justify-content: center`) on the landing section. `z-index: 1` to sit above the ImageSquiggle layer.
+- **ImageSquiggle:** `position: absolute; inset: 0` -- fills the entire landing section. `z-index: 0`. `pointer-events: none` on the container, `pointer-events: auto` on individual images.
+- **Mail icon:** In `layout.tsx`, not in the landing page component. `position: fixed; top: 0; right: 0; z-index: 100`.
 
 ---
 
 ## 3. Typography
 
-All text on the landing page (and the entire site) uses:
+All text on the landing page uses:
 
 | Property       | Value                  |
 | -------------- | ---------------------- |
-| Font family    | **Manrope**            |
-| Font weight    | **200** (ExtraLight)   |
-| Color          | `#1A1C21`              |
+| Font family    | **Manrope** (variable, self-hosted) |
+| Font weight    | **200** (ExtraLight) via CSS `--font-weight` |
+| Color          | `#1A1C21` via `--color-text` |
 
-### 3.1 Text Styles
+### 3.1 Text Styles (from CSS)
 
 | Element          | Size   | Line height | Transform / Decoration            |
 | ---------------- | ------ | ----------- | --------------------------------- |
-| Site title       | 24 px  | 24 px       | `text-transform: uppercase`       |
-| Description      | 24 px  | 20 px       | Mixed — keywords are underlined   |
-| Client links     | 24 px  | 24 px       | `text-decoration: underline`, `font-variant: small-caps` |
+| Site title       | 20 px  | 24 px       | None (mixed case: "Welcome LABS") |
+| Description      | 20 px  | 20 px       | Mixed -- keywords are underlined  |
+| Client links     | 20 px  | 24 px       | `text-decoration: underline`, `text-underline-offset: 2px` |
+| Down arrow       | --     | --          | SVG, `opacity: 0.5`, hover: `0.8` |
 
-### 3.2 Description Text — Underlined Keywords
+### 3.2 Description Text -- Underlined Keywords
 
-The description sentence contains **four underlined keywords** that act as semantic anchors (and may become navigation links later):
+The description reads:
 
-> We are experts at introducing new ideas to the culture  
+> Introducing new ideas to the culture
+> *(blank line)*
 > through **design**, **talent**, **tools**, and **distribution**.
 
-"design", "talent", "tools", "distribution" are rendered with `text-decoration: underline`. The rest of the sentence is plain. There is a deliberate line break after "culture" and before "through".
+The four keywords are wrapped in `<span className={styles.underline}>` with `text-decoration: underline; text-underline-offset: 2px`. There is a `<br /><br />` between the two lines.
+
+**Note:** The original Figma said "We are experts at introducing new ideas..." -- the code uses the shorter "Introducing new ideas to the culture".
 
 ---
 
 ## 4. Logo Mark
 
-The Welcome "W" logo is an SVG composed of 5 vector paths forming a stylised "W" shape. It is rendered in `#000000` (black).
+The Welcome "W" logo is a reusable `<WelcomeLogo />` component (SVG, 5 vector paths).
 
-- **Landing page size:** 36 × 31.5 px  
-- This is the **small** version of the logo; on the main content area the logo appears at a much larger size (~350 px wide) in the top bar before collapsing back down (see scroll system doc).
-- The logo SVG should be a reusable `<WelcomeLogo />` component that accepts a `size` or `scale` prop for the scroll-driven resize animation.
+- **Landing page size:** 36 x 31.5 px (props: `width={36} height={31.5}`)
+- **Color:** `black` (default prop)
+- **Accessibility:** `aria-label="Welcome Labs logo"`, `role="img"`
+
+The same component is reused in the `LogoBar` at a smaller size (24 x ~21px).
 
 ---
 
 ## 5. Image Cycling / Carousel
 
-### Behaviour
+### Implementation: `ImageCycler.tsx`
 
-- Displays a single image at a time from a provided set.
-- Cycles automatically on a timer.
-- **Hard cut** between images — no crossfade, no slide, no animated transition. Instant swap.
+- Displays a single image at a time from a provided array.
+- Cycles automatically via `setInterval`.
+- **Hard cut** between images -- no crossfade, no slide. Instant swap.
 - Images fill the container with `object-fit: cover`.
+- Preloads all images on mount to avoid flash-of-empty on swap.
 
-### Implementation Notes
+### Props
 
-- Container: ~167 × 117 px (aspect ratio ~1.42:1). Should be responsive.
-- Timer interval: TBD (recommend 3–4 seconds as default, make configurable).
-- Images will be provided as static assets bundled in the deployment.
-- Preload all images in the set to avoid flash-of-empty on swap.
-- Later: images will come from Sanity CMS.
-
-### Component API (Planned)
-
-```
+```tsx
 <ImageCycler
   images={string[]}       // array of image paths
   interval={number}       // ms between swaps, default 3500
-  aspectRatio="167/117"   // or use CSS aspect-ratio
+  className={string}      // optional
 />
 ```
 
+### Current configuration
+
+```tsx
+const LANDING_IMAGES = [
+  "/images/redbull_1.png",
+  "/images/redbull_2.png",
+  "/images/uniqlo_2.png",
+  "/images/uniqlo_3.png",
+];
+
+<ImageCycler images={LANDING_IMAGES} interval={3500} />
+```
+
+Container: 167px wide, aspect ratio `167 / 117` set via CSS.
+
 ---
 
-## 6. Client / Project Links
+## 6. ImageSquiggle -- Animated Image Background
 
-Three client names rendered as underlined small-caps text, stacked vertically:
+### Overview
+
+`ImageSquiggle.tsx` is a ~750-line component that creates an animated layer of Instagram images behind the landing page content. It loads image paths from `/images/landingimages/posts.json` and displays them in configurable patterns.
+
+### Key Features
+
+1. **Three animation modes** (selectable via Leva):
+   - **Arc** (default) -- images placed along a Catmull-Rom spline curving around viewport centre
+   - **Linear** -- images in a left-to-right path with vertical wobble
+   - **Scatter** -- images fall continuously from top, parallax-style
+
+2. **Image interaction:**
+   - **Hover** -- image scales up (1.35x), pauses falling (scatter mode)
+   - **Click** -- focuses image: fades out all others, enlarges clicked image to left side with caption
+   - **Drag & throw** -- images can be dragged and thrown with physics (velocity, friction, bounce off edges)
+
+3. **Leva control panel** -- hidden by default, toggled with `L` key. Controls include:
+   - Mode selection (arc/linear/scatter)
+   - Images per line, min/max image size, curve points
+   - Arc settings (span, radius, noise, exclusion zone)
+   - Scatter settings (fall speed, spawn interval, batch size)
+   - Timing (fade in/out duration, stagger, hold, cycle interval, max opacity)
+   - Page transition duration and ease power (synced to `lib/levaConfig.ts`)
+
+4. **Image pool:** Loaded async from `/images/landingimages/posts.json`. Each post has images and optional captions. Captions display when an image is focused.
+
+### Shared Config: `lib/levaConfig.ts`
+
+```typescript
+export const transitionConfig = {
+  duration: 1.8,
+  easePower: 5,
+};
+```
+
+These values are written by ImageSquiggle's Leva controls and read by `ScrollManager` for the landing-to-content gate transition easing.
+
+---
+
+## 7. Client / Project Links
+
+Three client names rendered as underlined links, stacked vertically with 4px gap:
 
 ```
 REDBULL
 PUMA
-EBAY
+UNIQLO
 ```
 
-- Each line is a clickable link that will eventually navigate to the corresponding case study section (smooth-scroll to that section's header).
-- For now: clicking a client name smooth-scrolls the page to the corresponding section header in the main content area below.
-- Hover state: TBD (recommend a subtle opacity shift or underline thickness change).
+- Each is an `<a href="#section-{id}">` link.
+- **Click behaviour:** The `ScrollManager` intercepts `#section-*` hash clicks. If on the landing page, it first triggers the gate transition to content, then smooth-scrolls to the target section. If already on content, it scrolls directly.
+- **Hover:** `opacity: 0.6` with 0.2s ease transition.
 
 ---
 
-## 7. Mail / Contact Icon
+## 8. Down Arrow
 
-- **Asset:** Envelope/mail SVG icon (to be provided).
-- **Position:** `position: fixed`, top-right corner of viewport.
-- **Persistence:** Always visible across all scroll states, all sections.
-- **z-index:** Must be the highest in the stacking order (above sticky headers, above everything).
-- **Interaction:** TBD — likely opens a contact modal or mailto link.
-- **Visual:** Outlined rectangle with a fold line, stroke color `#33363F`, stroke weight 1px, border-radius 2px, on a `#F9F9F9` background pill (52 × 41 px).
+An inline SVG arrow below the client links:
 
----
-
-## 8. Landing → Main Content Transition
-
-This is the critical handoff from the landing page to the main content.
-
-### Trigger
-The user scrolls down (any scroll input: wheel, trackpad, touch, keyboard).
-
-### Behaviour
-1. The **first scroll event** (or accumulated scroll delta past a small threshold) triggers an **automated, eased scroll animation** that moves the viewport from the landing page to the top of the main content area.
-2. The animation uses an **ease-out** (or custom cubic-bezier) curve for a smooth, decelerating feel.
-3. During this animated scroll, the landing page content scrolls up naturally — it is in the DOM above the main content.
-4. At the end of the animation, the viewport is perfectly aligned with the top of the main content section.
-5. **Scroll-jacking is limited to this single transition.** Once the user is in the main content area, scrolling behaves naturally (with the scroll-driven animations described in the scroll system doc).
-
-### Reverse
-- Scrolling back up from the very top of the main content area triggers the reverse: an eased scroll animation back to the landing page.
-- This should also be a single triggered animation, not free-scroll.
-
-### Technical Approach
-- Use a scroll-snap or programmatic `scrollTo` with `behavior: 'smooth'` enhanced by a custom easing function.
-- Recommended: GSAP `ScrollToPlugin` for precise easing control, or Lenis for the global smooth-scroll wrapper with a scroll-snap zone defined for this section boundary.
-- See [02-scroll-system-and-animations.md](./02-scroll-system-and-animations.md) for full scroll library recommendations.
+- **Size:** 20 x 28 px
+- **Opacity:** 0.5 (hover: 0.8)
+- **ID:** `landing-down-arrow`
+- **Click:** Triggers the gate transition immediately (handled in `ScrollManager`)
+- **`aria-hidden="true"`**
 
 ---
 
-## 9. Colours
+## 9. Mail / Contact Icon
+
+Implemented in `MailIcon.tsx`, rendered in `layout.tsx` (global, not part of landing page).
+
+- **Position:** `position: fixed; top: 0; right: 0`
+- **Size:** 52 x 41 px (desktop), 40 x 32 px (mobile < 640px)
+- **z-index:** `var(--z-mail-icon)` = 100
+- **Link:** `<a href="#section-contact">` -- scrolls to the contact section
+- **SVG:** Envelope outline, stroke `#33363F`, border-radius 2px
+- **Hover:** `opacity: 0.7` with 0.2s ease transition
+- **Background:** `var(--color-bg)` (#F9F9F9)
+
+---
+
+## 10. Landing to Main Content Transition
+
+See [02-scroll-system-and-animations.md](./02-scroll-system-and-animations.md) section 2 for full details.
+
+### Summary
+
+- **Gate system:** Blocks normal scroll on the landing page. Counts wheel ticks (threshold: 2) or detects swipe (threshold: 30px).
+- **Animation:** `Lenis.scrollTo(landingHeight)` with custom power easing from `transitionConfig`.
+- **Reverse:** Scrolling up near the top of content triggers reverse animation back to landing.
+- **Touch:** Single swipe down triggers immediate gate transition.
+
+---
+
+## 11. Colours
 
 | Token                | Hex         | Usage                                  |
 | -------------------- | ----------- | -------------------------------------- |
@@ -193,23 +252,35 @@ The user scrolls down (any scroll input: wheel, trackpad, touch, keyboard).
 
 ---
 
-## 10. Accessibility Notes
+## 12. Accessibility Notes
 
-- The logo mark must have an appropriate `aria-label` ("Welcome Labs logo").
-- Client links must be `<a>` elements (or `<button>`) with meaningful labels.
-- The image carousel should have `aria-live="polite"` or equivalent so screen readers are notified of image changes.
-- Ensure sufficient contrast: `#1A1C21` on `#F9F9F9` passes WCAG AA for all text sizes used here.
-- The mail icon should have an `aria-label` ("Contact" or "Email us").
+- The logo mark has `aria-label="Welcome Labs logo"` and `role="img"`.
+- Client links are `<a>` elements within a `<nav aria-label="Featured clients">`.
+- The image carousel has `aria-live="polite"`.
+- The down arrow has `aria-hidden="true"`.
+- The mail icon has `aria-label="Go to contact"`.
+- A skip-to-content link exists in `layout.tsx`: `<a href="#main-content" className="sr-only">Skip to main content</a>`.
+- Contrast: `#1A1C21` on `#F9F9F9` passes WCAG AA for all text sizes.
 
 ---
 
-## 11. Component Breakdown (Planned)
+## 13. Responsive Behaviour
 
-| Component              | Responsibility                                       |
-| ---------------------- | ---------------------------------------------------- |
-| `LandingPage`          | Full-viewport wrapper, centres the body cluster      |
-| `WelcomeLogo`          | Scalable SVG logo mark                               |
-| `SiteIntro`            | Title + description text block                       |
-| `ImageCycler`          | Hard-cut image carousel                              |
-| `ClientLinks`          | Stacked list of client name links                    |
-| `MailIcon`             | Fixed-position contact icon (global, not in landing) |
+| Breakpoint       | Adaptation                                               |
+| ---------------- | -------------------------------------------------------- |
+| < 640px          | Cluster left-aligned (`justify-content: flex-start; padding-left: 8px`). Width: `calc(100% - 40px)`, max 314px. Font sizes: `clamp(18px, 5vw, 24px)`. |
+| >= 640px         | Cluster centred, 314px fixed width, 20px font size.     |
+
+---
+
+## 14. Component Breakdown
+
+| Component              | File                    | Responsibility                                       |
+| ---------------------- | ----------------------- | ---------------------------------------------------- |
+| `LandingPage`          | `LandingPage.tsx`       | 100dvh wrapper, centres cluster, hosts ImageSquiggle |
+| `WelcomeLogo`          | `WelcomeLogo.tsx`       | Reusable SVG logo mark (accepts width/height/color)  |
+| `ImageCycler`          | `ImageCycler.tsx`       | Hard-cut image carousel with preloading              |
+| `ImageSquiggle`        | `ImageSquiggle.tsx`     | Full-viewport animated image layer with Leva controls |
+| `MailIcon`             | `MailIcon.tsx`          | Fixed-position contact icon (in layout.tsx, not landing) |
+
+**Note:** The original plan had separate `SiteIntro` and `ClientLinks` components. These were not created -- the title, description, and client links are inlined directly in `LandingPage.tsx`.

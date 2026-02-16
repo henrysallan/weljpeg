@@ -184,7 +184,7 @@ function pickRandom<T>(arr: T[], n: number): T[] {
    Component
    ================================================================ */
 
-export const ImageSquiggle: React.FC = () => {
+export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 0 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cycleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeTweensRef = useRef<gsap.core.Timeline[]>([]);
@@ -234,9 +234,9 @@ export const ImageSquiggle: React.FC = () => {
       },
     }),
     General: folder({
-      imagesPerLine: { value: isMobile ? 10 : 15, min: 3, max: 30, step: 1 },
-      minImageSize: { value: isMobile ? 30 : 45, min: 20, max: 250, step: 5, label: "img size min" },
-      maxImageSize: { value: isMobile ? 60 : 90, min: 20, max: 250, step: 5, label: "img size max" },
+      imagesPerLine: { value: isMobile ? 24 : 70, min: 3, max: 100, step: 1 },
+      minImageSize: { value: isMobile ? 30 : 20, min: 20, max: 250, step: 5, label: "img size min" },
+      maxImageSize: { value: isMobile ? 60 : 60, min: 20, max: 250, step: 5, label: "img size max" },
       curvePoints: {
         value: 5,
         min: 3,
@@ -245,7 +245,7 @@ export const ImageSquiggle: React.FC = () => {
         label: "curve pts",
       },
       linesPerCycle: {
-        value: 2,
+        value: 3,
         min: 1,
         max: 5,
         step: 1,
@@ -259,37 +259,60 @@ export const ImageSquiggle: React.FC = () => {
         label: "line delay (s)",
       },
     }),
+    Proximity: folder({
+      proximityRadius: {
+        value: 150,
+        min: 50,
+        max: 500,
+        step: 10,
+        label: "radius (px)",
+      },
+      proximityScale: {
+        value: 1.5,
+        min: 1.0,
+        max: 3.0,
+        step: 0.05,
+        label: "max scale",
+      },
+      proximityEase: {
+        value: 2,
+        min: 0.5,
+        max: 5,
+        step: 0.1,
+        label: "falloff curve",
+      },
+    }),
     "Arc Settings": folder({
       arcSpan: {
-        value: isMobile ? 50 : 70,
+        value: isMobile ? 100 : 100,
         min: 30,
         max: 360,
         step: 5,
         label: "arc span (°)",
       },
       minRadius: {
-        value: 0.85,
+        value: 0.35,
         min: 0.1,
         max: 1.5,
         step: 0.05,
         label: "min radius",
       },
       maxRadius: {
-        value: 1.0,
+        value: 1.5,
         min: 0.2,
         max: 2,
         step: 0.05,
         label: "max radius",
       },
       arcNoise: {
-        value: 0.03,
+        value: 0.15,
         min: 0,
         max: 0.4,
         step: 0.01,
         label: "noise",
       },
       exclusionRadius: {
-        value: 0.25,
+        value: 0.29,
         min: 0.05,
         max: 0.6,
         step: 0.01,
@@ -358,42 +381,42 @@ export const ImageSquiggle: React.FC = () => {
     }),
     Timing: folder({
       fadeInDuration: {
-        value: 0.5,
+        value: 0.02,
         min: 0.02,
         max: 1,
         step: 0.01,
         label: "fade in (s)",
       },
       fadeInStagger: {
-        value: 0.03,
+        value: 0.05,
         min: 0.02,
         max: 0.5,
         step: 0.01,
         label: "stagger in (s)",
       },
       fadeOutDuration: {
-        value: 0.4,
+        value: 0.05,
         min: 0.1,
         max: 2,
         step: 0.05,
         label: "fade out (s)",
       },
       fadeOutStagger: {
-        value: 0.06,
+        value: 0.07,
         min: 0.02,
         max: 0.5,
         step: 0.01,
         label: "stagger out (s)",
       },
       holdDuration: {
-        value: 0.4,
+        value: 0.2,
         min: 0.2,
         max: 5,
         step: 0.1,
         label: "hold (s)",
       },
       cycleInterval: {
-        value: 4,
+        value: 2,
         min: 1,
         max: 15,
         step: 0.5,
@@ -407,7 +430,7 @@ export const ImageSquiggle: React.FC = () => {
         label: "max opacity",
       },
       staggerEase: {
-        value: 2.6,
+        value: 1.0,
         min: 0.2,
         max: 4,
         step: 0.1,
@@ -419,7 +442,7 @@ export const ImageSquiggle: React.FC = () => {
     }),
     "Page Transition": folder({
       transitionDuration: {
-        value: 1.0,
+        value: 0.5,
         min: 0.3,
         max: 5,
         step: 0.1,
@@ -451,6 +474,76 @@ export const ImageSquiggle: React.FC = () => {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  /* ---------- Proximity scale effect ---------- */
+  const mouseRef = useRef<{ x: number; y: number }>({ x: -9999, y: -9999 });
+  const proximityRafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const onMouseMove = (e: MouseEvent) => {
+      const rect = container.getBoundingClientRect();
+      mouseRef.current.x = e.clientX - rect.left;
+      mouseRef.current.y = e.clientY - rect.top;
+    };
+
+    const onMouseLeave = () => {
+      mouseRef.current.x = -9999;
+      mouseRef.current.y = -9999;
+    };
+
+    container.addEventListener("mousemove", onMouseMove);
+    container.addEventListener("mouseleave", onMouseLeave);
+
+    const tick = () => {
+      const c = controlsRef.current as typeof controls;
+      const mx = mouseRef.current.x;
+      const my = mouseRef.current.y;
+      const radius = c.proximityRadius;
+      const maxScale = c.proximityScale;
+      const ease = c.proximityEase;
+
+      const imgs = container.querySelectorAll<HTMLImageElement>(
+        `.${styles.squiggleImage}`
+      );
+      imgs.forEach((img) => {
+        if (focusedRef.current === img || isFocusingRef.current) return;
+        if (img.dataset.dragging) return;
+
+        const left = parseFloat(img.style.left) || 0;
+        const top = parseFloat(img.style.top) || 0;
+        const cx = left + img.offsetWidth / 2;
+        const cy = top + img.offsetHeight / 2;
+        const dx = mx - cx;
+        const dy = my - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < radius) {
+          const t = Math.pow(1 - dist / radius, ease);
+          const scale = 1 + (maxScale - 1) * t;
+          img.style.transform = `scale(${scale})`;
+        } else {
+          img.style.transform = "scale(1)";
+        }
+      });
+
+      proximityRafRef.current = requestAnimationFrame(tick);
+    };
+
+    proximityRafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      container.removeEventListener("mousemove", onMouseMove);
+      container.removeEventListener("mouseleave", onMouseLeave);
+      if (proximityRafRef.current) {
+        cancelAnimationFrame(proximityRafRef.current);
+        proximityRafRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ---------- Throw physics RAF loop ---------- */
@@ -548,25 +641,10 @@ export const ImageSquiggle: React.FC = () => {
       if (isFocusingRef.current || focusedRef.current === img) return;
       img.dataset.hovered = "true";
       img.style.cursor = "grab";
-      gsap.to(img, {
-        scale: 1.35,
-        duration: 0.35,
-        ease: "power2.out",
-        overwrite: "auto",
-      });
     });
 
     img.addEventListener("mouseleave", () => {
       delete img.dataset.hovered;
-      if (isDragging) return; // don't fade while dragging
-      if (focusedRef.current !== img) {
-        gsap.to(img, {
-          scale: 1,
-          duration: 0.3,
-          ease: "power2.inOut",
-          overwrite: "auto",
-        });
-      }
     });
 
     // Prevent native image drag
@@ -610,7 +688,8 @@ export const ImageSquiggle: React.FC = () => {
         img.style.opacity = String(
           (controlsRef.current as typeof controls).maxOpacity
         );
-        img.style.scale = "1";
+        img.style.transform = "scale(1)";
+        img.dataset.dragging = "true";
       }
 
       if (didDrag) {
@@ -649,6 +728,7 @@ export const ImageSquiggle: React.FC = () => {
         // Throw the image!
         img.style.zIndex = "";
         delete img.dataset.hovered;
+        delete img.dataset.dragging;
 
         // Clamp velocity so it doesn't fly insanely far
         const maxV = 1800;
@@ -1012,14 +1092,14 @@ export const ImageSquiggle: React.FC = () => {
     container.style.pointerEvents = "auto";
     container.style.cursor = "default";
 
-    // Fade out all OTHER images currently in the container
+    // Scale down all OTHER images currently in the container
     const allImgs = container.querySelectorAll<HTMLImageElement>(
       `.${styles.squiggleImage}`
     );
     allImgs.forEach((el) => {
       if (el === img) return;
       gsap.to(el, {
-        opacity: 0,
+        scale: 0,
         duration: 0.4,
         ease: "power2.in",
         onComplete: () => el.remove(),
@@ -1155,6 +1235,12 @@ export const ImageSquiggle: React.FC = () => {
 
     const init = async () => {
       await loadImagePool();
+      if (cancelledRef.current) return;
+
+      // Wait for landing intro animation before starting
+      if (delayStart > 0) {
+        await new Promise((r) => setTimeout(r, delayStart));
+      }
       if (cancelledRef.current) return;
 
       const runCycle = () => {

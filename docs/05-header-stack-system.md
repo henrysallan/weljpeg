@@ -1,266 +1,243 @@
-# Header Sticky-Stack System — Deep Specification
+# Feature Doc: Header Stack System
 
 > **Document version:** 2.0
-> **Last updated:** 2026-02-12
+> **Last updated:** 2025-02-15
+> **Implementation:** `components/ScrollManager.tsx` (lines ~450-1050)
 
 ---
 
-## 1. What It Does (User-Visible Behaviour)
+## 1. Overview
 
-As the user scrolls down, section headers (Redbull, Uniqlo, Puma, Services) peel off from the document flow and stick below the logo bar in a small "stack." The stack shows at most **2 collapsed headers**. When a 3rd arrives, the oldest is pushed out the top. Scrolling back up reverses everything perfectly.
+The header stack system manages how section headers behave during scroll. As the user scrolls past a section, its header transitions from an expanded in-flow element to a compact sticky bar pinned below the logo bar. Multiple collapsed headers stack vertically, and as sections scroll out of view, their headers exit the stack.
 
-### The golden rule
-
-**Every visual state is a pure function of scroll position.** There is no time-based animation, no state that drifts, no "fire-and-forget" tween. If you jump to scroll position X, the screen must look identical to if you had slowly scrolled to X.
+This system is fully implemented as a **declarative two-phase reconciler** within `ScrollManager.tsx`.
 
 ---
 
-## 2. Geometry
+## 2. Constants
+
+All constants are defined at the top of `ScrollManager.tsx`:
+
+| Constant                   | Value   | Description                                             |
+| -------------------------- | ------- | ------------------------------------------------------- |
+| `LOGO_BAR_H`              | ~52px   | Measured at runtime: `logoBarEl.getBoundingClientRect().height` |
+| `HEADER_BLOCK_COLLAPSED_H`| 26.5px  | Total height of a collapsed header block (incl. separators) |
+| `HEADER_ROW_COLLAPSED_H`  | 25.5px  | Height of the inner header row (excl. separators)       |
+| `COLLAPSED_TITLE_SIZE`     | 20.6px  | Font size of collapsed title text                       |
+| `COLLAPSE_SPEED`           | 2.5     | Multiplier that stretches the scroll distance over which collapse interpolation occurs |
+
+### Slot Calculation
+
+Each collapsed header occupies a "slot" in the stack. The top position of slot `s` (0-indexed):
 
 ```
-Viewport top (y = 0)
-┌─────────────────────────────────────────────────┐
-│  Logo Bar   (41px)          position: sticky     │  top: 0
-├─────────────────────────────────────────────────┤  y = 41   ← SLOT 0 top
-│  Collapsed Header Slot 0   (36.5px)   fixed      │
-├─────────────────────────────────────────────────┤  y = 77.5 ← SLOT 1 top
-│  Collapsed Header Slot 1   (36.5px)   fixed      │
-├─────────────────────────────────────────────────┤  y = 114  ← CONTACT LINE (when 2 full)
-│                                                   │
-│  Page content scrolls behind                      │
-│                                                   │
-└─────────────────────────────────────────────────┘
+slotTop(s) = LOGO_BAR_H - 1 + s * HEADER_BLOCK_COLLAPSED_H
 ```
 
-Key values:
-
-| Constant               | Value   | Derivation                              |
-| ---------------------- | ------- | --------------------------------------- |
-| `LOGO_BAR_H`           | 41 px   | Fixed by design                         |
-| `HEADER_BLOCK_COLLAPSED_H` | 36.5 px | 1px sep + 34.5px row + 1px sep      |
-| `SLOT_0_TOP`           | 41 px   | `LOGO_BAR_H`                           |
-| `SLOT_1_TOP`           | 77.5 px | `LOGO_BAR_H + HEADER_BLOCK_COLLAPSED_H` |
-| Contact line (0 in stack) | 41 px  | `LOGO_BAR_H + 0 * COLLAPSED_H`       |
-| Contact line (1 in stack) | 77.5 px | `LOGO_BAR_H + 1 * COLLAPSED_H`      |
-| Contact line (2 in stack) | 114 px  | `LOGO_BAR_H + 2 * COLLAPSED_H`      |
-
-**Contact line** = the viewport-Y coordinate at which the top of an expanded header triggers stacking. It equals the bottom edge of whatever is currently in the stack.
+The `- 1` nudges headers up by 1px so their top separator overlaps the logo bar's bottom separator, avoiding a visible double line.
 
 ---
 
-## 3. Header States
+## 3. Data Structures
 
-Each header is always in exactly one of these states:
-
-| State        | Meaning                                                       | CSS position | In `collapsedStack`? |
-| ------------ | ------------------------------------------------------------- | ------------ | -------------------- |
-| **expanded** | In normal document flow, full size (74px)                     | static       | No                   |
-| **stacked**  | Fixed to viewport, collapsing or fully collapsed              | fixed        | Yes                  |
-| **exiting**  | Being pushed out the top of the stack (scroll-linked)         | fixed        | No (removed)         |
-| **dismissed**| Fully off-screen, invisible, waiting to be restored           | fixed        | No                   |
-
-State is stored in `block.dataset.state` and is the single source of truth for what a header is doing.
-
----
-
-## 4. The Collapse Animation
-
-When an expanded header's natural top (from document flow) scrolls up to the **contact line**, it enters the stack. The collapse is driven by **progress**, a value from 0 to 1:
-
-```
-progress = clamp(0, 1, (contactY - naturalTop) / COLLAPSE_DISTANCE)
-```
-
-Where:
-- `contactY` — the viewport Y where this header first made contact (captured once, stored per header)
-- `naturalTop` — the current viewport Y of the header's placeholder (reads where the header *would* be if it were still in flow)
-- `COLLAPSE_DISTANCE` — the pixel range over which the animation plays (equal to `expandedBlockH - HEADER_BLOCK_COLLAPSED_H`, roughly 37.5px)
-
-At progress 0 the header looks expanded; at progress 1 it's fully collapsed.
-
-### What interpolates:
-
-| Property          | At progress 0          | At progress 1               |
-| ----------------- | ---------------------- | --------------------------- |
-| `block.height`    | expandedBlockH (74px)  | HEADER_BLOCK_COLLAPSED_H (36.5px) |
-| `row.height`      | expandedRowH (72px)    | HEADER_ROW_COLLAPSED_H (34.5px) |
-| `title.fontSize`  | expandedTitleSize (83px)| COLLAPSED_TITLE_SIZE (35.6px) |
-| `block.top`       | contactY               | slot target (41 or 77.5)    |
-| Tags layout       | column, opacity 1      | row, opacity 1 (crossfade in middle) |
-
-### Tags crossfade schedule:
-
-| Progress range | `flexDirection` | `opacity`                   |
-| -------------- | --------------- | --------------------------- |
-| 0.00 – 0.50   | column          | 1                           |
-| 0.50 – 0.65   | column          | fades 1 → 0                |
-| 0.65           | switches to row | —                           |
-| 0.65 – 0.80   | row             | fades 0 → 1                |
-| 0.80 – 1.00   | row             | 1                           |
-
----
-
-## 5. The Stack Array
-
-`collapsedStack: string[]` — ordered **oldest first**. Maximum length: 2.
-
-- `collapsedStack[0]` → Slot 0 (directly below logo bar)
-- `collapsedStack[1]` → Slot 1 (below slot 0)
-
-When a 3rd header arrives:
-1. `collapsedStack.shift()` removes the oldest → that header becomes **exiting**
-2. The remaining header (was at index 0, slot 1) becomes the **sliding** header
-3. The new header is `push()`ed → it's at index 1, slot 1
-
----
-
-## 6. The Three-Header Transition
-
-When a 3rd header contacts the stack while 2 are already collapsed, three things animate simultaneously, ALL driven by the incoming header's **progress** (0→1):
-
-### 6a. Incoming header (new, entering slot 1)
-- Standard collapse interpolation (section 4 above)
-- Top lerps from contactY → slot1Top
-
-### 6b. Sliding header (was slot 1, moving to slot 0)
-- Top lerps from slot1Top → slot0Top
-- z-index updates to 80 at completion
-
-### 6c. Exiting header (was slot 0, leaving)
-- `translateY` from 0 → -HEADER_BLOCK_COLLAPSED_H (slides up behind logo bar)
-- `opacity` from 1 → 0
-- At progress ≥ 0.99: state → "dismissed", visibility → hidden
-
-All three are driven by the **same progress value** (the incoming header's). This guarantees they stay in lockstep.
-
----
-
-## 7. Scroll-Up Reversal
-
-### 7a. Un-stacking (progress → 0)
-When scrolling up, the last header in the stack (the one that entered most recently) sees its placeholder move back down. `distPastContact` decreases, progress drops toward 0. The interpolation runs in reverse: height expands, title grows, top moves from slot back toward contactY. When progress hits 0, the header is returned to document flow (placeholder removed, inline styles cleared).
-
-### 7b. Transition reversal
-If an exit/slide transition is in progress and the user scrolls up:
-- The exiting header is restored to slot 0 (state → "stacked")
-- The sliding header snaps back to slot 1
-- The incoming header continues to reverse via progress → 0
-
-### 7c. Restoring dismissed headers
-When the stack has fewer than 2 headers and no exit transition is active, dismissed headers whose placeholders are still above the contact line are restored to the stack at their collapsed state (progress = 1).
-
----
-
-## 8. Placeholder System
-
-When a header goes fixed, a **placeholder** `<div>` is inserted into the DOM at its original position. This:
-- Preserves document flow (content doesn't jump)
-- Provides a measurement point: `placeholder.getBoundingClientRect().top` tells us where the header *would* be if it were still in flow
-- Height matches the header's expanded height
-- Has `visibility: hidden` and `pointer-events: none`
-
-The placeholder is removed when the header returns to flow (expand).
-
----
-
-## 9. Current Problems (Root Cause Analysis)
-
-The current implementation has correctness issues on scroll-up caused by **fragmented state management**:
-
-### Problem 1: State scattered across multiple locations
-- Header state is in `dataset.state` (string)
-- Stack membership is in `collapsedStack[]` (array position)
-- Transition state is in `exitState` (separate object)
-- Visual progress is in `lastProgress` (per-header number)
-- Contact position is in `contactY` (per-header number)
-
-These can fall out of sync. For example, a header can be in `collapsedStack` but have `dataset.state = "exiting"`, or be dismissed but still referenced in `exitState`.
-
-### Problem 2: The reconciliation loop mixes decisions and mutations
-Passes 1, 2, 3, 3b, 4a, 4b all read AND write in interleaved fashion. A decision in Pass 1 (cancel exit) changes `collapsedStack`, which affects Pass 3's slot indices. This creates ordering dependencies and makes the logic fragile under rapid scroll direction changes.
-
-### Problem 3: No single canonical "what should the world look like at this scroll position?"
-The system is event-driven (reacting to thresholds being crossed) rather than declarative (computing the desired state from scratch each frame). Event-driven systems accumulate drift when events fire in unexpected orders (rapid direction reversals, momentum overshoot, etc.).
-
----
-
-## 10. Engineering Plan
-
-### Philosophy: Declarative over Imperative
-
-Instead of reacting to threshold crossings and maintaining mutable transition state, **recompute the desired state from scratch every frame** based purely on current scroll position and the static section geometry.
-
-### Architecture: Two-Phase Reconciler
-
-```
-Every scroll frame:
-  1. DERIVE — compute desired state for every header from scroll position alone
-  2. APPLY  — diff desired vs current, apply minimal DOM mutations
-```
-
-No `exitState`. No `slidingId`. No mutable `collapsedStack` that persists between frames. The stack is recomputed.
-
-### Phase 1: DERIVE (pure computation, zero DOM writes)
+### HeaderRef (static, gathered on mount)
 
 ```typescript
-interface DerivedHeaderState {
-  id: string;
-  desiredState: "expanded" | "stacked" | "dismissed";
-  slotIndex: number;       // 0 or 1 if stacked, -1 otherwise
-  progress: number;        // 0–1 collapse progress (1 = fully collapsed)
-  topPx: number;           // desired viewport top position
-  zIndex: number;          // desired z-index
+interface HeaderRef {
+  sectionId: string;
+  sectionEl: HTMLElement;      // The <section> element
+  blockEl: HTMLElement;        // #header-block-{id}
+  rowEl: HTMLElement;          // The .headerRow inside
+  titleEl: HTMLElement;        // The <h2> title
+  tagsEl: HTMLElement | null;  // The .tags container
+  placeholder: HTMLDivElement; // Inserted to hold space when header goes fixed
+  naturalH: number;            // Original height before any manipulation
+  naturalTitleSize: number;    // Original font size in px
 }
 ```
 
-Algorithm:
-1. For each section (in order), read its placeholder/element `getBoundingClientRect().top`
-2. Compute its contact line (= `LOGO_BAR_H + min(stackCount, 2) * COLLAPSED_H`)
-3. If `naturalTop <= contactLine`, this header wants to be stacked. Compute its progress.
-4. Build the desired stack (max 2 visible). Headers beyond the 2 most recent are "dismissed."
-5. For each stacked header, compute `topPx` by lerping from `contactY` to slot target using progress.
+### LiveState (mutable, per-header)
 
-This is a **pure function**: `(sectionPositions) → DerivedHeaderState[]`. No side effects.
+```typescript
+interface LiveState {
+  phase: "expanded" | "collapsing" | "collapsed" | "exiting" | "dismissed";
+  slot: number;               // Current slot index in the stack
+  progress: number;           // 0..1 interpolation progress during collapsing
+}
+```
 
-### Phase 2: APPLY (diff + minimal DOM writes)
+### DerivedState (computed fresh each frame)
 
-Compare each header's **current** DOM state to its **derived** state:
-- If a header needs to go from expanded → stacked: create placeholder, set position fixed
-- If stacked and progress changed: update height, fontSize, top, tags
-- If stacked → dismissed: set visibility hidden
-- If dismissed → stacked: restore visibility, set slot position
-- If stacked → expanded: remove placeholder, clear inline styles
+```typescript
+interface DerivedState {
+  phase: "expanded" | "collapsing" | "collapsed" | "exiting" | "dismissed";
+  slot: number;
+  progress: number;           // Raw progress for collapsing phase
+}
+```
 
-The key insight: **there is no "exiting" or "sliding" state**. Those are just headers whose `progress` and `topPx` happen to be changing. A header in slot 0 that's being pushed out simply has its `topPx` lerping upward and its opacity decreasing — computed from the geometry, not from transition state.
+---
 
-### How the exit/slide emerges naturally
+## 4. Header Lifecycle (States)
 
-When 3 headers want to be stacked but only 2 slots exist:
-- The 2 most recent get slots 0 and 1
-- The oldest gets `desiredState: "dismissed"`
-- But we don't instantly dismiss it — we compute an **exit progress** for it based on how far the incoming header has collapsed
-- Its `topPx` slides up, its `opacity` fades — all computed, not animated
+```
+expanded --> collapsing --> collapsed --> exiting --> dismissed
+                                                       |
+                                                       v
+                                                  (back to expanded
+                                                   when scrolled back up)
+```
 
-The "slide from slot 1 to slot 0" similarly emerges: the middle header's target slot *changes* from 1 to 0 as the oldest is dismissed, and its `topPx` smoothly transitions because it's lerped from its `contactY`.
+### State Descriptions
 
-### Benefits
+| State        | Condition                                         | Visual                                    |
+| ------------ | ------------------------------------------------- | ----------------------------------------- |
+| `expanded`   | Section header is in viewport, not yet scrolled past | Normal in-flow element, full size         |
+| `collapsing` | Header's natural position is scrolling past the stack top | Transitioning: interpolating height, font-size, position |
+| `collapsed`  | Fully transitioned, pinned in its stack slot      | Fixed position, compact (26.5px), small title (20.6px) |
+| `exiting`    | Section is scrolling out of view (bottom edge approaching stack) | Slides up and out of the stack |
+| `dismissed`  | Section is fully scrolled past                    | `display: none`, placeholder holds space  |
 
-1. **No accumulated state drift** — everything is recomputed from geometry each frame
-2. **Perfectly reversible** — scrolling to position X always produces the same visual, regardless of how you got there
-3. **No ordering bugs** — there's no sequence of passes that can see inconsistent intermediate state
-4. **Simpler mental model** — "what does the world look like at this scroll position?" is one function
-5. **Easier to debug** — log the derived state array, compare to what's on screen
+---
 
-### Implementation Considerations
+## 5. Two-Phase Reconciler
 
-- **contactY caching**: Each header's contactY needs to be stable (the Y where it first contacts). This can be computed statically from the section geometry rather than captured at runtime: `contactY[i] = LOGO_BAR_H + min(i, 2) * COLLAPSED_H`. But since headers have different expanded heights and sections have different content heights, it's better to compute it from the placeholder position: "at what scroll position does this header's naturalTop equal the contact line?"
+### Phase 1: `deriveStates(scrollY)`
 
-- **Exit animation range**: The exit animation of the oldest header should play over the same `COLLAPSE_DISTANCE` as the incoming header's collapse, so they stay in lockstep. Both are driven by the same scroll delta.
+A **pure function** that takes the current scroll position and computes the desired `DerivedState` for every header. It does not touch the DOM.
 
-- **Performance**: The derive phase does `N` getBoundingClientRect calls (one per section, ~4 total). This is fast. The apply phase only writes properties that changed (diff against lastProgress and lastState).
+Key logic per header:
 
-- **Placeholder management**: Placeholders are created/removed in the APPLY phase, not the DERIVE phase. DERIVE only reads positions.
+1. **Determine section boundaries:**
+   - `sectionTop` = section element's `offsetTop`
+   - `sectionBot` = `sectionTop + section.offsetHeight`
 
-### File Structure (unchanged)
+2. **Calculate collapse trigger point:**
+   - `collapseStart` = the scroll position where the header's top would reach its target slot
+   - `collapseDist` = `naturalH * COLLAPSE_SPEED` (2.5x the natural height)
 
-All logic stays in `ScrollManager.tsx`. No new files needed. The helper functions (`interpolateHeader`, `expandHeaderBlock`, `enterStack`) are replaced by a single `applyDerivedState` function and the pure `deriveHeaderStates` function.
+3. **Determine phase:**
+   - If `scrollY < collapseStart`: **expanded**
+   - If `scrollY` is within `collapseDist` past `collapseStart`: **collapsing** (progress = fraction through distance)
+   - If past `collapseDist` but section bottom is still below stack: **collapsed**
+   - If section bottom is approaching stack bottom: **exiting**
+   - If section is fully past: **dismissed**
+
+4. **Assign slot numbers:** Collapsed headers are assigned sequential slot indices based on their visual order in the stack.
+
+### Phase 2: `applyStates(derived[])`
+
+Compares derived states against current `LiveState` for each header and applies DOM changes only where they differ.
+
+For each header:
+
+1. **Phase transition:** If `derived.phase !== live.phase`, apply structural changes:
+   - `expanded -> collapsing`: Insert placeholder, set `position: fixed`
+   - `collapsing -> collapsed`: Snap to final collapsed dimensions
+   - `collapsed -> exiting`: Begin sliding out
+   - `exiting -> dismissed`: Set `display: none`
+   - (Reverse transitions also handled for scroll-up)
+
+2. **Interpolation** (during `collapsing` phase):
+   Call `interpolateHeader(header, progress)` to smoothly transition:
+   - Block height: `naturalH -> HEADER_BLOCK_COLLAPSED_H`
+   - Row height: `natural -> HEADER_ROW_COLLAPSED_H`
+   - Title font-size: `naturalTitleSize -> COLLAPSED_TITLE_SIZE`
+   - Top position: slides to `slotTop(slot)`
+   - Width: `100%`
+   - Tags: crossfade from column to row layout
+
+---
+
+## 6. Collapse Interpolation Detail
+
+### Eased Progress
+
+Raw progress `t` (0 to 1) is transformed with a subtle ease-out:
+
+```typescript
+const eased = 1 - Math.pow(1 - t, 1.4);
+```
+
+This makes the beginning of collapse faster and the end slower, creating a natural deceleration feel.
+
+### Property Interpolation
+
+All interpolated properties use linear lerp with the eased progress:
+
+```
+value = start + (end - start) * eased
+```
+
+### Tags Crossfade
+
+During collapse, tags transition from a vertical column layout (expanded) to an inline row (collapsed) with a crossfade:
+
+| Progress Range | Tags State                                    |
+| -------------- | --------------------------------------------- |
+| 0.0 -- 0.5    | Column layout, fully visible                  |
+| 0.5 -- 0.65   | Fading out column layout                      |
+| 0.65           | Switch DOM: column -> row                     |
+| 0.65 -- 0.8   | Fading in row layout                          |
+| 0.8 -- 1.0    | Row layout, fully visible                     |
+
+Tags container transitions:
+- Column mode: `flex-direction: column; gap: 2px`
+- Row mode: `flex-direction: row; gap: 4px`
+
+---
+
+## 7. Separator Dedup Pass
+
+After `applyStates()` runs, a separate pass checks for duplicate separator lines:
+
+When two headers are stacked (one collapsed directly above another), there are 4 separator lines at the boundary (bottom sep of upper header + top sep of lower header). The dedup pass hides the redundant separator to maintain a single 1px line between stacked headers.
+
+Implementation:
+- Iterates through collapsed/collapsing headers in slot order
+- If two consecutive headers are within 2px vertically, hides the bottom separator of the upper one
+
+---
+
+## 8. Click-to-Scroll on Collapsed Headers
+
+Collapsed headers have click handlers that scroll to their section:
+
+```typescript
+headerBlock.style.cursor = "pointer";
+headerBlock.onclick = () => {
+  lenis.scrollTo(sectionEl, { offset: -stackHeight });
+};
+```
+
+Where `stackHeight` accounts for the logo bar and any headers stacked above.
+
+---
+
+## 9. ContactPage Y-Position Caching
+
+The reconciler caches the ContactPage section's Y offset and uses it to determine where the last section ends. This prevents headers from stacking past the contact section boundary.
+
+---
+
+## 10. Historical Context
+
+### Original Problem
+
+The header stack was originally attempted with CSS `position: sticky` and GSAP ScrollTrigger pin/unpin. This approach suffered from:
+- State drift: headers getting "stuck" in wrong positions after rapid scrolling
+- Race conditions between GSAP timeline and scroll position
+- Difficulty managing the dynamic stack height as headers entered/exited
+
+### Solution: Declarative Reconciler
+
+The current implementation (fully built and working) uses a React-inspired reconciler pattern:
+- **Derive** desired state from scroll position (pure, no side-effects)
+- **Diff** derived state against current state
+- **Apply** minimal DOM changes
+
+This eliminates state drift because state is always recomputed from scroll position, never accumulated. Even if frames are dropped, the next frame will compute the correct state from the current scroll position.
+
+### Key Architectural Decision
+
+Font-size is animated directly (not via CSS `scale` transform). This was a deliberate choice for simplicity and pixel-accurate rendering, despite being less performant than transform-based animations. The relatively small number of headers (4 max) makes this acceptable.

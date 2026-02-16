@@ -28,7 +28,7 @@ export const LogoBar: React.FC<LogoBarProps> = ({ className }) => {
         <button id="logo-home-btn" className={styles.logoBtn} aria-label="Back to top">
           <WelcomeLogo width={scale} height={scale * ratio} />
         </button>
-        <button id="go-up-btn" className={styles.goUpPill}>go up</button>
+        <button id="go-up-btn" className={styles.goUpPill}>Up</button>
       </div>
       <Separator />
     </div>

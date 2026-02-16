@@ -47,7 +47,7 @@
   white-space: nowrap;
   cursor: pointer;
   padding: 4px 14px 5px;
-  border-radius: 9999px;
+  border-radius: 0;
   font-family: inherit;
   text-transform: lowercase;
   letter-spacing: 0.02em;
