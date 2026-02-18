@@ -234,10 +234,56 @@ export const servicesSection: ServicesSection = {
 };
 
 /* ============================================================
+   Insight
+   ============================================================ */
+
+export const insightSection: ServicesSection = {
+  id: "insight",
+  title: "INSIGHT",
+  tags: ["Culture", "Trends"],
+  description: "A window into the cultural currents shaping tomorrow. Welcome Labs distils emerging signals across music, fashion, sport and technology into actionable creative intelligence for forward-thinking brands.",
+  client: "Welcome Labs",
+  services: "Research, Analysis",
+  blocks: [
+    {
+      id: "insight-1",
+      splitLeft: 5,
+      splitRight: 3,
+      leftContent: {
+        type: "titled-text",
+        align: "top",
+        subHeading: "Cultural Intelligence",
+        body: "We map the movements, communities and moments that define relevance — translating cultural data into strategic opportunity for brands seeking authentic connection with their audiences.",
+      },
+      rightContent: {
+        type: "image",
+        image: { src: "", alt: "Insight — cultural intelligence placeholder" },
+      },
+    },
+    {
+      id: "insight-2",
+      splitLeft: 3,
+      splitRight: 5,
+      leftContent: {
+        type: "image",
+        image: { src: "", alt: "Insight — trend forecasting placeholder" },
+      },
+      rightContent: {
+        type: "titled-text",
+        align: "top",
+        subHeading: "Trend Forecasting",
+        body: "Our proprietary research methodology identifies emerging patterns before they reach the mainstream — giving our partners first-mover advantage in an attention-scarce landscape.",
+      },
+    },
+  ],
+};
+
+/* ============================================================
    All sections (ordered)
    ============================================================ */
 
 export const allSections: (CaseStudy | ServicesSection)[] = [
   ...caseStudies,
   servicesSection,
+  insightSection,
 ];

@@ -16,9 +16,11 @@ const CHAR_TRAVEL     = 6;     // px each char drifts up
 const CHAR_STAGGER_MS = 2;     // base stagger between chars
 const ELEM_GAP_MS     = 80;    // gap between element groups (logo → title → desc → …)
 const IMAGE_DELAY_MS  = 200;   // extra pause before ImageCycler appears
+const SHRINK_MS       = 900;   // how long the fullscreen → normal shrink takes
 
 // Total time ImageSquiggle should wait before starting
-const SQUIGGLE_DELAY  = BORDER_DRAW_MS + 800; // overlapping intro
+// (starts after the shrink completes, so only a small delay after "done")
+const SQUIGGLE_DELAY  = 200;
 
 /** How much of the landing section's scroll range drives the reverse.
  *  0.35 = reverse completes by 35% scrolled. */
@@ -205,6 +207,9 @@ function clearReverseVis(
 /* ----------------------------------------------------------------
    LandingPage component
    ---------------------------------------------------------------- */
+/** Module-level flag — ensures the fullscreen intro only runs once per page load. */
+let introPlayed = false;
+
 export const LandingPage: React.FC = () => {
   const clusterRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGRectElement>(null);
@@ -213,8 +218,8 @@ export const LandingPage: React.FC = () => {
   const landingRef = useRef<HTMLElement>(null);
 
   const [phase, setPhase] = useState<
-    "hidden" | "border" | "fill" | "chars" | "done"
-  >("hidden");
+    "hidden" | "border" | "fill" | "chars" | "shrink" | "done"
+  >(introPlayed ? "done" : "border");
 
   // --- Scroll & focus visibility stored in refs (no re-renders) ---
   const scrollProgRef = useRef(0);
@@ -253,6 +258,10 @@ export const LandingPage: React.FC = () => {
 
   // Measure cluster for SVG border rect
   const [boxSize, setBoxSize] = useState({ w: 0, h: 0 });
+  /** Final (non-fullscreen) cluster rect, measured once on mount. */
+  const targetRectRef = useRef<{ w: number; h: number; x: number; y: number }>({
+    w: 0, h: 0, x: 0, y: 0,
+  });
 
   const measure = useCallback(() => {
     if (!clusterRef.current) return;
@@ -260,12 +269,37 @@ export const LandingPage: React.FC = () => {
     setBoxSize({ w: width, h: height });
   }, []);
 
+  /**
+   * Measure what the cluster *would* be without fullscreen overrides.
+   * We temporarily remove the fullscreen class, measure, then restore.
+   */
+  const measureTarget = useCallback(() => {
+    const el = clusterRef.current;
+    if (!el) return;
+    // Remove fullscreen class to get the "natural" size
+    el.classList.remove(styles.fullscreen);
+    el.classList.remove(styles.shrinking);
+    // Force reflow
+    const rect = el.getBoundingClientRect();
+    targetRectRef.current = { w: rect.width, h: rect.height, x: rect.x, y: rect.y };
+    // Restore fullscreen
+    el.classList.add(styles.fullscreen);
+  }, []);
+
   // Run intro sequence
   useEffect(() => {
+    if (introPlayed) {
+      // Intro already ran — just measure for SVG border and bail
+      measure();
+      return;
+    }
+    // Lock scroll during fullscreen intro (both native & Lenis)
+    document.body.style.overflow = "hidden";
+    window.dispatchEvent(new Event("lenis-lock"));
     measure();
-    const t0 = setTimeout(() => setPhase("border"), 100);
-    return () => clearTimeout(t0);
-  }, [measure]);
+    // Capture what the cluster's final size will be (before we start)
+    measureTarget();
+  }, [measure, measureTarget]);
 
   // Phase transitions
   useEffect(() => {
@@ -275,10 +309,55 @@ export const LandingPage: React.FC = () => {
     } else if (phase === "fill") {
       timer = setTimeout(() => setPhase("chars"), FILL_FADE_MS * 0.4);
     } else if (phase === "chars") {
-      timer = setTimeout(() => setPhase("done"), 1200);
+      timer = setTimeout(() => setPhase("shrink"), 1200);
+    } else if (phase === "shrink") {
+      // GSAP-driven shrink from fullscreen → target rect
+      const el = clusterRef.current;
+      if (!el) return;
+
+      // Re-measure target in case of resize
+      measureTarget();
+      const target = targetRectRef.current;
+
+      // Get current (fullscreen) rect BEFORE any class changes
+      const from = el.getBoundingClientRect();
+
+      // Set explicit starting size/position FIRST (while still fullscreen)
+      gsap.set(el, {
+        width: from.width,
+        height: from.height,
+        left: from.x,
+        top: from.y,
+      });
+
+      // NOW swap classes — element keeps its size via GSAP inline styles
+      el.classList.remove(styles.fullscreen);
+      el.classList.add(styles.shrinking);
+
+      gsap.to(el, {
+        width: target.w,
+        height: target.h,
+        left: target.x,
+        top: target.y,
+        duration: SHRINK_MS / 1000,
+        ease: "power3.inOut",
+        onComplete: () => {
+          // Clear GSAP inline styles
+          gsap.set(el, { clearProps: "width,height,left,top" });
+          el.classList.remove(styles.shrinking);
+          // Mark intro as played so it never replays
+          introPlayed = true;
+          // Unlock scroll (both native & Lenis)
+          document.body.style.overflow = "";
+          window.dispatchEvent(new Event("lenis-unlock"));
+          // Final measure for SVG border
+          measure();
+          setPhase("done");
+        },
+      });
     }
     return () => clearTimeout(timer);
-  }, [phase]);
+  }, [phase, measure, measureTarget]);
 
   // Re-measure on resize
   useEffect(() => {
@@ -353,8 +432,9 @@ export const LandingPage: React.FC = () => {
   }, [phase]);
 
   const borderReady = phase !== "hidden";
-  const fillReady = phase === "fill" || phase === "chars" || phase === "done";
-  const charsReady = phase === "chars" || phase === "done";
+  const fillReady = phase === "fill" || phase === "chars" || phase === "shrink" || phase === "done";
+  const charsReady = phase === "chars" || phase === "shrink" || phase === "done";
+  const isFullscreen = phase !== "done";
 
   // Perimeter for stroke-dasharray (used in JSX for intro only)
   const perim = 2 * (boxSize.w + boxSize.h);
@@ -373,23 +453,26 @@ export const LandingPage: React.FC = () => {
 
   return (
     <section id="landing-page" ref={landingRef} className={styles.landing}>
-      <ImageSquiggle delayStart={SQUIGGLE_DELAY} onFocus={handleImageFocus} onUnfocus={handleImageUnfocus} />
+      {phase === "done" && (
+        <ImageSquiggle delayStart={SQUIGGLE_DELAY} onFocus={handleImageFocus} onUnfocus={handleImageUnfocus} />
+      )}
       <div
         ref={clusterRef}
-        className={`${styles.cluster} ${styles.introCluster}`}
+        className={`${styles.cluster} ${styles.introCluster}${isFullscreen ? ` ${styles.fullscreen}` : ""}`}
         style={{
           border: "none",
-          background: fillReady ? "var(--color-cluster-bg)" : "transparent",
-          transition: fillReady ? `background ${FILL_FADE_MS}ms ease-out` : "none",
+          background: (isFullscreen || fillReady) ? "var(--color-cluster-bg)" : "transparent",
+          transition: (!isFullscreen && fillReady) ? `background ${FILL_FADE_MS}ms ease-out` : "none",
         }}
       >
         {/* SVG border — trim-path draw-on */}
         {boxSize.w > 0 && (
           <svg
             className={styles.borderSvg}
-            width={boxSize.w}
-            height={boxSize.h}
+            width="100%"
+            height="100%"
             viewBox={`0 0 ${boxSize.w} ${boxSize.h}`}
+            preserveAspectRatio="none"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
@@ -458,6 +541,12 @@ export const LandingPage: React.FC = () => {
             <img
               src="/images/companylogos/Puma_logo_PNG3 2.png"
               alt="Puma"
+              className={styles.companyLogo}
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/companylogos/uniqlologo.png"
+              alt="Uniqlo"
               className={styles.companyLogo}
             />
           </div>

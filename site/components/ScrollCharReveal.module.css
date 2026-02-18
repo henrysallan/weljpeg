@@ -1,0 +1,8 @@
+.wrap {
+  display: inline;
+}
+
+.char {
+  display: inline-block;
+  will-change: opacity, transform;
+}

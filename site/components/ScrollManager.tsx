@@ -79,6 +79,21 @@ export const ScrollManager: React.FC = () => {
   }, [lenisEnabled]);
 
   /* ------------------------------------------------
+     Listen for lenis-lock / lenis-unlock custom events
+     (used by LandingPage to freeze scroll during intro)
+     ------------------------------------------------ */
+  useEffect(() => {
+    const lock = () => { lenisRef.current?.stop(); };
+    const unlock = () => { lenisRef.current?.start(); };
+    window.addEventListener("lenis-lock", lock);
+    window.addEventListener("lenis-unlock", unlock);
+    return () => {
+      window.removeEventListener("lenis-lock", lock);
+      window.removeEventListener("lenis-unlock", unlock);
+    };
+  }, []);
+
+  /* ------------------------------------------------
      Toggle Lenis on/off via "K" key
      ------------------------------------------------ */
   useEffect(() => {
@@ -218,7 +233,7 @@ function setupAnimations(
   }
 
   /* -- 3. Header sticky-stack -- */
-  const sectionIds = ["redbull", "uniqlo", "puma", "services"];
+  const sectionIds = ["redbull", "uniqlo", "puma", "services", "insight"];
 
   const headerRefs: HeaderRef[] = [];
   const liveStates: Record<string, LiveState> = {};

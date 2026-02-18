@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { ScrollCharReveal } from "./ScrollCharReveal";
 import { Separator } from "./Separator";
 import styles from "./SectionHeader.module.css";
 
@@ -33,7 +34,9 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         id={`header-${sectionId}`}
         className={`${styles.header} ${styles.headerExpanded}`}
       >
-        <h2 className={styles.title}>{title}</h2>
+        <h2 className={styles.title}>
+          <ScrollCharReveal>{title}</ScrollCharReveal>
+        </h2>
       </div>
 
       <Separator />

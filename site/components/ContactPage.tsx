@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { ScrollCharReveal } from "./ScrollCharReveal";
 import { Calendar } from "./Calendar";
 import styles from "./ContactPage.module.css";
 
@@ -22,7 +23,9 @@ export const ContactPage: React.FC = () => {
       <div className={styles.inner}>
         {/* Left column — avatar */}
         <div className={styles.leftCol}>
-          <p className={styles.heading}>Talk to Avi:</p>
+          <p className={styles.heading}>
+            <ScrollCharReveal>Talk to Avi:</ScrollCharReveal>
+          </p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/avi.png"

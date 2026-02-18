@@ -10,3 +10,12 @@ export const transitionConfig = {
   duration: 1.8,
   easePower: 5,
 };
+
+export const imageRevealConfig = {
+  blur: true,
+  pixelate: true,
+  pixelStart: 48,
+  blurAmount: 10,
+  duration: 800,
+  travel: 12,
+};

@@ -5,9 +5,15 @@ import { useControls } from "leva";
 import styles from "./CursorEffect.module.css";
 
 export const CursorEffect: React.FC = () => {
+  const [isMobile, setIsMobile] = React.useState(false);
   const linesRef = useRef<HTMLDivElement>(null);
   const dotRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<Record<string, number>>({});
+
+  // Detect touch/mobile — no fine pointer means no cursor effects
+  useEffect(() => {
+    setIsMobile(!window.matchMedia("(pointer: fine)").matches);
+  }, []);
 
   const controls = useControls("Cursor", {
     lineThickness: {
@@ -36,6 +42,8 @@ export const CursorEffect: React.FC = () => {
   controlsRef.current = controls;
 
   useEffect(() => {
+    if (isMobile) return;
+
     const html = document.documentElement;
     html.classList.add(styles.cursorHidden);
 
@@ -93,7 +101,9 @@ export const CursorEffect: React.FC = () => {
       document.removeEventListener("mouseleave", onMouseLeave);
       document.removeEventListener("mouseenter", onMouseEnter);
     };
-  }, []);
+  }, [isMobile]);
+
+  if (isMobile) return null;
 
   return (
     <>

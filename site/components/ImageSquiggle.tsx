@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { useControls, folder, Leva } from "leva";
-import { transitionConfig } from "@/lib/levaConfig";
+import { transitionConfig, imageRevealConfig } from "@/lib/levaConfig";
 import styles from "./ImageSquiggle.module.css";
 
 /* ================================================================
@@ -523,6 +523,14 @@ export const ImageSquiggle: React.FC<{
         label: "ease power",
       },
     }),
+    "Image Reveal": folder({
+      revealBlur: { value: true, label: "blur" },
+      revealPixelate: { value: true, label: "pixelate" },
+      revealPixelStart: { value: 48, min: 4, max: 120, step: 4, label: "pixel size" },
+      revealBlurAmount: { value: 10, min: 2, max: 40, step: 1, label: "blur amount" },
+      revealDuration: { value: 800, min: 200, max: 2000, step: 50, label: "duration (ms)" },
+      revealTravel: { value: 12, min: 0, max: 40, step: 1, label: "travel (px)" },
+    }),
   });
 
   // Sync ref every render (cheap assignment, no effect restart).
@@ -532,11 +540,28 @@ export const ImageSquiggle: React.FC<{
   transitionConfig.duration = controls.transitionDuration;
   transitionConfig.easePower = controls.transitionEasePower;
 
+  // Sync image reveal config to shared module
+  imageRevealConfig.blur = controls.revealBlur;
+  imageRevealConfig.pixelate = controls.revealPixelate;
+  imageRevealConfig.pixelStart = controls.revealPixelStart;
+  imageRevealConfig.blurAmount = controls.revealBlurAmount;
+  imageRevealConfig.duration = controls.revealDuration;
+  imageRevealConfig.travel = controls.revealTravel;
+
   /* ---------- Toggle leva panel with "L" key ---------- */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "l" || e.key === "L") {
-        setLevaHidden((h) => !h);
+        setLevaHidden((h) => {
+          const next = !h;
+          // Toggle CSS class so the panel is visible/hidden without flash
+          const root = document.getElementById("leva__root");
+          if (root) {
+            if (next) root.classList.remove("leva--visible");
+            else root.classList.add("leva--visible");
+          }
+          return next;
+        });
       }
     };
     window.addEventListener("keydown", handler);
@@ -856,7 +881,8 @@ export const ImageSquiggle: React.FC<{
 
   /* ---------- Scatter-fall helpers (optimised) ---------- */
   /** Hard cap on total images in the container. */
-  const MAX_IMAGES = 80;
+  const isMobileDevice = typeof window !== "undefined" && !window.matchMedia("(pointer: fine)").matches;
+  const MAX_IMAGES = isMobileDevice ? 20 : 80;
 
   const spawnScatterBatch = () => {
     const container = containerRef.current;

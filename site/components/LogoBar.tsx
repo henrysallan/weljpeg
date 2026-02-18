@@ -277,15 +277,43 @@ export const LogoBar: React.FC<LogoBarProps> = ({ className }) => {
             if (label === "Work") {
               return <WorkDropdown key={label} />;
             }
-            return (
-              <button
-                key={label}
-                className={styles.navBtn}
-                data-nav={label.toLowerCase()}
-              >
-                {label}
-              </button>
-            );
+            if (label === "Services") {
+              return (
+                <a
+                  key={label}
+                  href="#section-services"
+                  className={styles.navBtn}
+                  data-nav="services"
+                >
+                  {label}
+                </a>
+              );
+            }
+            if (label === "Insight") {
+              return (
+                <a
+                  key={label}
+                  href="#section-insight"
+                  className={styles.navBtn}
+                  data-nav="insight"
+                >
+                  {label}
+                </a>
+              );
+            }
+            if (label === "About") {
+              return (
+                <a
+                  key={label}
+                  href="#section-contact"
+                  className={styles.navBtn}
+                  data-nav="about"
+                >
+                  {label}
+                </a>
+              );
+            }
+            return null;
           })}
         </nav>
       </div>

@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { ScrollCharReveal } from "./ScrollCharReveal";
+import { ScrollImageReveal } from "./ScrollImageReveal";
 import styles from "./ContentBlock.module.css";
 import type { BlockColumn } from "@/lib/data";
 
@@ -52,15 +54,11 @@ const Column: React.FC<{ data: BlockColumn }> = ({ data }) => {
     <div className={`${styles.column} ${alignClass}`}>
       {data.type === "image" && data.image && (
         data.image.src ? (
-          <div className={styles.imageWrap}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={data.image.src}
-              alt={data.image.alt}
-              className={styles.image}
-              loading="lazy"
-            />
-          </div>
+          <ScrollImageReveal
+            src={data.image.src}
+            alt={data.image.alt}
+            className={styles.imageWrap}
+          />
         ) : (
           <div className={styles.placeholderImage} role="img" aria-label={data.image.alt} />
         )
@@ -71,15 +69,21 @@ const Column: React.FC<{ data: BlockColumn }> = ({ data }) => {
       )}
 
       {data.type === "text" && (
-        <p className={styles.bodyText}>{data.body}</p>
+        <p className={styles.bodyText}>
+          <ScrollCharReveal stagger={2}>{data.body}</ScrollCharReveal>
+        </p>
       )}
 
       {data.type === "titled-text" && (
         <>
           {data.subHeading && (
-            <h3 className={styles.subHeading}>{data.subHeading}</h3>
+            <h3 className={styles.subHeading}>
+              <ScrollCharReveal>{data.subHeading}</ScrollCharReveal>
+            </h3>
           )}
-          <p className={styles.bodyText}>{data.body}</p>
+          <p className={styles.bodyText}>
+            <ScrollCharReveal stagger={2}>{data.body}</ScrollCharReveal>
+          </p>
         </>
       )}
     </div>

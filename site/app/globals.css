@@ -183,3 +183,11 @@ ul, ol {
     --page-padding: 20px;
   }
 }
+
+/* Hide Leva debug panel by default — toggled via JS (L key) */
+#leva__root {
+  display: none !important;
+}
+#leva__root.leva--visible {
+  display: block !important;
+}
