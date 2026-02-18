@@ -8,9 +8,11 @@
 
 .squiggleImage {
   position: absolute;
+  left: 0;
+  top: 0;
   object-fit: cover;
   opacity: 0;
-  will-change: opacity, transform, left, top, width, height;
+  will-change: transform, opacity;
   pointer-events: auto;
   border-radius: 2px;
   cursor: grab;
@@ -29,4 +31,19 @@
   white-space: pre-line;
   pointer-events: none;
   user-select: text;
+}
+
+.focusCloseBtn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text, #222);
+  padding: 4px;
+  z-index: 10;
+}
+
+.focusCloseBtn:hover {
+  opacity: 0.5;
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { MailIcon } from "@/components/MailIcon";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const manrope = localFont({
   src: "../public/fonts/Manrope-VariableFont_wght.ttf",
@@ -28,6 +29,7 @@ export default function RootLayout({
           Skip to main content
         </a>
         <MailIcon />
+        <ThemeToggle />
         {children}
       </body>
     </html>

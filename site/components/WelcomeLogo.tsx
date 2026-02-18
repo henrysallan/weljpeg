@@ -16,7 +16,7 @@ export const WelcomeLogo: React.FC<WelcomeLogoProps> = ({
   className,
   width = 36,
   height = 31.5,
-  color = "black",
+  color = "currentColor",
   "aria-label": ariaLabel = "Welcome Labs logo",
 }) => (
   <svg

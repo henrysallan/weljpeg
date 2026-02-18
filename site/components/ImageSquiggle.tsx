@@ -41,6 +41,44 @@ async function loadImagePool() {
 }
 
 /* ================================================================
+   Image element cache — reuse decoded bitmaps via cloneNode
+   ================================================================ */
+const imageCache = new Map<string, HTMLImageElement>();
+
+/** Pre-decode an image and cache the source element for cloning. */
+async function preloadImage(src: string): Promise<void> {
+  if (imageCache.has(src)) return;
+  const img = new Image();
+  img.src = src;
+  img.decoding = "async";
+  try {
+    await img.decode();
+  } catch {
+    // Fallback — image may still work even if decode() fails
+  }
+  imageCache.set(src, img);
+}
+
+/** Create a cheap image element. Clones a cached node if available,
+ *  so the browser reuses the already-decoded bitmap (instancing). */
+function createCachedImage(src: string, size: number): HTMLImageElement {
+  const cached = imageCache.get(src);
+  let img: HTMLImageElement;
+  if (cached) {
+    img = cached.cloneNode(true) as HTMLImageElement;
+  } else {
+    img = document.createElement("img");
+    img.src = src;
+    img.decoding = "async";
+  }
+  img.alt = "";
+  img.draggable = false;
+  img.style.width = `${size}px`;
+  img.style.height = `${size}px`;
+  return img;
+}
+
+/* ================================================================
    Path generators
    ================================================================ */
 
@@ -184,14 +222,27 @@ function pickRandom<T>(arr: T[], n: number): T[] {
    Component
    ================================================================ */
 
-export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 0 }) => {
+export const ImageSquiggle: React.FC<{
+  delayStart?: number;
+  onFocus?: () => void;
+  onUnfocus?: () => void;
+}> = ({ delayStart = 0, onFocus, onUnfocus }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cycleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeTweensRef = useRef<gsap.core.Timeline[]>([]);
   const [levaHidden, setLevaHidden] = useState(true);
 
-  // Scatter-fall state
-  const scatterImgsRef = useRef<{ el: HTMLImageElement; speed: number; y: number }[]>([]);
+  // Scatter-fall state — TrackedImage stores position/size so we
+  // never read layout (offsetWidth/Height) in the hot loop.
+  type TrackedImage = {
+    el: HTMLImageElement;
+    x: number;
+    y: number;
+    size: number;
+    speed: number;
+    baseScale: number;
+  };
+  const scatterImgsRef = useRef<TrackedImage[]>([]);
   const scatterRafRef = useRef<number | null>(null);
   const scatterSpawnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastFrameRef = useRef<number>(0);
@@ -201,6 +252,7 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
     el: HTMLImageElement;
     x: number;
     y: number;
+    size: number;
     vx: number;
     vy: number;
   };
@@ -212,6 +264,7 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
   // Focus mode state
   const focusedRef = useRef<HTMLImageElement | null>(null);
   const focusedCaptionRef = useRef<HTMLParagraphElement | null>(null);
+  const focusedCloseBtnRef = useRef<HTMLButtonElement | null>(null);
   const focusedTweenRef = useRef<gsap.core.Tween | null>(null);
   const isFocusingRef = useRef(false);
   const cycleRunningRef = useRef(true);
@@ -229,12 +282,12 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
   const controls = useControls({
     Mode: folder({
       mode: {
-        value: "arc",
+        value: "scatter",
         options: ["arc", "linear", "scatter"],
       },
     }),
     General: folder({
-      imagesPerLine: { value: isMobile ? 24 : 70, min: 3, max: 100, step: 1 },
+      imagesPerLine: { value: isMobile ? 24 : 30, min: 3, max: 100, step: 1 },
       minImageSize: { value: isMobile ? 30 : 20, min: 20, max: 250, step: 5, label: "img size min" },
       maxImageSize: { value: isMobile ? 60 : 60, min: 20, max: 250, step: 5, label: "img size max" },
       curvePoints: {
@@ -245,7 +298,7 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
         label: "curve pts",
       },
       linesPerCycle: {
-        value: 3,
+        value: 2,
         min: 1,
         max: 5,
         step: 1,
@@ -378,6 +431,20 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
         step: 1,
         label: "batch size",
       },
+      scatterGrowZone: {
+        value: 0.07,
+        min: 0.02,
+        max: 0.5,
+        step: 0.01,
+        label: "grow zone",
+      },
+      scatterShrinkZone: {
+        value: 0.07,
+        min: 0.02,
+        max: 0.5,
+        step: 0.01,
+        label: "shrink zone",
+      },
     }),
     Timing: folder({
       fadeInDuration: {
@@ -490,13 +557,9 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
       mouseRef.current.y = e.clientY - rect.top;
     };
 
-    const onMouseLeave = () => {
-      mouseRef.current.x = -9999;
-      mouseRef.current.y = -9999;
-    };
-
-    container.addEventListener("mousemove", onMouseMove);
-    container.addEventListener("mouseleave", onMouseLeave);
+    // Listen on window so proximity works even when cursor
+    // is over empty space (container has pointer-events: none).
+    window.addEventListener("mousemove", onMouseMove);
 
     const tick = () => {
       const c = controlsRef.current as typeof controls;
@@ -506,29 +569,44 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
       const maxScale = c.proximityScale;
       const ease = c.proximityEase;
 
-      const imgs = container.querySelectorAll<HTMLImageElement>(
-        `.${styles.squiggleImage}`
-      );
-      imgs.forEach((img) => {
-        if (focusedRef.current === img || isFocusingRef.current) return;
-        if (img.dataset.dragging) return;
+      // Iterate tracked scatter images (no DOM query)
+      for (const entry of scatterImgsRef.current) {
+        if (focusedRef.current === entry.el || isFocusingRef.current) continue;
+        if (entry.el.dataset.dragging) continue;
 
-        const left = parseFloat(img.style.left) || 0;
-        const top = parseFloat(img.style.top) || 0;
-        const cx = left + img.offsetWidth / 2;
-        const cy = top + img.offsetHeight / 2;
+        const cx = entry.x + entry.size / 2;
+        const cy = entry.y + entry.size / 2;
+        const dx = mx - cx;
+        const dy = my - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        const bs = entry.baseScale;
+        if (dist < radius) {
+          const t = Math.pow(1 - dist / radius, ease);
+          const scale = bs * (1 + (maxScale - 1) * t);
+          entry.el.style.transform = `translate(${entry.x}px,${entry.y}px) scale(${scale})`;
+        } else {
+          entry.el.style.transform = `translate(${entry.x}px,${entry.y}px) scale(${bs})`;
+        }
+      }
+
+      // Also handle thrown images
+      for (const t of thrownImgsRef.current) {
+        if (t.el.dataset.dragging) continue;
+        const cx = t.x + t.size / 2;
+        const cy = t.y + t.size / 2;
         const dx = mx - cx;
         const dy = my - cy;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist < radius) {
-          const t = Math.pow(1 - dist / radius, ease);
-          const scale = 1 + (maxScale - 1) * t;
-          img.style.transform = `scale(${scale})`;
+          const tt = Math.pow(1 - dist / radius, ease);
+          const scale = 1 + (maxScale - 1) * tt;
+          t.el.style.transform = `translate(${t.x}px,${t.y}px) scale(${scale})`;
         } else {
-          img.style.transform = "scale(1)";
+          t.el.style.transform = `translate(${t.x}px,${t.y}px) scale(1)`;
         }
-      });
+      }
 
       proximityRafRef.current = requestAnimationFrame(tick);
     };
@@ -536,8 +614,7 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
     proximityRafRef.current = requestAnimationFrame(tick);
 
     return () => {
-      container.removeEventListener("mousemove", onMouseMove);
-      container.removeEventListener("mouseleave", onMouseLeave);
+      window.removeEventListener("mousemove", onMouseMove);
       if (proximityRafRef.current) {
         cancelAnimationFrame(proximityRafRef.current);
         proximityRafRef.current = null;
@@ -572,8 +649,8 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
         t.x += t.vx * dt;
         t.y += t.vy * dt;
 
-        const w = t.el.offsetWidth;
-        const h = t.el.offsetHeight;
+        const w = t.size;
+        const h = t.size;
 
         // Bounce off edges
         if (t.x < 0) {
@@ -591,8 +668,8 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
           t.vy = -Math.abs(t.vy) * BOUNCE_DAMPING;
         }
 
-        t.el.style.left = `${t.x}px`;
-        t.el.style.top = `${t.y}px`;
+        // Write position via transform only (no layout thrash)
+        t.el.style.transform = `translate(${t.x}px,${t.y}px) scale(1)`;
 
         // Kill when nearly stopped
         const speed = Math.sqrt(t.vx * t.vx + t.vy * t.vy);
@@ -623,7 +700,7 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
   /* ---------- Shared interaction handlers ---------- */
   const DRAG_THRESHOLD = 6; // px movement to count as drag vs click
 
-  const attachInteractionHandlers = (img: HTMLImageElement) => {
+  const attachInteractionHandlers = (img: HTMLImageElement, tracked?: TrackedImage) => {
     let isDragging = false;
     let didDrag = false;
     let startX = 0;
@@ -693,13 +770,21 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
       }
 
       if (didDrag) {
-        // Move the image with cursor
-        const imgLeft = parseFloat(img.style.left) || 0;
-        const imgTop = parseFloat(img.style.top) || 0;
+        // Move the image with cursor — read position from tracked data
+        const curX = tracked ? tracked.x : (parseFloat(img.dataset.posX || "0"));
+        const curY = tracked ? tracked.y : (parseFloat(img.dataset.posY || "0"));
         const moveX = e.clientX - lastX;
         const moveY = e.clientY - lastY;
-        img.style.left = `${imgLeft + moveX}px`;
-        img.style.top = `${imgTop + moveY}px`;
+        const newX = curX + moveX;
+        const newY = curY + moveY;
+
+        if (tracked) {
+          tracked.x = newX;
+          tracked.y = newY;
+        }
+        img.dataset.posX = String(newX);
+        img.dataset.posY = String(newY);
+        img.style.transform = `translate(${newX}px,${newY}px) scale(1)`;
 
         // Track velocity (smoothed)
         const now = performance.now();
@@ -735,10 +820,15 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
         vx = Math.max(-maxV, Math.min(maxV, vx));
         vy = Math.max(-maxV, Math.min(maxV, vy));
 
+        const posX = tracked ? tracked.x : parseFloat(img.dataset.posX || "0");
+        const posY = tracked ? tracked.y : parseFloat(img.dataset.posY || "0");
+        const size = tracked ? tracked.size : (parseFloat(img.style.width) || 40);
+
         thrownImgsRef.current.push({
           el: img,
-          x: parseFloat(img.style.left) || 0,
-          y: parseFloat(img.style.top) || 0,
+          x: posX,
+          y: posY,
+          size,
           vx,
           vy,
         });
@@ -764,7 +854,10 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
     };
   };
 
-  /* ---------- Scatter-fall helpers ---------- */
+  /* ---------- Scatter-fall helpers (optimised) ---------- */
+  /** Hard cap on total images in the container. */
+  const MAX_IMAGES = 80;
+
   const spawnScatterBatch = () => {
     const container = containerRef.current;
     if (!container || IMAGE_POOL.length === 0) return;
@@ -775,46 +868,42 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
     const sizeRange = c.maxImageSize - c.minImageSize;
     const batchSize = c.scatterBatchSize;
 
-    const images = pickRandom(IMAGE_POOL, batchSize);
+    // Enforce hard cap — skip spawn if at limit
+    if (scatterImgsRef.current.length >= MAX_IMAGES) return;
+    const canSpawn = Math.min(batchSize, MAX_IMAGES - scatterImgsRef.current.length);
 
-    for (let i = 0; i < batchSize; i++) {
+    const images = pickRandom(IMAGE_POOL, canSpawn);
+
+    for (let i = 0; i < canSpawn; i++) {
       const size = c.minImageSize + Math.random() * sizeRange;
       const padding = c.scatterPadding;
       const x = padding + Math.random() * (vw - padding * 2 - size);
-      // Start above the viewport
-      const startY = -(size + Math.random() * 100);
+      const startY = Math.random() * 20;
 
-      const img = document.createElement("img");
       const srcPath = images[i % images.length];
-      img.src = srcPath;
-      img.dataset.srcPath = srcPath;
-      img.alt = "";
-      img.loading = "eager";
+      const img = createCachedImage(srcPath, size);
       img.className = styles.squiggleImage;
-      img.style.width = `${size}px`;
-      img.style.height = `${size}px`;
-      img.style.left = `${x}px`;
-      img.style.top = `${startY}px`;
-      img.style.opacity = "0";
+      img.dataset.srcPath = srcPath;
+      img.style.opacity = String(c.maxOpacity);
+      // Position via transform (no left/top — compositor only)
+      img.style.transform = `translate(${x}px,${startY}px) scale(0)`;
+      img.dataset.posX = String(x);
+      img.dataset.posY = String(startY);
 
-      // Attach hover/drag/click/throw handlers
-      attachInteractionHandlers(img);
+      const speed = c.fallSpeedMin + Math.random() * (c.fallSpeedMax - c.fallSpeedMin);
 
+      const tracked: TrackedImage = {
+        el: img,
+        x,
+        y: startY,
+        size,
+        speed,
+        baseScale: 0,
+      };
+
+      attachInteractionHandlers(img, tracked);
       container.appendChild(img);
-
-      // Fade in
-      gsap.to(img, {
-        opacity: c.maxOpacity,
-        duration: 0.6,
-        ease: "power2.out",
-      });
-
-      // Parallax speed — random between min and max
-      const speed =
-        c.fallSpeedMin +
-        Math.random() * (c.fallSpeedMax - c.fallSpeedMin);
-
-      scatterImgsRef.current.push({ el: img, speed, y: startY });
+      scatterImgsRef.current.push(tracked);
     }
   };
 
@@ -825,7 +914,7 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
     lastFrameRef.current = performance.now();
 
     const tick = (now: number) => {
-      const dt = (now - lastFrameRef.current) / 1000; // seconds
+      const dt = Math.min((now - lastFrameRef.current) / 1000, 0.05);
       lastFrameRef.current = now;
 
       const container = containerRef.current;
@@ -834,9 +923,12 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
         return;
       }
       const vh = container.clientHeight;
+      const c = controlsRef.current as typeof controls;
+      const growH = c.scatterGrowZone * vh;
+      const shrinkStart = vh * (1 - c.scatterShrinkZone);
 
       // Update each falling image
-      const alive: typeof scatterImgsRef.current = [];
+      const alive: TrackedImage[] = [];
       for (const entry of scatterImgsRef.current) {
         // If hovered or focused, pause falling
         if (entry.el.dataset.hovered || focusedRef.current === entry.el) {
@@ -844,13 +936,27 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
           continue;
         }
         entry.y += entry.speed * dt;
-        entry.el.style.top = `${entry.y}px`;
 
-        // Kill if below viewport
-        if (entry.y > vh + 50) {
-          gsap.killTweensOf(entry.el);
+        // Scale based on Y position: grow near top, shrink near bottom
+        let baseScale: number;
+        if (entry.y < growH) {
+          baseScale = growH > 0 ? entry.y / growH : 1;
+        } else if (entry.y > shrinkStart) {
+          baseScale = shrinkStart < vh ? (vh - entry.y) / (vh - shrinkStart) : 0;
+        } else {
+          baseScale = 1;
+        }
+        baseScale = Math.max(0, Math.min(1, baseScale));
+        entry.baseScale = baseScale;
+
+        // Remove when off-screen or fully shrunk
+        if (entry.y >= vh + 10 || baseScale <= 0.01) {
+          const cleanup = (entry.el as any).__throwCleanup;
+          if (cleanup) cleanup();
           entry.el.remove();
         } else {
+          // Write position + scale via single transform (compositor-only)
+          entry.el.style.transform = `translate(${entry.x}px,${entry.y}px) scale(${baseScale})`;
           alive.push(entry);
         }
       }
@@ -880,6 +986,8 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
     // Remove remaining scatter images
     for (const entry of scatterImgsRef.current) {
       gsap.killTweensOf(entry.el);
+      const cleanup = (entry.el as any).__throwCleanup;
+      if (cleanup) cleanup();
       entry.el.remove();
     }
     scatterImgsRef.current = [];
@@ -969,18 +1077,17 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
 
       const size = c.minImageSize + Math.random() * sizeRange;
       const half = size / 2;
+      const x = pos.x - half;
+      const y = pos.y - half;
 
-      const img = document.createElement("img");
       const srcPath = images[i % images.length];
-      img.src = srcPath;
-      img.dataset.srcPath = srcPath;
-      img.alt = "";
-      img.loading = "eager";
+      const img = createCachedImage(srcPath, size);
       img.className = styles.squiggleImage;
-      img.style.width = `${size}px`;
-      img.style.height = `${size}px`;
-      img.style.left = `${pos.x - half}px`;
-      img.style.top = `${pos.y - half}px`;
+      img.dataset.srcPath = srcPath;
+      // Position via transform
+      img.style.transform = `translate(${x}px,${y}px) scale(1)`;
+      img.dataset.posX = String(x);
+      img.dataset.posY = String(y);
 
       // Attach hover/drag/click/throw handlers
       attachInteractionHandlers(img);
@@ -1049,6 +1156,8 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
         imgEls.forEach((el) => {
           // Don't remove focused or hovered images
           if (el.dataset.hovered || focusedRef.current === el) return;
+          const cleanup = (el as any).__throwCleanup;
+          if (cleanup) cleanup();
           el.remove();
         });
         const idx = activeTweensRef.current.indexOf(tl);
@@ -1067,6 +1176,7 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
     isFocusingRef.current = true;
     focusedRef.current = img;
     cycleRunningRef.current = false;
+    onFocus?.();
 
     // Stop the cycle timer
     if (cycleTimerRef.current) {
@@ -1102,7 +1212,11 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
         scale: 0,
         duration: 0.4,
         ease: "power2.in",
-        onComplete: () => el.remove(),
+        onComplete: () => {
+          const cleanup = (el as any).__throwCleanup;
+          if (cleanup) cleanup();
+          el.remove();
+        },
       });
     });
 
@@ -1143,7 +1257,28 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
       captionEl.style.width = `${targetSize}px`;
     }
 
-    // Animate the image
+    // Create close (X) button above the image on the left
+    const closeBtn = document.createElement("button");
+    closeBtn.className = styles.focusCloseBtn;
+    closeBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="1" y1="1" x2="15" y2="15" stroke="currentColor" stroke-width="0.5"/><line x1="15" y1="1" x2="1" y2="15" stroke="currentColor" stroke-width="0.5"/></svg>`;
+    closeBtn.style.position = "absolute";
+    closeBtn.style.left = `${targetX}px`;
+    closeBtn.style.top = `${targetY - 28}px`;
+    closeBtn.style.opacity = "0";
+    closeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      unfocusImage();
+    });
+    container.appendChild(closeBtn);
+    focusedCloseBtnRef.current = closeBtn;
+
+    // Animate the image: switch from transform to left/top for focus animation
+    // since GSAP needs pixel properties for the target position.
+    const currentX = parseFloat(img.dataset.posX || "0");
+    const currentY = parseFloat(img.dataset.posY || "0");
+    img.style.left = `${currentX}px`;
+    img.style.top = `${currentY}px`;
+    img.style.transform = "scale(1)";
     img.style.cursor = "default";
     focusedTweenRef.current = gsap.to(img, {
       left: targetX,
@@ -1164,6 +1299,14 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
             ease: "power2.out",
           });
         }
+        // Fade in close button
+        if (focusedCloseBtnRef.current) {
+          gsap.to(focusedCloseBtnRef.current, {
+            opacity: 1,
+            duration: 0.4,
+            ease: "power2.out",
+          });
+        }
       },
     });
   };
@@ -1176,23 +1319,43 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
 
     isFocusingRef.current = true;
 
-    // Fade out caption first (if present)
+    // Slide the focused image off the left edge
+    const imgWidth = img.offsetWidth || parseFloat(img.style.width) || 0;
+    const currentLeft = parseFloat(img.style.left) || 0;
+    const offScreenX = -(imgWidth + currentLeft + 40);
+
+    // Fade out close button simultaneously
+    const closeBtn = focusedCloseBtnRef.current;
+    if (closeBtn) {
+      gsap.to(closeBtn, {
+        left: `+=${offScreenX - currentLeft}`,
+        opacity: 0,
+        duration: 0.6,
+        ease: "power3.in",
+        onComplete: () => closeBtn.remove(),
+      });
+      focusedCloseBtnRef.current = null;
+    }
+
+    // Fade out caption simultaneously (if present)
     if (captionEl) {
       gsap.to(captionEl, {
+        left: `+=${offScreenX - currentLeft}`,
         opacity: 0,
-        duration: 0.25,
-        ease: "power2.in",
+        duration: 0.6,
+        ease: "power3.in",
         onComplete: () => captionEl.remove(),
       });
       focusedCaptionRef.current = null;
     }
 
-    // Fade out the focused image
     gsap.to(img, {
-      opacity: 0,
-      duration: 0.4,
-      ease: "power2.in",
+      left: offScreenX,
+      duration: 0.6,
+      ease: "power3.in",
       onComplete: () => {
+        const cleanup = (img as any).__throwCleanup;
+        if (cleanup) cleanup();
         img.remove();
         focusedRef.current = null;
         isFocusingRef.current = false;
@@ -1200,6 +1363,8 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
         // Restore container pointer-events
         container.style.pointerEvents = "";
         container.style.cursor = "";
+
+        onUnfocus?.();
 
         // Restart the cycle
         cycleRunningRef.current = true;
@@ -1235,6 +1400,10 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
 
     const init = async () => {
       await loadImagePool();
+      if (cancelledRef.current) return;
+
+      // Pre-decode all images so cloneNode reuses decoded bitmaps
+      await Promise.all(IMAGE_POOL.map((src) => preloadImage(src)));
       if (cancelledRef.current) return;
 
       // Wait for landing intro animation before starting
@@ -1295,6 +1464,10 @@ export const ImageSquiggle: React.FC<{ delayStart?: number }> = ({ delayStart = 
         cancelAnimationFrame(throwRafRef.current);
         throwRafRef.current = null;
       }
+      thrownImgsRef.current.forEach((t) => {
+        const cleanup = (t.el as any).__throwCleanup;
+        if (cleanup) cleanup();
+      });
       thrownImgsRef.current = [];
       activeTweensRef.current.forEach((t) => t.kill());
       activeTweensRef.current = [];

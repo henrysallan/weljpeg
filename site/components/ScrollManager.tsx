@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import Lenis from "lenis";
-import { transitionConfig } from "@/lib/levaConfig";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -20,47 +19,35 @@ const MAX_VISIBLE_SLOTS = 2;
 // Multiplier: 1 = collapse consumes exactly the px it shrinks (1:1 scroll).
 const COLLAPSE_SPEED = 1;
 
-/* ================================================================
-   Landing gate state — shared between Lenis config and setup
-   ================================================================ */
-const gate = {
-  locked: true,         // page starts locked on landing
-  transitioning: false, // true while the scroll animation plays
-  tickCount: 0,
-  pageState: "landing" as "landing" | "content",
-  TICK_THRESHOLD: 2,
-};
-
 /**
  * ScrollManager -- invisible component that wires up:
  *   1. Lenis smooth scroll
- *   2. Landing -> Content snap
- *   3. Section header sticky-stack (declarative two-phase reconciler)
+ *   2. Section header sticky-stack (declarative two-phase reconciler)
  *
  * The logo bar is purely CSS sticky -- no JS needed.
  * All header animations are scroll-linked and fully reversible.
  */
 export const ScrollManager: React.FC = () => {
   const lenisRef = useRef<Lenis | null>(null);
+  const lenisTickerRef = useRef<((time: number) => void) | null>(null);
+  const [lenisEnabled, setLenisEnabled] = useState(true);
 
   /* ------------------------------------------------
-     1. Lenis smooth scroll
+     1. Lenis smooth scroll — create/destroy based on toggle
      ------------------------------------------------ */
   useEffect(() => {
-    // Force scroll to top on load — prevents browser restoring
-    // a previous scroll position which breaks the landing gate.
-    window.scrollTo(0, 0);
-    if ('scrollRestoration' in history) {
-      history.scrollRestoration = 'manual';
+    if (!lenisEnabled) {
+      // Destroy existing instance so native scroll takes over
+      if (lenisRef.current) {
+        if (lenisTickerRef.current) {
+          gsap.ticker.remove(lenisTickerRef.current);
+          lenisTickerRef.current = null;
+        }
+        lenisRef.current.destroy();
+        lenisRef.current = null;
+      }
+      return;
     }
-
-    // Reset gate to a known good state before Lenis is created.
-    // This prevents stale state from a previous mount (HMR / Strict Mode)
-    // from permanently blocking virtualScroll.
-    gate.locked = true;
-    gate.transitioning = false;
-    gate.tickCount = 0;
-    gate.pageState = "landing";
 
     const prefersReduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
@@ -72,31 +59,36 @@ export const ScrollManager: React.FC = () => {
       syncTouch: true,
       wheelMultiplier: 0.7,
       touchMultiplier: 0.7,
-      // Return false to swallow the event when gate is locked/transitioning
-      virtualScroll: (e) => {
-        if (gate.transitioning) return false;
-        if (gate.locked) return false;
-        return true;
-      },
     });
-
-    // Also block native scroll when locked (belt-and-suspenders)
-    const blockNativeScroll = (e: WheelEvent) => {
-      if (gate.locked || gate.transitioning) {
-        e.preventDefault();
-      }
-    };
-    window.addEventListener("wheel", blockNativeScroll, { passive: false });
 
     lenisRef.current = lenis;
     lenis.on("scroll", ScrollTrigger.update);
-    gsap.ticker.add((time) => lenis.raf(time * 1000));
+    const tickerFn = (time: number) => lenis.raf(time * 1000);
+    lenisTickerRef.current = tickerFn;
+    gsap.ticker.add(tickerFn);
     gsap.ticker.lagSmoothing(0);
 
     return () => {
-      window.removeEventListener("wheel", blockNativeScroll);
+      if (lenisTickerRef.current) {
+        gsap.ticker.remove(lenisTickerRef.current);
+        lenisTickerRef.current = null;
+      }
       lenis.destroy();
+      lenisRef.current = null;
     };
+  }, [lenisEnabled]);
+
+  /* ------------------------------------------------
+     Toggle Lenis on/off via "K" key
+     ------------------------------------------------ */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "k" || e.key === "K") {
+        setLenisEnabled((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, []);
 
   /* ------------------------------------------------
@@ -135,7 +127,7 @@ interface HeaderRef {
   row: HTMLElement;
   section: HTMLElement;
   title: HTMLElement;
-  tags: HTMLElement;
+  tags: HTMLElement | null;
   expandedContent: HTMLElement | null;
   sectionContent: HTMLElement | null;
   bottomSep: HTMLElement | null;
@@ -182,161 +174,10 @@ function setupAnimations(
   prefersReduced: boolean,
   lenisRef: React.RefObject<Lenis | null>
 ) {
-  /* -- 2. Landing -> Content gate -- */
-  const landing = document.getElementById("landing-page");
   const lenis = lenisRef.current;
 
-  if (landing && lenis) {
-    const landingH = landing.offsetHeight;
-    // Reset gate state
-    gate.locked = true;
-    gate.transitioning = false;
-    gate.tickCount = 0;
-    gate.pageState = "landing";
-
-    // Count wheel ticks even while locked (virtualScroll swallows
-    // them from Lenis, but our native wheel listener still fires).
-    const gateWheelHandler = (e: WheelEvent) => {
-      if (gate.transitioning) return;
-
-      const scrollingDown = e.deltaY > 0;
-      const scrollingUp = e.deltaY < 0;
-
-      if (gate.pageState === "landing" && scrollingDown) {
-        gate.tickCount++;
-        if (gate.tickCount >= gate.TICK_THRESHOLD) {
-          gate.tickCount = 0;
-          gate.transitioning = true;
-          gate.locked = false; // unlock so Lenis can animate
-          const p = transitionConfig.easePower;
-          lenis.scrollTo(landingH, {
-            duration: transitionConfig.duration,
-            easing: (t: number) => {
-              if (t < 0.5) {
-                return Math.pow(2, p - 1) * Math.pow(t, p);
-              }
-              return 1 - Math.pow(-2 * t + 2, p) / 2;
-            },
-            onComplete: () => {
-              gate.transitioning = false;
-              gate.pageState = "content";
-            },
-          });
-        }
-        return;
-      }
-
-      if (gate.pageState === "content" && scrollingUp) {
-        // Only activate gate near the top of content
-        if (lenis.scroll <= landingH + 5) {
-          gate.tickCount++;
-          if (gate.tickCount >= gate.TICK_THRESHOLD) {
-            gate.tickCount = 0;
-            gate.transitioning = true;
-            gate.locked = true; // block normal scroll during return
-            const p = transitionConfig.easePower;
-            lenis.scrollTo(0, {
-              duration: transitionConfig.duration,
-              easing: (t: number) => {
-                if (t < 0.5) {
-                  return Math.pow(2, p - 1) * Math.pow(t, p);
-                }
-                return 1 - Math.pow(-2 * t + 2, p) / 2;
-              },
-              onComplete: () => {
-                gate.transitioning = false;
-                gate.pageState = "landing";
-                // Stay locked on landing
-              },
-            });
-          }
-          return;
-        }
-      }
-
-      // Reset ticks if wrong direction
-      if (
-        (gate.pageState === "landing" && scrollingUp) ||
-        (gate.pageState === "content" && scrollingDown)
-      ) {
-        gate.tickCount = 0;
-      }
-    };
-
-    window.addEventListener("wheel", gateWheelHandler, { passive: true });
-
-    // Touch support for the gate (mobile)
-    let touchStartY = 0;
-    const gateTouchStartHandler = (e: TouchEvent) => {
-      touchStartY = e.touches[0].clientY;
-    };
-    const gateTouchEndHandler = (e: TouchEvent) => {
-      if (gate.transitioning) return;
-      const touchEndY = e.changedTouches[0].clientY;
-      const deltaY = touchStartY - touchEndY; // positive = swipe up (scroll down)
-      const minSwipe = 30; // minimum swipe distance in px
-
-      if (Math.abs(deltaY) < minSwipe) return;
-
-      const scrollingDown = deltaY > 0;
-      const scrollingUp = deltaY < 0;
-
-      if (gate.pageState === "landing" && scrollingDown) {
-        gate.transitioning = true;
-        gate.locked = false;
-        const p = transitionConfig.easePower;
-        lenis.scrollTo(landingH, {
-          duration: transitionConfig.duration,
-          easing: (t: number) => {
-            if (t < 0.5) {
-              return Math.pow(2, p - 1) * Math.pow(t, p);
-            }
-            return 1 - Math.pow(-2 * t + 2, p) / 2;
-          },
-          onComplete: () => {
-            gate.transitioning = false;
-            gate.pageState = "content";
-          },
-        });
-        return;
-      }
-
-      if (gate.pageState === "content" && scrollingUp) {
-        if (lenis.scroll <= landingH + 5) {
-          gate.transitioning = true;
-          gate.locked = true;
-          const p = transitionConfig.easePower;
-          lenis.scrollTo(0, {
-            duration: transitionConfig.duration,
-            easing: (t: number) => {
-              if (t < 0.5) {
-                return Math.pow(2, p - 1) * Math.pow(t, p);
-              }
-              return 1 - Math.pow(-2 * t + 2, p) / 2;
-            },
-            onComplete: () => {
-              gate.transitioning = false;
-              gate.pageState = "landing";
-            },
-          });
-        }
-      }
-    };
-
-    // Block native touch scroll when gate is locked
-    const blockTouchScroll = (e: TouchEvent) => {
-      if (gate.locked || gate.transitioning) {
-        e.preventDefault();
-      }
-    };
-
-    window.addEventListener("touchstart", gateTouchStartHandler, { passive: true });
-    window.addEventListener("touchend", gateTouchEndHandler, { passive: true });
-    window.addEventListener("touchmove", blockTouchScroll, { passive: false });
-
-    // Intercept hash links (e.g. #section-redbull) on the landing page.
-    // Instead of a native hash jump (which breaks the header stack),
-    // we transition through the gate first, then smooth-scroll to the section.
+  if (lenis) {
+    // Intercept hash links (e.g. #section-redbull) and smooth-scroll.
     const hashClickHandler = (e: MouseEvent) => {
       const anchor = (e.target as HTMLElement).closest("a[href^='#section-']");
       if (!anchor) return;
@@ -346,116 +187,34 @@ function setupAnimations(
       const targetEl = document.getElementById(targetId);
       if (!targetEl) return;
 
-      if (gate.transitioning) return;
-
-      if (gate.pageState === "landing") {
-        // Transition through the gate first, then scroll to section
-        gate.transitioning = true;
-        gate.locked = false;
-        const p = transitionConfig.easePower;
-        lenis.scrollTo(landingH, {
-          duration: transitionConfig.duration,
-          easing: (t: number) => {
-            if (t < 0.5) {
-              return Math.pow(2, p - 1) * Math.pow(t, p);
-            }
-            return 1 - Math.pow(-2 * t + 2, p) / 2;
-          },
-          onComplete: () => {
-            gate.transitioning = false;
-            gate.pageState = "content";
-            // Now scroll to the target section
-            lenis.scrollTo(targetEl, {
-              offset: -LOGO_BAR_H,
-              duration: 0.8,
-            });
-          },
-        });
-      } else {
-        // Already past the gate, just scroll directly
-        lenis.scrollTo(targetEl, {
-          offset: -LOGO_BAR_H,
-          duration: 0.8,
-        });
-      }
+      lenis.scrollTo(targetEl, {
+        offset: -LOGO_BAR_H,
+        duration: 0.8,
+      });
     };
 
     document.addEventListener("click", hashClickHandler);
 
-    // Down-arrow click triggers the gate transition immediately
+    // Down-arrow click — smooth scroll past landing
     const downArrow = document.getElementById("landing-down-arrow");
+    const landing = document.getElementById("landing-page");
     const arrowClickHandler = () => {
-      if (gate.transitioning) return;
-      if (gate.pageState !== "landing") return;
-
-      gate.transitioning = true;
-      gate.locked = false;
-      const p = transitionConfig.easePower;
-      lenis.scrollTo(landingH, {
-        duration: transitionConfig.duration,
-        easing: (t: number) => {
-          if (t < 0.5) {
-            return Math.pow(2, p - 1) * Math.pow(t, p);
-          }
-          return 1 - Math.pow(-2 * t + 2, p) / 2;
-        },
-        onComplete: () => {
-          gate.transitioning = false;
-          gate.pageState = "content";
-        },
-      });
+      if (landing) {
+        lenis.scrollTo(landing.offsetHeight, { duration: 0.8 });
+      }
     };
-
     if (downArrow) {
       downArrow.addEventListener("click", arrowClickHandler);
     }
 
-    // "Go up" pill button — show when on content, hide on landing
-    const goUpBtn = document.getElementById("go-up-btn");
-    const updateGoUpVisibility = () => {
-      if (!goUpBtn) return;
-      if (gate.pageState === "content") {
-        goUpBtn.style.opacity = "1";
-        goUpBtn.style.pointerEvents = "auto";
-      } else {
-        goUpBtn.style.opacity = "0";
-        goUpBtn.style.pointerEvents = "none";
-      }
-    };
-
-    const goUpClickHandler = () => {
-      if (gate.transitioning || gate.pageState !== "content") return;
-
-      // If already at (or near) the top of content, go to landing page
-      if (lenis.scroll <= landingH + 20) {
-        lenis.scrollTo(0, { duration: 0.8 });
-      } else {
-        // Scroll to the top of content (just past the landing gate)
-        lenis.scrollTo(landingH, { duration: 0.8 });
-      }
-    };
-
-    if (goUpBtn) {
-      goUpBtn.addEventListener("click", goUpClickHandler);
-    }
-
-    // Logo click — scroll back to landing page
+    // Logo click — scroll back to top
     const logoHomeBtn = document.getElementById("logo-home-btn");
     const logoClickHandler = () => {
-      if (gate.transitioning) return;
       lenis.scrollTo(0, { duration: 0.8 });
     };
     if (logoHomeBtn) {
       logoHomeBtn.addEventListener("click", logoClickHandler);
     }
-
-    // Update go-up visibility on every scroll tick (polls gate.pageState)
-    lenis.on("scroll", updateGoUpVisibility);
-  } else {
-    // Safety: if we couldn't find the landing page or Lenis isn't
-    // ready, unlock the gate so the user isn't permanently stuck.
-    gate.locked = false;
-    gate.pageState = "content";
   }
 
   /* -- 3. Header sticky-stack -- */
@@ -472,16 +231,17 @@ function setupAnimations(
 
     const title = row.querySelector<HTMLElement>("[class*='title']");
     const tags = row.querySelector<HTMLElement>("[class*='tags']");
-    if (!title || !tags) continue;
+    if (!title) continue;
 
     const expandedContent = block.querySelector<HTMLElement>("[class*='expandedContent']");
     const sectionContent = section.querySelector<HTMLElement>("[class*='sectionContent']");
     const bottomSep = block.querySelector<HTMLElement>("hr:last-of-type");
 
     // Promote animated elements to their own compositor layers
-    block.style.willChange = "height, top, transform, opacity";
-    row.style.willChange = "height";
-    title.style.willChange = "font-size";
+    // Use only compositor-friendly properties to avoid layout thrashing.
+    block.style.willChange = "clip-path, top, transform, opacity";
+    row.style.willChange = "transform";
+    title.style.willChange = "transform";
 
     headerRefs.push({
       id: sectionId,
@@ -906,23 +666,30 @@ function applyStates(
 
     if (!bottomSep) continue;
 
+    // With clip-path cropping, the bottom separator is positioned inside
+    // the clipped area. The incoming header's top separator sits at its
+    // own top edge. They no longer physically overlap, so hiding the
+    // bottom sep would leave a gap. Instead, hide the TOP separator of
+    // the header below (handled above via touchingLogoBar for slot 0,
+    // and by the top-sep pass for stacked headers meeting each other).
+
     // Compute this header's visual bottom edge
     const blockH = lerp(refs[i].expandedBlockH, HEADER_BLOCK_COLLAPSED_H, d.progress);
     const bottomEdge = d.topPx + blockH;
 
     // Check if any other non-expanded header's top is within 2px
-    let touching = false;
+    // If so, hide THAT header's top separator (not this header's bottom).
     for (let j = 0; j < derived.length; j++) {
       if (j === i) continue;
       const other = derived[j];
       if (other.mode === "expanded" || other.mode === "dismissed") continue;
       if (Math.abs(other.topPx - bottomEdge) < 2) {
-        touching = true;
-        break;
+        const otherTopSep = refs[j].block.querySelector(
+          "hr:first-of-type"
+        ) as HTMLElement | null;
+        if (otherTopSep) otherTopSep.style.opacity = "0";
       }
     }
-
-    bottomSep.style.opacity = touching ? "0" : "";
   }
 }
 
@@ -1005,6 +772,7 @@ function goFixed(ref: HeaderRef, d: DerivedState, ls: LiveState) {
     top: `${d.topPx}px`,
     left: "0",
     width: "100%",
+    height: `${ref.expandedBlockH}px`,  // lock at expanded size; clip-path crops visually
     overflow: "hidden",
     zIndex: `${d.zIndex}`,
     cursor: "pointer",
@@ -1015,13 +783,16 @@ function goFixed(ref: HeaderRef, d: DerivedState, ls: LiveState) {
     ref.expandedContent.style.position = "absolute";
     ref.expandedContent.style.left = "0";
     ref.expandedContent.style.right = "0";
+    ref.expandedContent.style.top = `${0.5 + ref.expandedRowH}px`; // anchor below row (constant)
     ref.expandedContent.style.pointerEvents = "none";
   }
   if (ref.bottomSep) {
     ref.bottomSep.style.position = "absolute";
-    ref.bottomSep.style.bottom = "0";
     ref.bottomSep.style.left = "0";
     ref.bottomSep.style.width = "100%";
+    ref.bottomSep.style.zIndex = "999";  // always above header row content
+    ref.bottomSep.style.bottom = "";  // clear any stale bottom
+    ref.bottomSep.style.top = `${ref.expandedBlockH - 1}px`; // initial position, updated per-frame
   }
 
   ls.lastTopPx = d.topPx;
@@ -1045,6 +816,7 @@ function returnToFlow(ref: HeaderRef) {
   block.style.left = "";
   block.style.width = "";
   block.style.height = "";
+  block.style.clipPath = "";
   block.style.overflow = "";
   block.style.zIndex = "";
   block.style.cursor = "";
@@ -1053,12 +825,16 @@ function returnToFlow(ref: HeaderRef) {
   block.style.opacity = "";
 
   row.style.height = "";
+  row.style.transform = "";
   title.style.fontSize = "";
-  tags.style.flexDirection = "";
-  tags.style.opacity = "";
-  tags.style.paddingTop = "";
-  tags.style.padding = "";
-  tags.style.alignSelf = "";
+  title.style.transform = "";
+  if (tags) {
+    tags.style.flexDirection = "";
+    tags.style.opacity = "";
+    tags.style.paddingTop = "";
+    tags.style.padding = "";
+    tags.style.alignSelf = "";
+  }
 
   // Clear expanded content styles
   if (ref.expandedContent) {
@@ -1073,9 +849,10 @@ function returnToFlow(ref: HeaderRef) {
   if (ref.bottomSep) {
     ref.bottomSep.style.opacity = "";
     ref.bottomSep.style.position = "";
-    ref.bottomSep.style.bottom = "";
+    ref.bottomSep.style.top = "";
     ref.bottomSep.style.left = "";
     ref.bottomSep.style.width = "";
+    ref.bottomSep.style.zIndex = "";
   }
   const topSep = block.querySelector("hr:first-of-type") as HTMLElement | null;
   if (topSep && topSep !== ref.bottomSep) topSep.style.opacity = "";
@@ -1084,59 +861,68 @@ function returnToFlow(ref: HeaderRef) {
 /** Lerp all visual properties based on collapse progress (0 = expanded, 1 = collapsed).
  *
  *  Single smooth pass — all properties interpolate together.
- *  The expanded content is taken out of flow (position: absolute) so the
- *  bottom separator always sits directly after the header row. The block's
- *  overflow: hidden clips the absolutely-positioned content as the block
- *  height shrinks. No phases, no layout snaps.
+ *  Uses only compositor-friendly properties to avoid layout thrashing:
+ *  - Block: clip-path (instead of height) crops the visible area.
+ *  - Row: transform translateY (instead of height) shifts content up.
+ *  - Title: transform scale (instead of font-size) shrinks text.
  */
 function interpolateHeader(ref: HeaderRef, t: number) {
   // Linear — no easing. With COLLAPSE_SPEED=1, every px of scroll =
   // every px of header shrink, so content stays perfectly pinned to
   // the header's bottom edge.
 
-  // Block height
+  // Block: clip from the bottom instead of changing height (avoids layout reflow).
   const blockH = lerp(ref.expandedBlockH, HEADER_BLOCK_COLLAPSED_H, t);
-  ref.block.style.height = `${blockH}px`;
+  const clipBottom = ref.expandedBlockH - blockH;
+  ref.block.style.clipPath = clipBottom > 0.1
+    ? `inset(0 0 ${clipBottom}px 0)`
+    : "none";
 
-  // Row height
+  // Row: shift content up via transform instead of shrinking height.
+  // This keeps the title visually centred within the clipped area.
   const rowH = lerp(ref.expandedRowH, HEADER_ROW_COLLAPSED_H, t);
-  ref.row.style.height = `${rowH}px`;
+  const rowShift = (ref.expandedRowH - rowH) / 2;
+  ref.row.style.transform = rowShift > 0.1
+    ? `translateY(${-rowShift}px)`
+    : "";
 
-  // Title
-  const titleSize = lerp(ref.expandedTitleSize, COLLAPSED_TITLE_SIZE, t);
-  ref.title.style.fontSize = `${titleSize}px`;
+  // Title: scale instead of font-size (avoids text-layout reflow every frame).
+  const titleScale = lerp(1, COLLAPSED_TITLE_SIZE / ref.expandedTitleSize, t);
+  ref.title.style.transform = titleScale < 0.999
+    ? `scale(${titleScale})`
+    : "";
 
-  // Expanded content: anchor just below the current row.
-  // Only the `top` changes per frame; static props are set once.
-  if (ref.expandedContent) {
-    ref.expandedContent.style.top = `${0.5 + rowH}px`;
+  // Bottom separator: track the visual bottom edge (clip-path boundary).
+  // Position the separator so it's fully inside the visible region.
+  if (ref.bottomSep) {
+    ref.bottomSep.style.top = `${blockH - 1}px`;
   }
 
-  // Pin bottom separator (cached, no querySelector per frame)
-  // Static props are set once in initExpandedContentStyles.
-
+  // Expanded content: positioned once in goFixed, clip-path hides it.
 
   // Tags crossfade: column -> fade out -> switch to row -> fade in
-  if (t < 0.5) {
-    ref.tags.style.flexDirection = "column";
-    ref.tags.style.opacity = "1";
-    ref.tags.style.alignSelf = "";
-    ref.tags.style.padding = "";
-  } else if (t < 0.65) {
-    ref.tags.style.flexDirection = "column";
-    ref.tags.style.opacity = `${1 - (t - 0.5) / 0.15}`;
-    ref.tags.style.alignSelf = "";
-    ref.tags.style.padding = "";
-  } else if (t < 0.8) {
-    ref.tags.style.flexDirection = "row";
-    ref.tags.style.opacity = `${(t - 0.65) / 0.15}`;
-    ref.tags.style.alignSelf = "center";
-    ref.tags.style.padding = "3px 0";
-  } else {
-    ref.tags.style.flexDirection = "row";
-    ref.tags.style.opacity = "1";
-    ref.tags.style.alignSelf = "center";
-    ref.tags.style.padding = "3px 0";
+  if (ref.tags) {
+    if (t < 0.5) {
+      ref.tags.style.flexDirection = "column";
+      ref.tags.style.opacity = "1";
+      ref.tags.style.alignSelf = "";
+      ref.tags.style.padding = "";
+    } else if (t < 0.65) {
+      ref.tags.style.flexDirection = "column";
+      ref.tags.style.opacity = `${1 - (t - 0.5) / 0.15}`;
+      ref.tags.style.alignSelf = "";
+      ref.tags.style.padding = "";
+    } else if (t < 0.8) {
+      ref.tags.style.flexDirection = "row";
+      ref.tags.style.opacity = `${(t - 0.65) / 0.15}`;
+      ref.tags.style.alignSelf = "center";
+      ref.tags.style.padding = "3px 0";
+    } else {
+      ref.tags.style.flexDirection = "row";
+      ref.tags.style.opacity = "1";
+      ref.tags.style.alignSelf = "center";
+      ref.tags.style.padding = "3px 0";
+    }
   }
 }
 

@@ -22,11 +22,11 @@ export const MailIcon: React.FC = () => (
         width="40"
         height="29"
         rx="2"
-        stroke="#33363F"
+        stroke="var(--color-icon-line)"
       />
       <path
         d="M0.5 7.5L19.6056 17.0528C20.1686 17.3343 20.8314 17.3343 21.3944 17.0528L40.5 7.5"
-        stroke="#33363F"
+        stroke="var(--color-icon-line)"
       />
     </svg>
   </a>

@@ -1,5 +1,5 @@
 .landing {
-  height: 100dvh;
+  height: calc(100dvh - var(--logo-bar-collapsed, 42px));
   width: 100%;
   display: flex;
   align-items: center;
@@ -11,12 +11,16 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  width: 340px;
-  gap: 14px;
+  justify-content: space-between;
+  width: 65vw;
+  max-width: 890px;
+  min-width: 340px;
+  aspect-ratio: 4 / 3;
   position: relative;
   z-index: 1;
-  padding: 14px;
-  background: #ffffff;
+  padding: 32px 36px 36px;
+  background: var(--color-cluster-bg);
+  color: var(--color-cluster-text);
   border: 0.5px solid var(--color-text);
   box-sizing: border-box;
 }
@@ -35,76 +39,67 @@
   z-index: 2;
 }
 
-.logo {
-  margin-bottom: 0;
-}
-
-.title {
-  font-size: 14px;
-  font-weight: normal;
-  line-height: 18px;
-  letter-spacing: 0.02em;
-}
-
-.description {
-  font-size: 14px;
-  line-height: 16px;
-  max-width: 220px;
-}
-
-.underline {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.imageCyclerWrap {
-  width: 120px;
-  aspect-ratio: 167 / 117;
-  overflow: hidden;
-  position: relative;
-}
-
-.clientLinks {
+.logoWrap {
+  flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: flex-start;
 }
 
-.clientLink {
-  font-size: 14px;
-  line-height: 18px;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
+.logo {
+  display: block;
 }
 
-.clientLink:hover {
-  opacity: 0.6;
+.bottomRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 100%;
 }
 
-.downArrow {
-  margin-top: 4px;
-  opacity: 0.5;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
+.tagline {
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: var(--font-weight);
+  line-height: 1.15;
+  max-width: 50%;
 }
 
-.downArrow:hover {
-  opacity: 0.8;
+.companyLogos {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.companyLogo {
+  height: 36px;
+  width: auto;
+  display: block;
 }
 
 /* ---- Responsive ---- */
 
 @media (max-width: 639px) {
   .cluster {
-    width: calc(100% - 40px);
-    max-width: 340px;
+    width: calc(100% - 32px);
+    min-width: 0;
+    aspect-ratio: 3 / 4;
+    padding: 20px;
   }
 
-  .title,
-  .description,
-  .clientLink {
-    font-size: clamp(12px, 4vw, 14px);
+  .logo {
+    width: 120px;
+    height: auto;
+  }
+
+  .tagline {
+    font-size: 24px;
+    max-width: 80%;
+  }
+
+  .companyLogos {
+    gap: 12px;
+  }
+
+  .companyLogo {
+    height: 24px;
   }
 }

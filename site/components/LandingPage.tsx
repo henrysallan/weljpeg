@@ -1,17 +1,10 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { gsap } from "gsap";
 import { WelcomeLogo } from "./WelcomeLogo";
-import { ImageCycler } from "./ImageCycler";
 import { ImageSquiggle } from "./ImageSquiggle";
 import styles from "./LandingPage.module.css";
-
-const LANDING_IMAGES = [
-  "/images/redbull_1.png",
-  "/images/redbull_2.png",
-  "/images/uniqlo_2.png",
-  "/images/uniqlo_3.png",
-];
 
 /* ----------------------------------------------------------------
    Timing constants (ms)
@@ -20,16 +13,24 @@ const BORDER_DRAW_MS  = 900;   // SVG trim-path draw-on
 const FILL_FADE_MS    = 400;   // background fill fade
 const CHAR_FADE_MS    = 250;   // per-character fade duration
 const CHAR_TRAVEL     = 6;     // px each char drifts up
-const CHAR_STAGGER_MS = 18;    // base stagger between chars
+const CHAR_STAGGER_MS = 2;     // base stagger between chars
 const ELEM_GAP_MS     = 80;    // gap between element groups (logo → title → desc → …)
 const IMAGE_DELAY_MS  = 200;   // extra pause before ImageCycler appears
 
 // Total time ImageSquiggle should wait before starting
-const SQUIGGLE_DELAY  = BORDER_DRAW_MS + FILL_FADE_MS + 1400; // rough total
+const SQUIGGLE_DELAY  = BORDER_DRAW_MS + 800; // overlapping intro
+
+/** How much of the landing section's scroll range drives the reverse.
+ *  0.35 = reverse completes by 35% scrolled. */
+const REVERSE_SCROLL_SPAN = 0.35;
 
 /* ----------------------------------------------------------------
    CharReveal — splits children text into per-character spans
    while preserving inner elements (<span>, <br>, <a>, etc.)
+
+   During intro: CSS transitions drive each char.
+   During scroll/focus reverse: a rAF loop writes directly to the
+   span DOM nodes via data-slot attributes (no React re-render).
    ---------------------------------------------------------------- */
 interface CharRevealProps {
   children: React.ReactNode;
@@ -60,15 +61,19 @@ function flattenToCharSpans(
   wrapperClass?: string,
 ): React.ReactNode {
   if (typeof node === "string") {
+    const totalSlots = shuffledDelays.length || 1;
+
     return node.split("").map((ch, i) => {
       const idx = charCounter++;
-      // Use the shuffled slot for this character's delay
       const slot = shuffledDelays[idx] ?? idx;
       const delay = slot * CHAR_STAGGER_MS;
+
       return (
         <span
           key={idx}
           className={wrapperClass}
+          data-char-slot={slot}
+          data-char-total={totalSlots}
           style={{
             display: "inline-block",
             opacity: revealed ? 1 : 0,
@@ -85,10 +90,8 @@ function flattenToCharSpans(
 
   if (React.isValidElement(node)) {
     const el = node as React.ReactElement<any>;
-    // Preserve <br> as-is
     if (el.type === "br") return node;
 
-    // Recurse into children but keep the wrapper element (e.g. <span className={underline}>)
     const kids = React.Children.map(el.props.children, (child) =>
       flattenToCharSpans(child, revealed, el.props.className)
     );
@@ -107,13 +110,97 @@ const CharReveal: React.FC<CharRevealProps> = ({
   revealed,
   baseDelay,
 }) => {
-  // Set the global counter so this group's chars start from the right offset
-  const savedCounter = charCounter;
   charCounter = Math.round(baseDelay / CHAR_STAGGER_MS);
   const result = flattenToCharSpans(children, revealed);
-  // Don't reset — let it accumulate so next group staggers after this one
   return <>{result}</>;
 };
+
+/* ----------------------------------------------------------------
+   Direct-DOM updater for scroll/focus reverse
+   Runs in a rAF loop — zero React re-renders.
+   ---------------------------------------------------------------- */
+function applyReverseVis(
+  vis: number,
+  reverseT: number,
+  clusterEl: HTMLDivElement | null,
+  svgRectEl: SVGRectElement | null,
+  logoWrapEl: HTMLDivElement | null,
+  companyLogosEl: HTMLDivElement | null,
+  perim: number,
+) {
+  if (!clusterEl) return;
+
+  // Cluster opacity
+  clusterEl.style.opacity = `${vis}`;
+
+  // SVG border dashoffset
+  if (svgRectEl) {
+    svgRectEl.setAttribute("stroke-dashoffset", `${perim * reverseT}`);
+    svgRectEl.style.transition = "none";
+  }
+
+  // Logo
+  if (logoWrapEl) {
+    logoWrapEl.style.opacity = `${vis}`;
+    logoWrapEl.style.transform = `translateY(${(1 - vis) * CHAR_TRAVEL}px)`;
+    logoWrapEl.style.transition = "none";
+  }
+
+  // Company logos
+  if (companyLogosEl) {
+    companyLogosEl.style.opacity = `${vis}`;
+    companyLogosEl.style.transform = `translateY(${(1 - vis) * CHAR_TRAVEL}px)`;
+    companyLogosEl.style.transition = "none";
+  }
+
+  // Per-character spans
+  const charSpans = clusterEl.querySelectorAll<HTMLSpanElement>("[data-char-slot]");
+  for (let i = 0; i < charSpans.length; i++) {
+    const span = charSpans[i];
+    const slot = Number(span.dataset.charSlot);
+    const totalSlots = Number(span.dataset.charTotal) || 1;
+    const norm = slot / totalSlots;
+    const BAND = 0.4;
+    const bandStart = (1 - norm) * (1 - BAND);
+    const bandEnd = bandStart + BAND;
+    const charVis = Math.max(0, Math.min(1,
+      (vis - bandStart) / (bandEnd - bandStart)
+    ));
+    span.style.opacity = `${charVis}`;
+    span.style.transform = `translateY(${(1 - charVis) * CHAR_TRAVEL}px)`;
+    span.style.transition = "none";
+  }
+}
+
+/** Clear reverse overrides so CSS transitions work again. */
+function clearReverseVis(
+  clusterEl: HTMLDivElement | null,
+  svgRectEl: SVGRectElement | null,
+  logoWrapEl: HTMLDivElement | null,
+  companyLogosEl: HTMLDivElement | null,
+) {
+  if (!clusterEl) return;
+
+  clusterEl.style.opacity = "";
+
+  if (svgRectEl) {
+    svgRectEl.style.transition = "";
+  }
+
+  if (logoWrapEl) {
+    logoWrapEl.style.transition = "";
+  }
+
+  if (companyLogosEl) {
+    companyLogosEl.style.transition = "";
+  }
+
+  const charSpans = clusterEl.querySelectorAll<HTMLSpanElement>("[data-char-slot]");
+  for (let i = 0; i < charSpans.length; i++) {
+    const span = charSpans[i];
+    span.style.transition = "";
+  }
+}
 
 /* ----------------------------------------------------------------
    LandingPage component
@@ -121,10 +208,48 @@ const CharReveal: React.FC<CharRevealProps> = ({
 export const LandingPage: React.FC = () => {
   const clusterRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGRectElement>(null);
+  const logoWrapRef = useRef<HTMLDivElement>(null);
+  const companyLogosRef = useRef<HTMLDivElement>(null);
+  const landingRef = useRef<HTMLElement>(null);
 
   const [phase, setPhase] = useState<
     "hidden" | "border" | "fill" | "chars" | "done"
   >("hidden");
+
+  // --- Scroll & focus visibility stored in refs (no re-renders) ---
+  const scrollProgRef = useRef(0);
+  const focusVisRef = useRef(1);
+  const focusTweenRef = useRef<{ kill: () => void } | null>(null);
+  /** Whether the rAF reverse loop is currently active. */
+  const reverseActiveRef = useRef(false);
+  const reverseRafRef = useRef(0);
+  /** Cached perimeter for SVG dashoffset. */
+  const perimRef = useRef(0);
+
+  const handleImageFocus = useCallback(() => {
+    focusTweenRef.current?.kill();
+    const obj = { v: 1 };
+    focusVisRef.current = 1;
+    const tween = gsap.to(obj, {
+      v: 0,
+      duration: 0.6,
+      ease: "power2.inOut",
+      onUpdate: () => { focusVisRef.current = obj.v; },
+    });
+    focusTweenRef.current = tween;
+  }, []);
+
+  const handleImageUnfocus = useCallback(() => {
+    focusTweenRef.current?.kill();
+    const obj = { v: focusVisRef.current };
+    const tween = gsap.to(obj, {
+      v: 1,
+      duration: 0.6,
+      ease: "power2.inOut",
+      onUpdate: () => { focusVisRef.current = obj.v; },
+    });
+    focusTweenRef.current = tween;
+  }, []);
 
   // Measure cluster for SVG border rect
   const [boxSize, setBoxSize] = useState({ w: 0, h: 0 });
@@ -138,7 +263,6 @@ export const LandingPage: React.FC = () => {
   // Run intro sequence
   useEffect(() => {
     measure();
-    // Small delay so the browser has painted
     const t0 = setTimeout(() => setPhase("border"), 100);
     return () => clearTimeout(t0);
   }, [measure]);
@@ -147,13 +271,10 @@ export const LandingPage: React.FC = () => {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     if (phase === "border") {
-      // After border finishes drawing → fill
-      timer = setTimeout(() => setPhase("fill"), BORDER_DRAW_MS);
+      timer = setTimeout(() => setPhase("fill"), BORDER_DRAW_MS - 400);
     } else if (phase === "fill") {
-      // After fill fades → chars
-      timer = setTimeout(() => setPhase("chars"), FILL_FADE_MS);
+      timer = setTimeout(() => setPhase("chars"), FILL_FADE_MS * 0.4);
     } else if (phase === "chars") {
-      // After chars are all in → done
       timer = setTimeout(() => setPhase("done"), 1200);
     }
     return () => clearTimeout(timer);
@@ -165,42 +286,101 @@ export const LandingPage: React.FC = () => {
     return () => window.removeEventListener("resize", measure);
   }, [measure]);
 
+  // Keep perimRef in sync
+  useEffect(() => {
+    perimRef.current = 2 * (boxSize.w + boxSize.h);
+  }, [boxSize]);
+
+  // --- Scroll listener: updates ref only, no setState ---
+  useEffect(() => {
+    const onScroll = () => {
+      const el = landingRef.current;
+      if (!el) return;
+      const h = el.offsetHeight;
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      scrollProgRef.current = Math.min(1, Math.max(0, h > 0 ? scrollY / h : 0));
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // --- rAF loop: runs only when in "done" phase and reverse is active ---
+  useEffect(() => {
+    if (phase !== "done") return;
+
+    let prevVis = -1;
+    let wasReversing = false;
+
+    const tick = () => {
+      const scrollProg = scrollProgRef.current;
+      const focusVis = focusVisRef.current;
+
+      const reverseT = Math.min(1, scrollProg / REVERSE_SCROLL_SPAN);
+      const scrollReversing = reverseT > 0;
+      const focusReversing = focusVis < 1;
+      const isReversing = scrollReversing || focusReversing;
+
+      if (isReversing) {
+        const scrollVis = scrollReversing ? 1 - reverseT : 1;
+        const vis = Math.min(scrollVis, focusVis);
+
+        // Only write DOM when vis actually changed
+        if (Math.abs(vis - prevVis) > 0.001) {
+          applyReverseVis(
+            vis, reverseT,
+            clusterRef.current, svgRef.current,
+            logoWrapRef.current, companyLogosRef.current,
+            perimRef.current,
+          );
+          prevVis = vis;
+        }
+        wasReversing = true;
+      } else if (wasReversing) {
+        // Just stopped reversing — clear overrides so CSS transitions work
+        clearReverseVis(
+          clusterRef.current, svgRef.current,
+          logoWrapRef.current, companyLogosRef.current,
+        );
+        prevVis = -1;
+        wasReversing = false;
+      }
+
+      reverseRafRef.current = requestAnimationFrame(tick);
+    };
+
+    reverseRafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(reverseRafRef.current);
+  }, [phase]);
+
   const borderReady = phase !== "hidden";
   const fillReady = phase === "fill" || phase === "chars" || phase === "done";
   const charsReady = phase === "chars" || phase === "done";
 
-  // Perimeter for stroke-dasharray
+  // Perimeter for stroke-dasharray (used in JSX for intro only)
   const perim = 2 * (boxSize.w + boxSize.h);
 
-  // Char reveal delay offsets for each text group
+  // Char reveal delay offsets
   let runningDelay = 0;
   const logoDelay = runningDelay;
   runningDelay += ELEM_GAP_MS;
-  const titleDelay = runningDelay;
-  runningDelay += 14 * CHAR_STAGGER_MS + ELEM_GAP_MS; // ~"Welcome LABS" length
-  const descDelay = runningDelay;
-  runningDelay += 80 * CHAR_STAGGER_MS + ELEM_GAP_MS; // description chars
-  const linksDelay = runningDelay;
+  const textDelay = runningDelay;
 
   // Reset char counter and build shuffled delays before each render.
-  // Use ~200 slots (generous upper bound for all text characters).
   charCounter = 0;
   if (shuffledDelays.length === 0) {
     buildShuffledDelays(200);
   }
 
   return (
-    <section id="landing-page" className={styles.landing}>
-      <ImageSquiggle delayStart={SQUIGGLE_DELAY} />
+    <section id="landing-page" ref={landingRef} className={styles.landing}>
+      <ImageSquiggle delayStart={SQUIGGLE_DELAY} onFocus={handleImageFocus} onUnfocus={handleImageUnfocus} />
       <div
         ref={clusterRef}
         className={`${styles.cluster} ${styles.introCluster}`}
         style={{
           border: "none",
-          background: fillReady ? "#ffffff" : "transparent",
-          transition: fillReady
-            ? `background ${FILL_FADE_MS}ms ease-out`
-            : "none",
+          background: fillReady ? "var(--color-cluster-bg)" : "transparent",
+          transition: fillReady ? `background ${FILL_FADE_MS}ms ease-out` : "none",
         }}
       >
         {/* SVG border — trim-path draw-on */}
@@ -233,96 +413,55 @@ export const LandingPage: React.FC = () => {
           </svg>
         )}
 
-        {/* Logo */}
+        {/* Logo — large W */}
         <div
+          ref={logoWrapRef}
+          className={styles.logoWrap}
           style={{
             opacity: charsReady ? 1 : 0,
             transform: charsReady ? "translateY(0)" : `translateY(${CHAR_TRAVEL}px)`,
             transition: `opacity ${CHAR_FADE_MS}ms ${logoDelay}ms ease-out, transform ${CHAR_FADE_MS}ms ${logoDelay}ms ease-out`,
           }}
         >
-          <WelcomeLogo className={styles.logo} width={24} height={21} />
+          <WelcomeLogo className={styles.logo} width={280} height={245} />
         </div>
 
-        {/* Title — per-character reveal */}
-        <h1 className={styles.title}>
-          <CharReveal revealed={charsReady} baseDelay={titleDelay}>
-            Welcome LABS
-          </CharReveal>
-        </h1>
+        {/* Bottom row: tagline left, company logos right */}
+        <div className={styles.bottomRow}>
+          <p className={styles.tagline}>
+            <CharReveal revealed={charsReady} baseDelay={textDelay}>
+              {"We are experts at"}
+              <br />
+              {"introducing new"}
+              <br />
+              {"ideas to the"}
+              <br />
+              {"culture"}
+            </CharReveal>
+          </p>
 
-        {/* Description — per-character reveal preserving underline spans */}
-        <p className={styles.description}>
-          <CharReveal revealed={charsReady} baseDelay={descDelay}>
-            {"Introducing new ideas to the culture"}
-          </CharReveal>
-          <br />
-          <br />
-          <CharReveal revealed={charsReady} baseDelay={descDelay + 36 * CHAR_STAGGER_MS}>
-            {"through "}
-            <span className={styles.underline}>design</span>
-            {", "}
-            <span className={styles.underline}>talent</span>
-            {", "}
-            <span className={styles.underline}>tools</span>
-            {", and "}
-            <span className={styles.underline}>distribution</span>
-            {"."}
-          </CharReveal>
-        </p>
-
-        {/* Image cycler — fades in after text */}
-        <div
-          className={styles.imageCyclerWrap}
-          style={{
-            opacity: charsReady ? 1 : 0,
-            transition: `opacity ${CHAR_FADE_MS}ms ${linksDelay + IMAGE_DELAY_MS}ms ease-out`,
-          }}
-        >
-          <ImageCycler images={LANDING_IMAGES} interval={3500} />
+          <div
+            ref={companyLogosRef}
+            className={styles.companyLogos}
+            style={{
+              opacity: charsReady ? 1 : 0,
+              transition: `opacity ${CHAR_FADE_MS}ms ${textDelay + 400}ms ease-out`,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/companylogos/image 47.png"
+              alt="Red Bull"
+              className={styles.companyLogo}
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/companylogos/Puma_logo_PNG3 2.png"
+              alt="Puma"
+              className={styles.companyLogo}
+            />
+          </div>
         </div>
-
-        {/* Client links — per-character reveal */}
-        <nav className={styles.clientLinks} aria-label="Featured clients">
-          {["REDBULL", "PUMA", "UNIQLO"].map((name, i) => {
-            const linkDelay = linksDelay + IMAGE_DELAY_MS + 200 + i * 8 * CHAR_STAGGER_MS;
-            return (
-              <a
-                key={name}
-                href={`#section-${name.toLowerCase()}`}
-                className={styles.clientLink}
-              >
-                <CharReveal revealed={charsReady} baseDelay={linkDelay}>
-                  {name}
-                </CharReveal>
-              </a>
-            );
-          })}
-        </nav>
-
-        {/* Down arrow */}
-        <svg
-          id="landing-down-arrow"
-          className={styles.downArrow}
-          width="14"
-          height="20"
-          viewBox="0 0 20 28"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-          style={{
-            opacity: charsReady ? 0.5 : 0,
-            transition: `opacity 400ms ${linksDelay + IMAGE_DELAY_MS + 600}ms ease-out`,
-          }}
-        >
-          <path
-            d="M10 1 L10 25 M3 19 L10 26 L17 19"
-            stroke="currentColor"
-            strokeWidth="1"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
       </div>
     </section>
   );

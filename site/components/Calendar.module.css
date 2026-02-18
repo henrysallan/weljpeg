@@ -8,7 +8,7 @@
   flex-direction: column;
   gap: 0;
   border: 0.5px solid var(--color-text);
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 /* ---- Header row ---- */
@@ -89,7 +89,7 @@
 }
 
 .dayCell:not(:disabled):hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--color-surface-hover);
 }
 
 /* Past dates */
@@ -114,7 +114,7 @@
 /* Selected state */
 .selected {
   background: var(--color-text);
-  color: #ffffff;
+  color: var(--color-inverted-text);
 }
 
 .selected:not(:disabled):hover {
@@ -122,5 +122,5 @@
 }
 
 .selected.today::after {
-  background: #ffffff;
+  background: var(--color-inverted-text);
 }

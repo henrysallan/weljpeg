@@ -197,11 +197,10 @@ export const SelectionBox: React.FC = () => {
 
       const c = controlsRef.current;
 
-      // Click (no drag) → ripple
+      // Click (no drag) → do nothing
       if (!didDrag) {
         boxEl.remove();
         boxEl = null;
-        spawnRipple(e.clientX, e.clientY);
         return;
       }
 
@@ -213,8 +212,13 @@ export const SelectionBox: React.FC = () => {
       // Don't shatter tiny accidental drags
       if (rect.width < 4 || rect.height < 4) return;
 
-      // Create shard grid
-      const size = c.shardSize;
+      // Scale shard size with selection area to cap total shard count.
+      // Target a reasonable max (~800 shards). Use the configured
+      // shardSize as the minimum, and scale up for larger selections.
+      const MAX_SHARDS = 800;
+      const area = rect.width * rect.height;
+      const idealSize = Math.sqrt(area / MAX_SHARDS);
+      const size = Math.max(c.shardSize, idealSize);
       const cols = Math.ceil(rect.width / size);
       const rows = Math.ceil(rect.height / size);
       const shards: HTMLDivElement[] = [];

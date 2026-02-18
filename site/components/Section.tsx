@@ -24,11 +24,7 @@ export const Section: React.FC<SectionProps> = ({ data, className, hideTopSepara
     >
       <SectionHeader
         title={data.title}
-        tags={data.tags}
         sectionId={data.id}
-        description={data.description}
-        client={data.client}
-        services={data.services}
         hideTopSeparator={hideTopSeparator}
       />
 

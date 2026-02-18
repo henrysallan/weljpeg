@@ -31,16 +31,23 @@
   align-items: center;
 }
 
-.goUpPill {
-  position: absolute;
+.nav {
+  position: fixed;
   left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  top: 10px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: var(--z-logo-bar);
+}
+
+.navBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-tag-bg, transparent);
-  border: 1px solid var(--color-tag-border, currentColor);
+  background: transparent;
+  border: none;
   font-size: 14px;
   line-height: 1;
   color: var(--color-text);
@@ -51,17 +58,96 @@
   font-family: inherit;
   text-transform: lowercase;
   letter-spacing: 0.02em;
-  transition: opacity 0.2s ease;
-  opacity: 0;
-  pointer-events: none;
 }
 
-.goUpPill:hover {
+.navBtn:hover {
   opacity: 0.6;
 }
 
+/* ---- Work dropdown ---- */
+
+.navDropdownWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 4px;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.dropdownVisible {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.dropdownStem {
+  width: 0.5px;
+  height: 20px;
+  background: var(--color-text);
+  transform-origin: top center;
+}
+
+.dropdownMenu {
+  position: relative;
+  min-width: 110px;
+  display: flex;
+  flex-direction: column;
+  border: none; /* border drawn by SVG */
+}
+
+.dropdownBorderSvg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+
+.dropdownItem {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.04em;
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+  text-transform: uppercase;
+}
+
+.dropdownItem:hover {
+  opacity: 0.5;
+}
+
+.dropdownSep {
+  position: relative;
+  z-index: 1;
+  height: 0.5px;
+  background: var(--color-text);
+  transform-origin: center center;
+}
+
 @media (max-width: 767px) {
-  .goUpPill {
+  .navBtn {
     font-size: 12px;
     padding: 3px 10px;
   }
