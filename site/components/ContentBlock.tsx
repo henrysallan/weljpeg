@@ -1,10 +1,19 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { ScrollCharReveal } from "./ScrollCharReveal";
 import { ScrollImageReveal } from "./ScrollImageReveal";
 import styles from "./ContentBlock.module.css";
 import type { BlockColumn } from "@/lib/data";
+
+/** True on devices without a fine pointer (touch screens). */
+function useIsMobile() {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    setMobile(!window.matchMedia("(pointer: fine)").matches);
+  }, []);
+  return mobile;
+}
 
 interface ContentBlockProps {
   splitLeft: number;
@@ -25,6 +34,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({
   rightContent,
   className,
 }) => {
+  const isMobile = useIsMobile();
   const gridTemplate = `${splitLeft}fr ${splitRight}fr`;
 
   return (
@@ -32,15 +42,15 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({
       className={`${styles.block} ${className ?? ""}`}
       style={{ gridTemplateColumns: gridTemplate }}
     >
-      <Column data={leftContent} />
-      <Column data={rightContent} />
+      <Column data={leftContent} isMobile={isMobile} />
+      <Column data={rightContent} isMobile={isMobile} />
     </div>
   );
 };
 
 /* ---- Column renderer ---- */
 
-const Column: React.FC<{ data: BlockColumn }> = ({ data }) => {
+const Column: React.FC<{ data: BlockColumn; isMobile: boolean }> = ({ data, isMobile }) => {
   const alignClass =
     data.align === "bottom"
       ? styles.columnAlignBottom
@@ -70,7 +80,7 @@ const Column: React.FC<{ data: BlockColumn }> = ({ data }) => {
 
       {data.type === "text" && (
         <p className={styles.bodyText}>
-          <ScrollCharReveal stagger={2}>{data.body}</ScrollCharReveal>
+          <ScrollCharReveal stagger={2} simple={isMobile}>{data.body}</ScrollCharReveal>
         </p>
       )}
 
@@ -82,7 +92,7 @@ const Column: React.FC<{ data: BlockColumn }> = ({ data }) => {
             </h3>
           )}
           <p className={styles.bodyText}>
-            <ScrollCharReveal stagger={2}>{data.body}</ScrollCharReveal>
+            <ScrollCharReveal stagger={2} simple={isMobile}>{data.body}</ScrollCharReveal>
           </p>
         </>
       )}

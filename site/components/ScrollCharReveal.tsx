@@ -38,6 +38,8 @@ interface ScrollCharRevealProps {
   as?: keyof React.JSX.IntrinsicElements;
   /** Ms between characters. Default 12 (use ~2 for body text) */
   stagger?: number;
+  /** When true, skip per-char splitting — just fade the whole block. */
+  simple?: boolean;
 }
 
 export const ScrollCharReveal: React.FC<ScrollCharRevealProps> = ({
@@ -47,15 +49,17 @@ export const ScrollCharReveal: React.FC<ScrollCharRevealProps> = ({
   rootMargin = "0px 0px -8% 0px",
   as: Tag = "span" as any,
   stagger = CHAR_STAGGER,
+  simple = false,
 }) => {
   const wrapRef = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
 
   // Count total characters & build shuffled delay slots (stable per mount)
   const { totalChars, slots } = useMemo(() => {
+    if (simple) return { totalChars: 0, slots: [] as number[] };
     const count = countChars(children);
     return { totalChars: count, slots: buildShuffledSlots(count) };
-  }, [children]);
+  }, [children, simple]);
 
   // IntersectionObserver — toggles visible
   useEffect(() => {
@@ -69,6 +73,25 @@ export const ScrollCharReveal: React.FC<ScrollCharRevealProps> = ({
     observer.observe(el);
     return () => observer.disconnect();
   }, [threshold, rootMargin]);
+
+  // Simple mode: just fade the whole block
+  if (simple) {
+    return (
+      <Tag
+        ref={wrapRef}
+        className={`${styles.wrap} ${styles.simpleReveal} ${className ?? ""}`}
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : `translateY(${CHAR_TRAVEL}px)`,
+          transition: visible
+            ? `opacity ${CHAR_FADE_MS * 2}ms ease-out, transform ${CHAR_FADE_MS * 2}ms ease-out`
+            : `opacity 120ms ease-in, transform 120ms ease-in`,
+        }}
+      >
+        {children}
+      </Tag>
+    );
+  }
 
   // Flatten children into per-char spans
   let charIdx = 0;

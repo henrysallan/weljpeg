@@ -9,6 +9,7 @@
   height: auto;
   display: block;
   will-change: transform;
+  transform: scale(1.22);
 }
 
 .canvas {
@@ -19,6 +20,15 @@
   height: 100%;
   pointer-events: none;
   will-change: transform;
+  transform: scale(1.22);
   /* smooth fade-out when pixelation resolves */
   transition: opacity 150ms ease-out;
+}
+
+/* No parallax on mobile → no scale headroom needed */
+@media (pointer: coarse) {
+  .image,
+  .canvas {
+    transform: none;
+  }
 }

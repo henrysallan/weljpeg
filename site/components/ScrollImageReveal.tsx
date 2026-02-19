@@ -28,13 +28,18 @@ export const ScrollImageReveal: React.FC<ScrollImageRevealProps> = ({
   const [visible, setVisible] = useState(false);
   const [loaded, setLoaded]   = useState(false);
   const parallaxRef = useRef(0);  // current parallax offset (px)
+  const [isMobile, setIsMobile] = useState(false);
 
-  /* ---- Parallax on scroll ---- */
   useEffect(() => {
-    const wrap = wrapRef.current;
-    if (!wrap) return;
+    setIsMobile(!window.matchMedia("(pointer: fine)").matches);
+  }, []);
 
-    const SCALE   = 1.22;          // how much to zoom in (headroom for shift)
+  /* ---- Parallax on scroll (desktop only) ---- */
+  useEffect(() => {
+    if (isMobile) return;
+    const wrap = wrapRef.current;
+    if (!wrap || !loaded) return;
+
     const RANGE   = 30;            // max px the image drifts up/down
     let ticking   = false;
 
@@ -49,9 +54,10 @@ export const ScrollImageReveal: React.FC<ScrollImageRevealProps> = ({
       parallaxRef.current = offset;
 
       // Apply directly to img + canvas via transform (no re-render)
+      // scale(1.22) is set in CSS — we only add the translateY here
       const imgEl    = imgRef.current;
       const canvasEl = canvasRef.current;
-      const tx = `scale(${SCALE}) translateY(${offset}px)`;
+      const tx = `scale(1.22) translateY(${offset}px)`;
       if (imgEl)    imgEl.style.transform = tx;
       if (canvasEl) canvasEl.style.transform = tx;
     };
@@ -66,7 +72,7 @@ export const ScrollImageReveal: React.FC<ScrollImageRevealProps> = ({
     window.addEventListener("scroll", onScroll, { passive: true });
     update(); // initial position
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [loaded, isMobile]);
 
   /* ---- Handle cached / already-loaded images ---- */
   useEffect(() => {
@@ -88,8 +94,9 @@ export const ScrollImageReveal: React.FC<ScrollImageRevealProps> = ({
     return () => obs.disconnect();
   }, []);
 
-  /* ---- Pixelation animation ---- */
+  /* ---- Pixelation animation (desktop only) ---- */
   useEffect(() => {
+    if (isMobile) return;
     const canvas = canvasRef.current;
     const img    = imgRef.current;
     if (!canvas || !img || !loaded) return;
@@ -187,22 +194,25 @@ export const ScrollImageReveal: React.FC<ScrollImageRevealProps> = ({
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
     };
-  }, [visible, loaded]);
+  }, [visible, loaded, isMobile]);
 
   // Read config for CSS transitions (re-read each render)
   const { blur, blurAmount, duration, travel } = imageRevealConfig;
+
+  // Only reveal once the image is BOTH in viewport AND loaded (has dimensions)
+  const active = visible && loaded;
 
   return (
     <div
       ref={wrapRef}
       className={`${styles.wrap} ${className ?? ""}`}
       style={{
-        opacity:    visible ? 1 : 0,
-        transform:  visible ? "translateY(0)" : `translateY(${travel}px)`,
+        opacity:    active ? 1 : 0,
+        transform:  active ? "translateY(0)" : `translateY(${travel}px)`,
         filter:     blur
-          ? (visible ? "blur(0px)" : `blur(${blurAmount}px)`)
+          ? (active ? "blur(0px)" : `blur(${blurAmount}px)`)
           : "none",
-        transition: visible
+        transition: active
           ? `opacity ${duration * 0.4}ms ease-out, transform ${duration}ms ease-out, filter 250ms ease-out`
           : `opacity 200ms ease-in, transform 200ms ease-in, filter 150ms ease-in`,
       }}
@@ -216,7 +226,7 @@ export const ScrollImageReveal: React.FC<ScrollImageRevealProps> = ({
         loading={loading}
         onLoad={() => setLoaded(true)}
       />
-      <canvas ref={canvasRef} className={styles.canvas} />
+      {!isMobile && <canvas ref={canvasRef} className={styles.canvas} />}
     </div>
   );
 };
