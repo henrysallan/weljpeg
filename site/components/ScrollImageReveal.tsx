@@ -27,52 +27,11 @@ export const ScrollImageReveal: React.FC<ScrollImageRevealProps> = ({
 
   const [visible, setVisible] = useState(false);
   const [loaded, setLoaded]   = useState(false);
-  const parallaxRef = useRef(0);  // current parallax offset (px)
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setIsMobile(!window.matchMedia("(pointer: fine)").matches);
   }, []);
-
-  /* ---- Parallax on scroll (desktop only) ---- */
-  useEffect(() => {
-    if (isMobile) return;
-    const wrap = wrapRef.current;
-    if (!wrap || !loaded) return;
-
-    const RANGE   = 30;            // max px the image drifts up/down
-    let ticking   = false;
-
-    const update = () => {
-      ticking = false;
-      const rect = wrap.getBoundingClientRect();
-      const vh   = window.innerHeight;
-      // 0 when element bottom touches viewport top, 1 when top touches viewport bottom
-      const t = (rect.top + rect.height) / (vh + rect.height);
-      // Map to -RANGE … +RANGE
-      const offset = (t - 0.5) * 2 * RANGE;
-      parallaxRef.current = offset;
-
-      // Apply directly to img + canvas via transform (no re-render)
-      // scale(1.22) is set in CSS — we only add the translateY here
-      const imgEl    = imgRef.current;
-      const canvasEl = canvasRef.current;
-      const tx = `scale(1.22) translateY(${offset}px)`;
-      if (imgEl)    imgEl.style.transform = tx;
-      if (canvasEl) canvasEl.style.transform = tx;
-    };
-
-    const onScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(update);
-      }
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    update(); // initial position
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [loaded, isMobile]);
 
   /* ---- Handle cached / already-loaded images ---- */
   useEffect(() => {

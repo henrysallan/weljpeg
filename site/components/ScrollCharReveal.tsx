@@ -134,26 +134,59 @@ function flattenChars(
 ): React.ReactNode {
   if (typeof node === "string" || typeof node === "number") {
     const str = String(node);
-    return str.split("").map((ch) => {
-      const idx = nextIdx();
-      const slot = slots[idx] ?? idx;
-      const delay = slot * stagger;
-      const show = visible;
-
+    // Split into words and whitespace tokens to preserve word boundaries
+    const tokens = str.match(/\S+|\s+/g) || [];
+    return tokens.map((token, tIdx) => {
+      // Whitespace token — each char gets its own span (no nowrap needed)
+      if (/^\s+$/.test(token)) {
+        return token.split("").map((ch) => {
+          const idx = nextIdx();
+          const slot = slots[idx] ?? idx;
+          const delay = slot * stagger;
+          const show = visible;
+          return (
+            <span
+              key={`ws-${idx}`}
+              className={styles.char}
+              style={{
+                opacity: show ? 1 : 0,
+                transform: show ? "translateY(0)" : `translateY(${CHAR_TRAVEL}px)`,
+                transition: show
+                  ? `opacity ${CHAR_FADE_MS}ms ${delay}ms ease-out, transform ${CHAR_FADE_MS}ms ${delay}ms ease-out`
+                  : `opacity 120ms ease-in, transform 120ms ease-in`,
+                whiteSpace: "pre",
+              }}
+            >
+              {ch}
+            </span>
+          );
+        });
+      }
+      // Word token — wrap chars in a nowrap span to prevent mid-word breaks
+      const charSpans = token.split("").map((ch) => {
+        const idx = nextIdx();
+        const slot = slots[idx] ?? idx;
+        const delay = slot * stagger;
+        const show = visible;
+        return (
+          <span
+            key={idx}
+            className={styles.char}
+            style={{
+              opacity: show ? 1 : 0,
+              transform: show ? "translateY(0)" : `translateY(${CHAR_TRAVEL}px)`,
+              transition: show
+                ? `opacity ${CHAR_FADE_MS}ms ${delay}ms ease-out, transform ${CHAR_FADE_MS}ms ${delay}ms ease-out`
+                : `opacity 120ms ease-in, transform 120ms ease-in`,
+            }}
+          >
+            {ch}
+          </span>
+        );
+      });
       return (
-        <span
-          key={idx}
-          className={styles.char}
-          style={{
-            opacity: show ? 1 : 0,
-            transform: show ? "translateY(0)" : `translateY(${CHAR_TRAVEL}px)`,
-            transition: show
-              ? `opacity ${CHAR_FADE_MS}ms ${delay}ms ease-out, transform ${CHAR_FADE_MS}ms ${delay}ms ease-out`
-              : `opacity 120ms ease-in, transform 120ms ease-in`,
-            whiteSpace: ch === " " ? "pre" : undefined,
-          }}
-        >
-          {ch}
+        <span key={`word-${tIdx}`} style={{ whiteSpace: "nowrap" }}>
+          {charSpans}
         </span>
       );
     });

@@ -55,8 +55,8 @@
 /* --- Text --- */
 
 .bodyText {
-  font-size: 15px;
-  line-height: 17px;
+  font-size: 30px;
+  line-height: 27px;
   color: var(--color-text);
   max-width: 425px;
 }
@@ -95,11 +95,74 @@
 
   .bodyText {
     max-width: 100%;
-    font-size: 14px;
+    font-size: 20px;
+    line-height: 19px;
     padding: 16px 0;
   }
 
   .placeholderImage {
     min-height: 200px;
   }
+
+  .titleText {
+    font-size: 30px;
+    line-height: 1.05;
+    width: 100% !important;
+  }
+}
+
+/* ===========================
+   Module 2: Full-width image
+   =========================== */
+
+.fullImage {
+  width: 100%;
+  max-width: 1728px;
+  margin: 0 auto;
+  padding: 0 var(--page-padding);
+  box-sizing: border-box;
+}
+
+.fullImageInner {
+  width: 100%;
+}
+
+/* ===========================
+   Module 3: Title
+   =========================== */
+
+.titleBlock {
+  width: 100%;
+  max-width: 1728px;
+  margin: 0 auto;
+  padding: 0 var(--page-padding);
+  box-sizing: border-box;
+  display: flex;
+}
+
+.titleText {
+  font-size: 48px;
+  font-weight: var(--font-weight);
+  line-height: 1.05;
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* ===========================
+   Module 4: Image gallery
+   =========================== */
+
+.gallery {
+  width: 100%;
+  max-width: 1728px;
+  margin: 0 auto;
+  padding: 0 var(--page-padding);
+  box-sizing: border-box;
+  display: grid;
+  gap: var(--grid-gutter);
+}
+
+.galleryItem {
+  width: 100%;
+  overflow: hidden;
 }

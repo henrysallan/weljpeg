@@ -9,7 +9,7 @@ interface LogoBarProps {
   className?: string;
 }
 
-const NAV_ITEMS = ["Work", "Services", "Insight", "About"] as const;
+const NAV_ITEMS = ["Work", "Services", "Insight", "Contact"] as const;
 
 const WORK_SUBITEMS = [
   { label: "Redbull", sectionId: "redbull" },
@@ -164,12 +164,13 @@ const WorkDropdown: React.FC = () => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <button
+      <a
+        href="#section-redbull"
         className={styles.navBtn}
         data-nav="work"
       >
         Work
-      </button>
+      </a>
 
       {open && (
         <div className={`${styles.dropdown} ${styles.dropdownVisible}`}>
@@ -301,13 +302,13 @@ export const LogoBar: React.FC<LogoBarProps> = ({ className }) => {
                 </a>
               );
             }
-            if (label === "About") {
+            if (label === "Contact") {
               return (
                 <a
                   key={label}
                   href="#section-contact"
                   className={styles.navBtn}
-                  data-nav="about"
+                  data-nav="contact"
                 >
                   {label}
                 </a>

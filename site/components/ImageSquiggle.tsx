@@ -445,6 +445,13 @@ export const ImageSquiggle: React.FC<{
         step: 0.01,
         label: "shrink zone",
       },
+      scatterEasing: {
+        value: 6,
+        min: 1,
+        max: 6,
+        step: 0.5,
+        label: "easing strength",
+      },
     }),
     Timing: folder({
       fadeInDuration: {
@@ -528,8 +535,8 @@ export const ImageSquiggle: React.FC<{
       revealPixelate: { value: true, label: "pixelate" },
       revealPixelStart: { value: 48, min: 4, max: 120, step: 4, label: "pixel size" },
       revealBlurAmount: { value: 10, min: 2, max: 40, step: 1, label: "blur amount" },
-      revealDuration: { value: 800, min: 200, max: 2000, step: 50, label: "duration (ms)" },
-      revealTravel: { value: 12, min: 0, max: 40, step: 1, label: "travel (px)" },
+      revealDuration: { value: 400, min: 200, max: 2000, step: 50, label: "duration (ms)" },
+      revealTravel: { value: 0, min: 0, max: 40, step: 1, label: "travel (px)" },
     }),
   });
 
@@ -904,7 +911,7 @@ export const ImageSquiggle: React.FC<{
       const size = c.minImageSize + Math.random() * sizeRange;
       const padding = c.scatterPadding;
       const x = padding + Math.random() * (vw - padding * 2 - size);
-      const startY = Math.random() * 20;
+      const startY = 0;
 
       const srcPath = images[i % images.length];
       const img = createCachedImage(srcPath, size);
@@ -964,24 +971,29 @@ export const ImageSquiggle: React.FC<{
         entry.y += entry.speed * dt;
 
         // Scale based on Y position: grow near top, shrink near bottom
-        let baseScale: number;
+        let t: number;
         if (entry.y < growH) {
-          baseScale = growH > 0 ? entry.y / growH : 1;
+          t = growH > 0 ? entry.y / growH : 1;
         } else if (entry.y > shrinkStart) {
-          baseScale = shrinkStart < vh ? (vh - entry.y) / (vh - shrinkStart) : 0;
+          t = shrinkStart < vh ? (vh - entry.y) / (vh - shrinkStart) : 0;
         } else {
-          baseScale = 1;
+          t = 1;
         }
-        baseScale = Math.max(0, Math.min(1, baseScale));
+        t = Math.max(0, Math.min(1, t));
+        // Ease-out for grow, ease-in for shrink (exponent from control)
+        const exp = c.scatterEasing;
+        const baseScale = entry.y <= growH
+          ? 1 - Math.pow(1 - t, exp)   // easeOut
+          : Math.pow(t, exp);           // easeIn
         entry.baseScale = baseScale;
 
-        // Remove when off-screen or fully shrunk
-        if (entry.y >= vh + 10 || baseScale <= 0.01) {
+        // Remove only when past the bottom edge or shrunk away at the bottom
+        if (entry.y >= vh + 10 || (entry.y > shrinkStart && baseScale <= 0.01)) {
           const cleanup = (entry.el as any).__throwCleanup;
           if (cleanup) cleanup();
           entry.el.remove();
         } else {
-          // Write position + scale via single transform (compositor-only)
+          // Write position + scale (opacity is constant at maxOpacity)
           entry.el.style.transform = `translate(${entry.x}px,${entry.y}px) scale(${baseScale})`;
           alive.push(entry);
         }

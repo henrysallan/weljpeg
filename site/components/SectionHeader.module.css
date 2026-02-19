@@ -29,7 +29,7 @@
 /* Title */
 .title {
   font-size: clamp(20px, 5vw, 65px);
-  font-weight: var(--font-weight);
+  font-weight: 300;
   line-height: 1;
   white-space: nowrap;
   transform-origin: left center;

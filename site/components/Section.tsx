@@ -30,13 +30,7 @@ export const Section: React.FC<SectionProps> = ({ data, className, hideTopSepara
 
       <div className={styles.sectionContent}>
         {data.blocks.map((block) => (
-          <ContentBlock
-            key={block.id}
-            splitLeft={block.splitLeft}
-            splitRight={block.splitRight}
-            leftContent={block.leftContent}
-            rightContent={block.rightContent}
-          />
+          <ContentBlock key={block.id} block={block} />
         ))}
       </div>
     </section>
