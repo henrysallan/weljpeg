@@ -242,6 +242,7 @@ const WorkDropdown: React.FC = () => {
                 <a
                   href={`#section-${item.sectionId}`}
                   className={styles.dropdownItem}
+                  onClick={handleClose}
                 >
                   {renderChars(item.label, i)}
                 </a>
