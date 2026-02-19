@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { gsap } from "gsap";
 import { WelcomeLogo } from "./WelcomeLogo";
 import { ImageSquiggle } from "./ImageSquiggle";
+import { LogoMarquee } from "./LogoMarquee";
 import styles from "./LandingPage.module.css";
 
 /* ----------------------------------------------------------------
@@ -513,13 +514,13 @@ export const LandingPage: React.FC = () => {
         <div className={styles.bottomRow}>
           <p className={styles.tagline}>
             <CharReveal revealed={charsReady} baseDelay={textDelay}>
-              {"We are experts at"}
+              {"Welcome is a"}
               <br />
-              {"introducing new"}
+              {"creative lab that"}
               <br />
-              {"ideas to the"}
+              {"brings new ideas"}
               <br />
-              {"culture"}
+              {"to the culture"}
             </CharReveal>
           </p>
 
@@ -531,24 +532,7 @@ export const LandingPage: React.FC = () => {
               transition: `opacity ${CHAR_FADE_MS}ms ${textDelay + 400}ms ease-out`,
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/images/companylogos/image 47.png"
-              alt="Red Bull"
-              className={styles.companyLogo}
-            />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/images/companylogos/Puma_logo_PNG3 2.png"
-              alt="Puma"
-              className={styles.companyLogo}
-            />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/images/companylogos/uniqlologo.png"
-              alt="Uniqlo"
-              className={styles.companyLogo}
-            />
+            <LogoMarquee duration={25} />
           </div>
         </div>
       </div>

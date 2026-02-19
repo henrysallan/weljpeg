@@ -23,6 +23,7 @@
   color: var(--color-cluster-text);
   border: 0.5px solid var(--color-text);
   box-sizing: border-box;
+  container-type: inline-size;
 }
 
 /* Intro animation variant — border is drawn by SVG, CSS border removed */
@@ -80,22 +81,20 @@
 }
 
 .tagline {
-  font-size: clamp(28px, 4vw, 48px);
+  font-size: 5.8cqw;
   font-weight: var(--font-weight);
   line-height: 1.15;
-  max-width: 50%;
+  white-space: nowrap;
+  max-width: none;
 }
 
 .companyLogos {
+  flex: 1;
+  min-width: 0;
+  max-width: 280px;
   display: flex;
   align-items: flex-end;
-  gap: 20px;
-}
-
-.companyLogo {
-  height: 36px;
-  width: auto;
-  display: block;
+  margin-left: 24px;
 }
 
 /* ---- Responsive ---- */
@@ -113,16 +112,19 @@
     height: auto;
   }
 
+  .bottomRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .tagline {
-    font-size: 24px;
-    max-width: 80%;
+    font-size: 7cqw;
+    max-width: none;
   }
 
   .companyLogos {
-    gap: 12px;
-  }
-
-  .companyLogo {
-    height: 24px;
+    margin-left: 0;
+    margin-top: 12px;
+    width: 100%;
   }
 }
