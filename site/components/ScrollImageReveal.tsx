@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import { imageRevealConfig } from "@/lib/levaConfig";
+import { observe } from "@/lib/sharedObserver";
 import styles from "./ScrollImageReveal.module.css";
 
 const PIXEL_STEPS = 6;
@@ -23,7 +24,6 @@ export const ScrollImageReveal: React.FC<ScrollImageRevealProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef    = useRef<HTMLImageElement>(null);
   const rafRef    = useRef(0);
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const [visible, setVisible] = useState(false);
   const [loaded, setLoaded]   = useState(false);
@@ -41,16 +41,11 @@ export const ScrollImageReveal: React.FC<ScrollImageRevealProps> = ({
     }
   }, []);
 
-  /* ---- Intersection Observer ---- */
+  /* ---- Intersection Observer (shared) ---- */
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const obs = new IntersectionObserver(
-      ([e]) => setVisible(e.isIntersecting),
-      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
+    return observe(el, setVisible, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
   }, []);
 
   /* ---- Pixelation animation (desktop only) ---- */
@@ -80,83 +75,79 @@ export const ScrollImageReveal: React.FC<ScrollImageRevealProps> = ({
     canvas.width  = displayW;
     canvas.height = displayH;
 
-    // Clear any pending step timers from previous runs
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
+    // Offscreen buffer so we never read and write the visible canvas in the
+    // same drawImage call (that caused a ghost-image artefact in the top-left).
+    const offscreen = document.createElement("canvas");
+    const offCtx    = offscreen.getContext("2d")!;
 
     const drawPixelated = (blockSize: number) => {
-      // How many mosaic cells fit across each axis
       const cols = Math.max(1, Math.ceil(displayW / blockSize));
       const rows = Math.max(1, Math.ceil(displayH / blockSize));
 
-      // Draw the image tiny, then upscale with nearest-neighbor
-      ctx.imageSmoothingEnabled = true;
+      // Shrink image into the tiny offscreen buffer (bilinear)
+      offscreen.width  = cols;
+      offscreen.height = rows;
+      offCtx.drawImage(img, 0, 0, cols, rows);
+
+      // Scale the tiny buffer up to the visible canvas (nearest-neighbor → mosaic)
       ctx.clearRect(0, 0, displayW, displayH);
-
-      // Step 1: draw image downscaled into top-left corner
-      ctx.drawImage(img, 0, 0, cols, rows);
-
-      // Step 2: grab those pixels
-      const pixelData = ctx.getImageData(0, 0, cols, rows);
-
-      // Step 3: clear and draw each block as a filled rect
-      ctx.clearRect(0, 0, displayW, displayH);
-      const data = pixelData.data;
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
-          const i = (y * cols + x) * 4;
-          const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
-          ctx.fillStyle = `rgba(${r},${g},${b},${a / 255})`;
-          ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
-        }
-      }
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(offscreen, 0, 0, cols, rows, 0, 0, displayW, displayH);
     };
+
+    // Build step sizes: e.g. 48 → 29 → 17 → 10 → 6 → 4 → 1
+    const sizes: number[] = [];
+    let s = pixelStart;
+    for (let i = 0; i < PIXEL_STEPS; i++) {
+      sizes.push(Math.max(2, Math.round(s)));
+      s *= 0.6;
+    }
+    sizes.push(1);
 
     if (visible) {
       canvas.style.opacity = "1";
-
-      // Build step sizes: e.g. 48 → 29 → 17 → 10 → 6 → 4 → 1
-      const sizes: number[] = [];
-      let s = pixelStart;
-      for (let i = 0; i < PIXEL_STEPS; i++) {
-        sizes.push(Math.max(2, Math.round(s)));
-        s *= 0.6;
-      }
-      sizes.push(1);
-
       const stepDuration = resolveMs / sizes.length;
 
       // Draw the first (most pixelated) frame immediately
       drawPixelated(sizes[0]);
 
-      // Schedule each subsequent step
-      for (let i = 1; i < sizes.length; i++) {
-        const timer = setTimeout(() => {
-          if (sizes[i] <= 1) {
+      // Animate remaining steps via rAF — stays in sync with the paint cycle
+      // so it never starves the scroll's rAF loop
+      const startTime = performance.now();
+      let lastStep = 0;
+
+      const tick = () => {
+        const elapsed = performance.now() - startTime;
+        const step = Math.min(sizes.length - 1, Math.floor(elapsed / stepDuration));
+
+        if (step !== lastStep) {
+          lastStep = step;
+          if (sizes[step] <= 1) {
             canvas.style.opacity = "0";
-          } else {
-            drawPixelated(sizes[i]);
+            return; // done
           }
-        }, stepDuration * i);
-        timersRef.current.push(timer);
-      }
+          drawPixelated(sizes[step]);
+        }
+
+        if (step < sizes.length - 1) {
+          rafRef.current = requestAnimationFrame(tick);
+        }
+      };
+
+      rafRef.current = requestAnimationFrame(tick);
     } else {
       cancelAnimationFrame(rafRef.current);
-      timersRef.current.forEach(clearTimeout);
-      timersRef.current = [];
       drawPixelated(pixelStart);
       canvas.style.opacity = "1";
     }
 
     return () => {
       cancelAnimationFrame(rafRef.current);
-      timersRef.current.forEach(clearTimeout);
-      timersRef.current = [];
     };
   }, [visible, loaded, isMobile]);
 
   // Read config for CSS transitions (re-read each render)
-  const { blur, blurAmount, duration, travel } = imageRevealConfig;
+  const { duration, travel } = imageRevealConfig;
 
   // Only reveal once the image is BOTH in viewport AND loaded (has dimensions)
   const active = visible && loaded;
@@ -168,12 +159,9 @@ export const ScrollImageReveal: React.FC<ScrollImageRevealProps> = ({
       style={{
         opacity:    active ? 1 : 0,
         transform:  active ? "translateY(0)" : `translateY(${travel}px)`,
-        filter:     blur
-          ? (active ? "blur(0px)" : `blur(${blurAmount}px)`)
-          : "none",
         transition: active
-          ? `opacity ${duration * 0.4}ms ease-out, transform ${duration}ms ease-out, filter 250ms ease-out`
-          : `opacity 200ms ease-in, transform 200ms ease-in, filter 150ms ease-in`,
+          ? `opacity ${duration * 0.4}ms ease-out, transform ${duration}ms ease-out`
+          : `opacity 200ms ease-in, transform 200ms ease-in`,
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}

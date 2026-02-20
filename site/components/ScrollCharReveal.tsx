@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import styles from "./ScrollCharReveal.module.css";
+import { observe } from "@/lib/sharedObserver";
 
 /* ----------------------------------------------------------------
    Timing
@@ -61,17 +62,11 @@ export const ScrollCharReveal: React.FC<ScrollCharRevealProps> = ({
     return { totalChars: count, slots: buildShuffledSlots(count) };
   }, [children, simple]);
 
-  // IntersectionObserver — toggles visible
+  // IntersectionObserver — toggles visible (shared)
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => setVisible(entry.isIntersecting),
-      { threshold, rootMargin },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
+    return observe(el, setVisible, { threshold, rootMargin });
   }, [threshold, rootMargin]);
 
   // Simple mode: just fade the whole block

@@ -161,33 +161,76 @@ export const caseStudies: CaseStudy[] = [
     services: "Strategy, Content",
     blocks: [
       {
+        type: "title",
+        id: "uniqlo-0",
+        text: "The full creative engine behind Studio Ghibli's US moment.",
+        width: "50%",
+        align: "left",
+      },
+      {
         type: "split",
         id: "uniqlo-1",
         splitLeft: 5,
         splitRight: 3,
         leftContent: {
           type: "image",
-          image: { src: "/images/uniqlo_2.png", alt: "UNIQLO campaign — ice cream scene" },
+          image: { src: "/images/companylogos/uniqlo/uniqlo_01.png", alt: "UNIQLO campaign — image 1" },
         },
         rightContent: {
           type: "text",
           align: "top",
-          body: PLACEHOLDER_BODY,
+          body: "Uniqlo was launching its Studio Ghibli collaboration collection in the US and needed a partner who could make it resonate with internet-native, culture-forward audiences — not just announce a product drop.\n\nWelcome developed the full creative strategy for the US launch.",
+        },
+      },
+      {
+        type: "full-image",
+        id: "uniqlo-2",
+        src: "/images/companylogos/uniqlo/uniqlo_02.png",
+        alt: "UNIQLO campaign — image 2",
+      },
+      {
+        type: "split",
+        id: "uniqlo-3",
+        splitLeft: 4,
+        splitRight: 6,
+        leftContent: {
+          type: "text",
+          align: "top",
+          body: "The team proposed approximately 30 influencers; Uniqlo selected 6–8. Welcome managed all communications, directed content creation, and wrote captions for each curated account in the distribution network.",
+        },
+        rightContent: {
+          type: "image",
+          image: { src: "/images/companylogos/uniqlo/uniqlo_03.png", alt: "UNIQLO campaign — image 3" },
         },
       },
       {
         type: "split",
-        id: "uniqlo-2",
-        splitLeft: 4,
-        splitRight: 4,
+        id: "uniqlo-5",
+        splitLeft: 5,
+        splitRight: 3,
+        rightContent: {
+          type: "text",
+          align: "top",
+          body: "For the LA activation, Welcome conceptualized a campaign to drive in-store traffic: Anyone who purchased merch at Uniqlo's Santa Monica location received a free ticket to a Studio Ghibli film screening at Brain Dead Studios.\n\nWelcome designed a custom popcorn bucket in the spirit of Studio Ghibli, coordinated Japanese-themed food and candy, built out DIY bracelet stations, and managed the full Brain Dead Studios partnership and creative production.",
+        },
+        leftContent: {
+          type: "image",
+          image: { src: "/images/companylogos/uniqlo/uniqlo_05.png", alt: "UNIQLO campaign — image 4" },
+        },
+      },
+      {
+        type: "split",
+        id: "uniqlo-4",
+        splitLeft: 3,
+        splitRight: 5,
+        rightContent: {
+          type: "image",
+          image: { src: "/images/companylogos/uniqlo/uniqlo_04.png", alt: "UNIQLO campaign — image 4" },
+        },
         leftContent: {
           type: "text",
           align: "top",
-          body: PLACEHOLDER_BODY,
-        },
-        rightContent: {
-          type: "image",
-          image: { src: "/images/uniqlo_3.png", alt: "UNIQLO campaign — musician outdoors" },
+          body: "Content was seeded across Instagram and TikTok through Welcome's curated creator network.",
         },
       },
     ],

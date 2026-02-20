@@ -55,8 +55,8 @@
 /* --- Text --- */
 
 .bodyText {
-  font-size: 30px;
-  line-height: 27px;
+  font-size: 20px;
+  line-height: 23px;
   color: var(--color-text);
   max-width: 425px;
 }

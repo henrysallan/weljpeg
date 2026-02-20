@@ -12,10 +12,10 @@ export const transitionConfig = {
 };
 
 export const imageRevealConfig = {
-  blur: true,
+  blur: false,
   pixelate: true,
   pixelStart: 48,
-  blurAmount: 10,
+  blurAmount: 0,
   duration: 800,
   travel: 12,
 };
