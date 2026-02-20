@@ -22,8 +22,8 @@
   --grid-columns: 8;
   --grid-gutter: 10px;
 
-  /* Lines */
-  --separator-weight: 0.5px;
+  /* Lines — 1px on standard displays, true hairline on Retina */
+  --separator-weight: 1px;
   --separator-color: var(--color-black);
 
   /* Dimensions (desktop reference) */
@@ -49,6 +49,12 @@
   --color-inverted-text: #FFFFFF;
   --color-cluster-bg: #FFFFFF;
   --color-cluster-text: #000000;
+}
+
+@media (min-resolution: 2dppx) {
+  :root {
+    --separator-weight: 0.5px;
+  }
 }
 
 /* ============================================================

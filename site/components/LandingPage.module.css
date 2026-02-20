@@ -21,7 +21,7 @@
   padding: 32px 36px 36px;
   background: var(--color-cluster-bg);
   color: var(--color-cluster-text);
-  border: 0.5px solid var(--color-text);
+  border: var(--separator-weight) solid var(--color-text);
   box-sizing: border-box;
   container-type: inline-size;
 }

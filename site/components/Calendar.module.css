@@ -7,7 +7,7 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  border: 0.5px solid var(--color-text);
+  border: var(--separator-weight) solid var(--color-text);
   background: var(--color-surface);
 }
 
@@ -18,7 +18,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border-bottom: 0.5px solid var(--color-text);
+  border-bottom: var(--separator-weight) solid var(--color-text);
 }
 
 .monthLabel {
@@ -51,7 +51,7 @@
 .weekRow {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  border-bottom: 0.5px solid var(--color-text);
+  border-bottom: var(--separator-weight) solid var(--color-text);
 }
 
 .weekLabel {
@@ -107,7 +107,7 @@
   left: 50%;
   transform: translateX(-50%);
   width: 12px;
-  height: 0.5px;
+  height: var(--separator-weight);
   background: var(--color-text);
 }
 

@@ -91,7 +91,7 @@
 }
 
 .dropdownStem {
-  width: 0.5px;
+  width: var(--separator-weight);
   height: 20px;
   background: var(--color-text);
   transform-origin: top center;
@@ -141,7 +141,7 @@
 .dropdownSep {
   position: relative;
   z-index: 1;
-  height: 0.5px;
+  height: var(--separator-weight);
   background: var(--color-text);
   transform-origin: center center;
 }

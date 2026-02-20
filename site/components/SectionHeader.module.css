@@ -16,8 +16,6 @@
   z-index: 2;
   overflow: hidden;
   box-sizing: border-box;
-  max-width: 1728px;
-  margin: 0 auto;
 }
 
 /* Expanded state (default) */
@@ -28,7 +26,7 @@
 
 /* Title */
 .title {
-  font-size: clamp(20px, 5vw, 65px);
+  font-size: 65px;
   font-weight: 300;
   line-height: 1;
   white-space: nowrap;
@@ -67,5 +65,9 @@
 @media (min-width: 640px) and (max-width: 1023px) {
   .headerExpanded {
     height: 60px;
+  }
+
+  .title {
+    font-size: 50px;
   }
 }

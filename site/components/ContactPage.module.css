@@ -73,7 +73,7 @@
   font-weight: var(--font-weight);
   color: var(--color-text);
   background: var(--color-surface);
-  border: 0.5px solid var(--color-text);
+  border: var(--separator-weight) solid var(--color-text);
   border-radius: 0;
   outline: none;
   transition: background 0.15s ease;
@@ -82,7 +82,7 @@
 
 /* Collapse double borders between stacked inputs */
 .input + .input {
-  margin-top: -0.5px;
+  margin-top: calc(-1 * var(--separator-weight));
 }
 
 .input::placeholder {
@@ -104,7 +104,7 @@
   letter-spacing: 0.03em;
   color: var(--color-inverted-text);
   background: var(--color-text);
-  border: 0.5px solid var(--color-text);
+  border: var(--separator-weight) solid var(--color-text);
   border-radius: 0;
   cursor: pointer;
   transition: opacity 0.15s ease;
