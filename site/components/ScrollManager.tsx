@@ -30,7 +30,7 @@ const COLLAPSE_SPEED = 1;
 export const ScrollManager: React.FC = () => {
   const lenisRef = useRef<Lenis | null>(null);
   const lenisTickerRef = useRef<((time: number) => void) | null>(null);
-  const [lenisEnabled, setLenisEnabled] = useState(true);
+  const [lenisEnabled, setLenisEnabled] = useState(false);
 
   /* ------------------------------------------------
      1. Lenis smooth scroll — create/destroy based on toggle

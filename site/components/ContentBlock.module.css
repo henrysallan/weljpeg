@@ -149,6 +149,79 @@
 }
 
 /* ===========================
+   Module 5: Cards
+   =========================== */
+
+.cards {
+  width: 100%;
+  max-width: 1728px;
+  margin: 0 auto;
+  padding: 10px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--grid-gutter);
+}
+
+.card {
+  border: var(--separator-weight) solid var(--color-text);
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 560px;
+  position: relative;
+  background: var(--color-bg);
+  box-sizing: border-box;
+}
+
+/* Close button */
+.cardClose {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 200;
+  color: var(--color-text);
+  background: none;
+  border: var(--separator-weight) solid var(--color-text);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  z-index: 11;
+}
+
+.cardClose:hover {
+  opacity: 0.5;
+}
+
+.cardTitle {
+  font-size: clamp(28px, 3vw, 48px);
+  font-weight: var(--font-weight);
+  line-height: 1.05;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.cardBody {
+  font-size: 20px;
+  line-height: 23px;
+  color: var(--color-text);
+  margin: 0;
+}
+
+@media (max-width: 767px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===========================
    Module 4: Image gallery
    =========================== */
 
@@ -165,4 +238,167 @@
 .galleryItem {
   width: 100%;
   overflow: hidden;
+}
+
+/* ===========================
+   Module 6: Case-study page
+   Single viewport-height layout:
+   text upper-left, focus image center, thumbnail strip right
+   =========================== */
+
+.caseStudyPage {
+  width: 100%;
+  max-width: 1728px;
+  margin: 0 auto;
+  padding: 0 var(--page-padding);
+  box-sizing: border-box;
+  height: calc(100vh - 120px);
+  min-height: 600px;
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  grid-template-rows: auto 1fr;
+  gap: var(--grid-gutter);
+}
+
+/* Headline spans upper-left */
+.caseStudyHeadline {
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
+  font-size: clamp(28px, 3vw, 48px);
+  font-weight: 400;
+  line-height: 1.05;
+  color: var(--color-text);
+  margin: 0;
+  max-width: 380px;
+  align-self: start;
+}
+
+/* Text paragraphs below headline, upper-left */
+.caseStudyTexts {
+  grid-column: 1 / 2;
+  grid-row: 2 / 3;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-self: start;
+  max-width: 340px;
+}
+
+.caseStudyTexts p {
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* Gallery container: focus image + thumbnail strip */
+.caseStudyGallery {
+  grid-column: 2 / 4;
+  grid-row: 1 / 3;
+  display: flex;
+  gap: 10px;
+  align-self: stretch;
+  min-height: 0;
+}
+
+/* Focus image — fills available height */
+.caseStudyFocus {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.caseStudyFocus img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: top;
+  display: block;
+}
+
+.caseStudyFocus canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Thumbnail strip — single column on the right */
+.caseStudyThumbs {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 0.5px solid var(--color-text, currentColor);
+  overflow: hidden;
+}
+
+.caseStudyThumb {
+  width: 60px;
+  height: 60px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.caseStudyThumb:hover {
+  opacity: 1;
+}
+
+.caseStudyThumbActive {
+  opacity: 1;
+}
+
+.caseStudyThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.caseStudyThumb canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .caseStudyPage {
+    height: auto;
+    min-height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .caseStudyHeadline {
+    grid-column: 1;
+    grid-row: 1;
+    max-width: 100%;
+  }
+
+  .caseStudyTexts {
+    grid-column: 1;
+    grid-row: 2;
+    max-width: 100%;
+  }
+
+  .caseStudyGallery {
+    grid-column: 1;
+    grid-row: 3;
+    height: 400px;
+  }
+
+  .caseStudyThumb {
+    width: 80px;
+    height: 80px;
+  }
 }
