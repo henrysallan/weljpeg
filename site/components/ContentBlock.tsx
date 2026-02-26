@@ -28,6 +28,24 @@ function nl2br(text?: string): React.ReactNode {
   );
 }
 
+/**
+ * Parse [bracketed text] into <span className="highlight"> elements.
+ * Used for case-study body copy — the brackets become underlined hover targets.
+ */
+function parseHighlights(text: string): React.ReactNode {
+  const parts = text.split(/(\[[^\]]+\])/);
+  return parts.map((part, i) => {
+    if (part.startsWith("[") && part.endsWith("]")) {
+      return (
+        <span key={i} className={styles.caseStudyHighlight}>
+          {part.slice(1, -1)}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
 interface ContentBlockProps {
   block: ContentBlockType;
   className?: string;
@@ -282,7 +300,7 @@ const CaseStudyPageModule: React.FC<{ block: CaseStudyPageBlockType; className?:
       <div className={styles.caseStudyTexts}>
         {block.texts.map((text, i) => (
           <p key={`${block.id}-t-${i}`}>
-            <ScrollCharReveal stagger={2} simple={isMobile}>{text}</ScrollCharReveal>
+            <ScrollCharReveal stagger={2} simple={isMobile}>{parseHighlights(text)}</ScrollCharReveal>
           </p>
         ))}
       </div>

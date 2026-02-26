@@ -120,9 +120,11 @@ export const caseStudies: CaseStudy[] = [
         id: "redbull-page",
         headline: "Four decades of content. One zine that made it matter again.",
         texts: [
-          "Red Bull asked Welcome to dig through nearly four decades of archival content and identify what would resonate with today's digital audiences.",
-          "From that curation, Welcome designed, produced, and printed a limited-edition zine, distributed at a co-produced event with Red Bull.",
-          "The result: archival research turned into a tangible cultural object — digital curation made physical through design, editorial direction, and IRL activation.",
+          "Red Bull had decades of cultural IP sitting untouched. Archive footage from 1987 to now: music, extreme sports, art, subcultures, none of it doing anything for the brand in its current form.",
+          "We [built an editorial strategy] around that archive, shaping it into a narrative that traced Red Bull's real history inside these scenes rather than just cataloguing old clips.",
+          "Our team [curated and sequenced the material], then [produced a limited-run zine] that gave the best of it a physical form.",
+          "We [brought the archive into a live space] with an in-person activation, documented it, and [distributed everything through our channels and creative network].",
+          "Tens of millions of organic impressions followed. We are regularly working with the New York team to curate their in-person activations and bring them in as a partner on ours.",
         ],
         images: [
           { src: "/images/companylogos/redbull/Redbull_01.jpg", alt: "Redbull campaign — image 1" },
@@ -147,10 +149,10 @@ export const caseStudies: CaseStudy[] = [
         id: "uniqlo-page",
         headline: "The full creative engine behind Studio Ghibli's US moment.",
         texts: [
-          "Uniqlo was launching its Studio Ghibli collaboration collection in the US and needed a partner who could make it resonate with internet-native, culture-forward audiences — not just announce a product drop.",
-          "Welcome developed the full creative strategy for the US launch. The team proposed approximately 30 influencers; Uniqlo selected 6–8. Welcome managed all communications, directed content creation, and wrote captions for each curated account.",
-          "For the LA activation, Welcome conceptualized a campaign to drive in-store traffic: Anyone who purchased merch at Uniqlo's Santa Monica location received a free ticket to a Studio Ghibli film screening at Brain Dead Studios.",
-          "Content was seeded across Instagram and TikTok through Welcome's curated creator network.",
+          "When Uniqlo secured their Studio Ghibli collaboration, our team [sorted through our creative network] and [pitched the tastemakers] who genuinely fit the world of Ghibli.",
+          "We [developed creative briefs] for each of them, [coordinated their posting], and [managed every relationship] from start to finish. All of these people were already in our network, which is why the whole thing moved fast and felt real.",
+          "Then we took it offline: we [conceptualized and coordinated a movie screening] of Studio Ghibli films at Braindead Studios in Los Angeles, [designed and produced custom merch] for the event including a one-of-one popcorn bucket, and [documented the entire thing].",
+          "The collection had a social push that felt organic because it was built on actual taste, and a physical experience that gave people something worth showing up for.",
         ],
         images: [
           { src: "/images/companylogos/uniqlo/Uniqlo_01.jpg", alt: "UNIQLO campaign — image 1" },
@@ -173,10 +175,11 @@ export const caseStudies: CaseStudy[] = [
         id: "puma-page",
         headline: "How Puma launched a sneaker without ever mentioning Puma.",
         texts: [
-          "Puma was launching the Mostro sneaker and needed authentic awareness in electronic music and streetwear culture — without it feeling like a product campaign.",
-          "Welcome proposed something counterintuitive: don't launch the shoe — document a world the shoe already lives in.",
-          "Welcome directed a production team (Cold Archive) across Seoul, Taipei, and Shenzhen to photograph Asia's underground electronic music scene. Everyone featured was wearing Mostros.",
-          "Puma was never mentioned once in any caption. The content was framed as a cultural editorial: \"The Cultural Incubation of Asia's Electronic Underground.\"",
+          "We [designed a social and content strategy] for Puma that reframed their product drops as cultural moments worth paying attention to.",
+          "The [creative development] was built to feel native to every platform it touched: visual systems, narratives, and formats designed for the way people actually scroll and share.",
+          "We [brought collaborators in through our creative network] to shoot and style the work, then [distributed across our owned channels and partner pages] to push it past Puma's existing audience.",
+          "Millions of impressions, high save rates, and comment sections full of real conversation. The work performed because it looked like something people would have shared anyway.",
+          "For [Paris Fashion Week], we coordinated a collaborative event, brought out [rising rapper PZ] for a performance, and curated the guest list and supporting acts.",
         ],
         images: [
           { src: "/images/companylogos/puma/Puma_01.jpg", alt: "Puma campaign — image 1" },

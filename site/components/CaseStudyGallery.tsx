@@ -9,6 +9,8 @@ const PIXELATE_MS = 400;   // time to fully pixelate
 const HOLD_MS     = 120;   // pause while swapped (fully pixelated)
 const RESOLVE_MS  = 400;   // time to de-pixelate
 const CYCLE_PAUSE = 3000;  // pause between swaps
+const STROKE_DRAW_MS = 700; // SVG border draw-on duration
+const STROKE_MARGIN  = 2.5; // gap between image and stroke
 
 interface CaseStudyGalleryProps {
   images: { src: string; alt: string }[];
@@ -175,9 +177,11 @@ function animatePixelation(
 
 export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) => {
   const [focusIndex, setFocusIndex] = useState(0);
+  const [hovered, setHovered] = useState(false);
 
   const focusCanvasRef = useRef<HTMLCanvasElement>(null);
   const focusImgRef = useRef<HTMLImageElement>(null);
+  const focusWrapRef = useRef<HTMLDivElement>(null);
   const thumbCanvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
   const thumbImgRefs = useRef<(HTMLImageElement | null)[]>([]);
 
@@ -189,6 +193,7 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
   const busyRef = useRef(false);
   const unmountedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const hoveredRef = useRef(false);
 
   // Preload all images once on mount
   useEffect(() => {
@@ -281,12 +286,73 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
     if (unmountedRef.current) return;
     busyRef.current = false;
 
-    // Schedule next swap
-    const next = (focusRef.current + 1) % images.length;
-    timerRef.current = setTimeout(() => {
-      if (!unmountedRef.current) doSwap(next);
-    }, CYCLE_PAUSE);
+    // Schedule next swap only if not hovered
+    if (!hoveredRef.current) {
+      const next = (focusRef.current + 1) % images.length;
+      timerRef.current = setTimeout(() => {
+        if (!unmountedRef.current) doSwap(next);
+      }, CYCLE_PAUSE);
+    }
   }, [images, syncCanvas]);
+
+  // Hover handlers — pause/resume cycling
+  const handleMouseEnter = useCallback(() => {
+    hoveredRef.current = true;
+    setHovered(true);
+    clearTimeout(timerRef.current);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    hoveredRef.current = false;
+    setHovered(false);
+    // Resume cycling after pause
+    if (!busyRef.current) {
+      const next = (focusRef.current + 1) % images.length;
+      timerRef.current = setTimeout(() => {
+        if (!unmountedRef.current) doSwap(next);
+      }, CYCLE_PAUSE);
+    }
+  }, [images.length, doSwap]);
+
+  // Compute the actual rendered image rect (object-fit: contain, object-position: top)
+  const [imgRect, setImgRect] = useState({ x: 0, y: 0, w: 0, h: 0 });
+
+  const measureImgRect = useCallback(() => {
+    const wrap = focusWrapRef.current;
+    const preloaded = preloadedRef.current[focusRef.current];
+    if (!wrap || !preloaded || !preloaded.naturalWidth) return;
+
+    const containerW = wrap.clientWidth;
+    const containerH = wrap.clientHeight;
+    const nw = preloaded.naturalWidth;
+    const nh = preloaded.naturalHeight;
+
+    const imgRatio = nw / nh;
+    const containerRatio = containerW / containerH;
+
+    let dw: number, dh: number;
+    if (imgRatio > containerRatio) {
+      dw = containerW;
+      dh = containerW / imgRatio;
+    } else {
+      dh = containerH;
+      dw = containerH * imgRatio;
+    }
+    // object-position: top → dy = 0; centered horizontally
+    const dx = (containerW - dw) / 2;
+    const dy = 0;
+    setImgRect({ x: dx, y: dy, w: dw, h: dh });
+  }, []);
+
+  // Re-measure on resize and when focus image changes
+  useEffect(() => {
+    measureImgRect();
+    const el = focusWrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(measureImgRect);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [focusIndex, measureImgRect]);
 
   // Initial kick-off: start cycling once preloaded images are ready
   useEffect(() => {
@@ -314,10 +380,21 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // SVG stroke dimensions based on actual rendered image rect
+  const m = STROKE_MARGIN;
+  const strokeW = imgRect.w + m * 2;
+  const strokeH = imgRect.h + m * 2;
+  const perim = 2 * (strokeW + strokeH);
+
   return (
     <div className={styles.caseStudyGallery}>
       {/* Focus image — full height */}
-      <div className={styles.caseStudyFocus}>
+      <div
+        ref={focusWrapRef}
+        className={styles.caseStudyFocus}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           ref={focusImgRef}
@@ -325,6 +402,40 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
           alt={images[focusIndex].alt}
         />
         <canvas ref={focusCanvasRef} />
+
+        {/* SVG animated stroke — draws on when hovered, sized to actual image */}
+        {imgRect.w > 0 && (
+          <svg
+            className={styles.caseStudyStroke}
+            style={{
+              top: imgRect.y - m,
+              left: imgRect.x - m,
+              width: strokeW,
+              height: strokeH,
+            }}
+            viewBox={`0 0 ${strokeW} ${strokeH}`}
+            preserveAspectRatio="none"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              x="0.25"
+              y="0.25"
+              width={strokeW - 0.5}
+              height={strokeH - 0.5}
+              stroke="var(--color-text, #1A1C21)"
+              strokeWidth="0.5"
+              fill="none"
+              strokeDasharray={perim}
+              strokeDashoffset={hovered ? 0 : perim}
+              style={{
+                transition: hovered
+                  ? `stroke-dashoffset ${STROKE_DRAW_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`
+                  : `stroke-dashoffset ${STROKE_DRAW_MS * 0.6}ms ease-in`,
+              }}
+            />
+          </svg>
+        )}
       </div>
 
       {/* Thumbnail strip */}
