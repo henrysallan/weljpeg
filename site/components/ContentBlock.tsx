@@ -29,22 +29,118 @@ function nl2br(text?: string): React.ReactNode {
 }
 
 /**
- * Parse [bracketed text] into <span className="highlight"> elements.
- * Used for case-study body copy — the brackets become underlined hover targets.
+ * Parse [bracketed text] into <HighlightText> components.
+ * Used for case-study body copy — the brackets become underlined hover targets
+ * with a random italic stagger effect.
  */
 function parseHighlights(text: string): React.ReactNode {
   const parts = text.split(/(\[[^\]]+\])/);
   return parts.map((part, i) => {
     if (part.startsWith("[") && part.endsWith("]")) {
-      return (
-        <span key={i} className={styles.caseStudyHighlight}>
-          {part.slice(1, -1)}
-        </span>
-      );
+      return <HighlightText key={i}>{part.slice(1, -1)}</HighlightText>;
     }
     return part;
   });
 }
+
+/** Shuffled array of indices [0..n) */
+function shuffleIndices(n: number): number[] {
+  const arr = Array.from({ length: n }, (_, i) => i);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Underlined text with random italic stagger on hover.
+ * Works with ScrollCharReveal — queries the leaf <span> char elements
+ * and randomly toggles each one to italic on mouseenter, reverts on mouseleave.
+ */
+const FADE_MS = 100;      // opacity transition duration
+const STAGGER_IN = 10;   // ms between chars on enter
+const STAGGER_OUT = 8;   // ms between chars on leave
+
+const HighlightText: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const ref = useRef<HTMLSpanElement>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const pendingRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  /** Get all leaf character spans inside the highlight */
+  const getCharSpans = useCallback((): HTMLSpanElement[] => {
+    if (!ref.current) return [];
+    return Array.from(ref.current.querySelectorAll("span")).filter(
+      (s) => s.childElementCount === 0 && s.textContent !== ""
+    );
+  }, []);
+
+  /** Cancel all pending per-char timeouts */
+  const clearPending = useCallback(() => {
+    clearInterval(timerRef.current);
+    pendingRef.current.forEach(clearTimeout);
+    pendingRef.current = [];
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    clearPending();
+    const chars = getCharSpans();
+    if (chars.length === 0) return;
+    const order = shuffleIndices(chars.length);
+    let count = 0;
+    timerRef.current = setInterval(() => {
+      if (count >= order.length) {
+        clearInterval(timerRef.current);
+        return;
+      }
+      const span = chars[order[count]];
+      span.style.opacity = "0";
+      const t = setTimeout(() => {
+        span.style.fontStyle = "italic";
+        span.style.opacity = "1";
+      }, FADE_MS);
+      pendingRef.current.push(t);
+      count++;
+    }, STAGGER_IN);
+  }, [getCharSpans, clearPending]);
+
+  const handleMouseLeave = useCallback(() => {
+    clearPending();
+    const chars = getCharSpans();
+    if (chars.length === 0) return;
+    const order = shuffleIndices(chars.length);
+    let count = 0;
+    timerRef.current = setInterval(() => {
+      if (count >= order.length) {
+        clearInterval(timerRef.current);
+        return;
+      }
+      const span = chars[order[count]];
+      span.style.opacity = "0";
+      const t = setTimeout(() => {
+        span.style.fontStyle = "";
+        span.style.opacity = "";
+      }, FADE_MS);
+      pendingRef.current.push(t);
+      count++;
+    }, STAGGER_OUT);
+  }, [getCharSpans, clearPending]);
+
+  useEffect(() => {
+    return () => clearPending();
+  }, [clearPending]);
+
+  return (
+    <span
+      ref={ref}
+      className={styles.caseStudyHighlight}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {children}
+    </span>
+  );
+};
 
 interface ContentBlockProps {
   block: ContentBlockType;
@@ -151,133 +247,58 @@ const TiltCard: React.FC<TiltCardProps> = ({ children, className, style, expande
 
 /* ---- Cards module with FLIP expand/collapse ---- */
 
-import type { CardsBlock as CardsBlockType, CaseStudyPageBlock as CaseStudyPageBlockType } from "@/lib/data";
+import type { CardsBlock as CardsBlockType, CaseStudyPageBlock as CaseStudyPageBlockType, AboutBlock as AboutBlockType } from "@/lib/data";
 
 const CardsModule: React.FC<{ block: CardsBlockType; className?: string; isMobile: boolean }> = ({
   block,
   className,
   isMobile,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const cardRefs     = useRef<(HTMLDivElement | null)[]>([]);
-  const placeholderRef = useRef<HTMLDivElement | null>(null);
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const [flyStyle, setFlyStyle] = useState<React.CSSProperties | null>(null);
-  // Track whether we're mid-collapse so we don't allow clicks
-  const collapsingRef = useRef(false);
-
-  const expand = useCallback((i: number) => {
-    if (collapsingRef.current) return;
-    const container = containerRef.current;
-    const card = cardRefs.current[i];
-    if (!container || !card) return;
-
-    const cRect = container.getBoundingClientRect();
-    const kRect = card.getBoundingClientRect();
-    const pad = 10; // .cards padding
-
-    // Absolute coords are relative to padding edge, so subtract padding
-    const startTop    = kRect.top  - cRect.top  - pad;
-    const startLeft   = kRect.left - cRect.left - pad;
-    const startWidth  = kRect.width;
-    const startHeight = kRect.height;
-
-    setExpandedIndex(i);
-
-    // Start at current position (no transition)
-    setFlyStyle({
-      position: "absolute",
-      top: startTop,
-      left: startLeft,
-      width: startWidth,
-      height: startHeight,
-      zIndex: 10,
-      transition: "none",
-    });
-
-    // Next frame: animate to fill the content area
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setFlyStyle({
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: cRect.width  - pad * 2,
-          height: cRect.height - pad * 2,
-          zIndex: 10,
-          transition: "top 0.45s ease, left 0.45s ease, width 0.45s ease, height 0.45s ease",
-        });
-      });
-    });
-  }, []);
-
-  const collapse = useCallback(() => {
-    const container = containerRef.current;
-    if (expandedIndex === null || !container) return;
-    collapsingRef.current = true;
-
-    const cRect = container.getBoundingClientRect();
-    const pad = 10; // .cards padding
-    const contentWidth = cRect.width - pad * 2;
-    const gap = parseFloat(getComputedStyle(container).gap) || 0;
-    const cols = block.cards.length;
-    const colWidth = (contentWidth - gap * (cols - 1)) / cols;
-    const targetLeft = expandedIndex * (colWidth + gap);
-
-    setFlyStyle({
-      position: "absolute",
-      top: 0,
-      left: targetLeft,
-      width: colWidth,
-      height: cRect.height - pad * 2,
-      zIndex: 10,
-      transition: "top 0.4s ease, left 0.4s ease, width 0.4s ease, height 0.4s ease",
-    });
-
-    setTimeout(() => {
-      setExpandedIndex(null);
-      setFlyStyle(null);
-      collapsingRef.current = false;
-    }, 420);
-  }, [expandedIndex, block.cards.length]);
-
   return (
     <div
-      ref={containerRef}
       className={`${styles.cards} ${className ?? ""}`}
-      style={{ position: "relative" }}
     >
-      {block.cards.map((card, i) => {
-        const isExpanded = expandedIndex === i;
-
-        return (
-          <React.Fragment key={`${block.id}-${i}`}>
-            {/* When this card is expanded, an invisible placeholder holds its grid slot */}
-            {isExpanded && (
-              <div
-                ref={placeholderRef}
-                className={styles.card}
-                style={{ visibility: "hidden" }}
-              />
-            )}
-            <TiltCard
-              className={styles.card}
-              expanded={isExpanded}
-              onExpand={() => expand(i)}
-              onCollapse={collapse}
-              ref={(el: HTMLDivElement | null) => { cardRefs.current[i] = el; }}
-              style={isExpanded && flyStyle ? flyStyle : undefined}
-            >
+      {block.cards.map((card, i) => (
+          <div key={`${block.id}-${i}`} className={styles.card}>
               <h3 className={styles.cardTitle}>
                 <ScrollCharReveal>{card.title}</ScrollCharReveal>
               </h3>
               <p className={styles.cardBody}>
                 <ScrollCharReveal stagger={2} simple={isMobile}>{nl2br(card.body)}</ScrollCharReveal>
               </p>
-            </TiltCard>
-          </React.Fragment>
-        );
-      })}
+          </div>
+      ))}
+    </div>
+  );
+};
+
+/* ---- About module: text left, image right ---- */
+
+const AboutModule: React.FC<{ block: AboutBlockType; className?: string; isMobile: boolean }> = ({
+  block,
+  className,
+  isMobile,
+}) => {
+  return (
+    <div className={`${styles.about} ${className ?? ""}`}>
+      <div className={styles.aboutText}>
+        {block.paragraphs.map((p, i) => (
+          <p key={i} className={styles.aboutParagraph}>
+            <ScrollCharReveal stagger={2} simple={isMobile}>{p}</ScrollCharReveal>
+          </p>
+        ))}
+      </div>
+      <div className={styles.aboutImage}>
+        {block.image.src ? (
+          <ScrollImageReveal
+            src={block.image.src}
+            alt={block.image.alt}
+            className={styles.aboutImageInner}
+          />
+        ) : (
+          <div className={styles.placeholderImage} role="img" aria-label={block.image.alt} />
+        )}
+      </div>
     </div>
   );
 };
@@ -355,6 +376,10 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ block, className }) 
 
   if (block.type === "cards") {
     return <CardsModule block={block} className={className} isMobile={isMobile} />;
+  }
+
+  if (block.type === "about") {
+    return <AboutModule block={block as AboutBlockType} className={className} isMobile={isMobile} />;
   }
 
   if (block.type === "title") {

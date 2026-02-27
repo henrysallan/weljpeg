@@ -28,7 +28,7 @@ export const ContactPage: React.FC = () => {
           </p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/images/avi.png"
+            src="/images/avi.jpg"
             alt="Contact"
             className={styles.avatar}
             loading="lazy"

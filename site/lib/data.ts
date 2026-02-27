@@ -57,7 +57,15 @@ export interface CaseStudyPageBlock {
   images: { src: string; alt: string }[];
 }
 
-export type ContentBlock = SplitBlock | FullImageBlock | TitleBlock | GalleryBlock | CardsBlock | CaseStudyPageBlock;
+/** Module 7: About — text paragraphs on the left, single image on the right */
+export interface AboutBlock {
+  type: "about";
+  id: string;
+  paragraphs: string[];
+  image: { src: string; alt: string };
+}
+
+export type ContentBlock = SplitBlock | FullImageBlock | TitleBlock | GalleryBlock | CardsBlock | CaseStudyPageBlock | AboutBlock;
 
 /* ---- Column types (used inside SplitBlock) ---- */
 
@@ -235,41 +243,21 @@ export const insightSection: ServicesSection = {
   id: "insight",
   title: "INSIGHT",
   tags: ["Culture", "Trends"],
-  description: "A window into the cultural currents shaping tomorrow. Welcome Labs distils emerging signals across music, fashion, sport and technology into actionable creative intelligence for forward-thinking brands.",
+  description: "A window into the cultural currents shaping tomorrow.",
   client: "Welcome Labs",
   services: "Research, Analysis",
   blocks: [
     {
-      type: "split",
-      id: "insight-1",
-      splitLeft: 5,
-      splitRight: 3,
-      leftContent: {
-        type: "titled-text",
-        align: "top",
-        subHeading: "Cultural Intelligence",
-        body: "We map the movements, communities and moments that define relevance — translating cultural data into strategic opportunity for brands seeking authentic connection with their audiences.",
-      },
-      rightContent: {
-        type: "image",
-        image: { src: "", alt: "Insight — cultural intelligence placeholder" },
-      },
-    },
-    {
-      type: "split",
-      id: "insight-2",
-      splitLeft: 3,
-      splitRight: 5,
-      leftContent: {
-        type: "image",
-        image: { src: "", alt: "Insight — trend forecasting placeholder" },
-      },
-      rightContent: {
-        type: "titled-text",
-        align: "top",
-        subHeading: "Trend Forecasting",
-        body: "Our proprietary research methodology identifies emerging patterns before they reach the mainstream — giving our partners first-mover advantage in an attention-scarce landscape.",
-      },
+      type: "about",
+      id: "insight-about",
+      paragraphs: [
+        "Welcome is a creative agency that helps growth-stage technology companies that need to turn ambitious products into cultural conversation.",
+        "We operate at the intersection of taste and virality; we create work that\u2019s culturally elevated and built to scale.",
+        "What makes us different is simple: we built our agency on the back of a media brand we run ourselves. A publication with over 1.5 million followers that gives us real-time cultural intelligence, a creative network rooted in authentic relationships, and distribution infrastructure most agencies have to rent.",
+        "We design strategies, develop content, and distribute through the channels and communities where quality attention really forms.",
+        "For companies that need more than a campaign and more than a vendor, Welcome is the growth engine.",
+      ],
+      image: { src: "", alt: "Welcome Labs — placeholder" },
     },
   ],
 };

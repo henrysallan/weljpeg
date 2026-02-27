@@ -3,32 +3,22 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import styles from "./ContentBlock.module.css";
 
-const PIXEL_STEPS = 6;
-const PIXEL_START = 48;
-const PIXELATE_MS = 400;   // time to fully pixelate
-const HOLD_MS     = 120;   // pause while swapped (fully pixelated)
-const RESOLVE_MS  = 400;   // time to de-pixelate
-const CYCLE_PAUSE = 3000;  // pause between swaps
-const STROKE_DRAW_MS = 700; // SVG border draw-on duration
-const STROKE_MARGIN  = 2.5; // gap between image and stroke
+const PIXEL_START  = 48;     // max block size (fully pixelated)
+const PIXELATE_MS  = 400;   // time to fully pixelate
+const HOLD_MS      = 120;   // pause while swapped (fully pixelated)
+const RESOLVE_MS   = 400;   // time to de-pixelate
+const CYCLE_PAUSE  = 3000;  // pause between swaps
 
 interface CaseStudyGalleryProps {
   images: { src: string; alt: string }[];
 }
 
-/** Build pixel block sizes: 48 → 29 → 17 → 10 → 6 → 4 → 1 */
-function buildSizes(): number[] {
-  const sizes: number[] = [];
-  let s = PIXEL_START;
-  for (let i = 0; i < PIXEL_STEPS; i++) {
-    sizes.push(Math.max(2, Math.round(s)));
-    s *= 0.6;
-  }
-  sizes.push(1);
-  return sizes;
+/** Ease-in-out cubic for smooth acceleration/deceleration */
+function easeInOutCubic(t: number): number {
+  return t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
-
-const SIZES = buildSizes();
 
 /**
  * Compute the destination rect that replicates CSS `object-fit: contain`.
@@ -56,8 +46,8 @@ function containRect(
     dh = canvasH;
     dw = canvasH * imgRatio;
   }
-  const dx = (canvasW - dw) / 2;
-  const dy = 0; // top-aligned to match object-position: top
+  const dx = canvasW - dw; // right-aligned to match object-position: right top
+  const dy = 0;            // top-aligned
   return { dx, dy, dw, dh };
 }
 
@@ -142,7 +132,12 @@ function drawPixelated(
   canvas.style.opacity = "1";
 }
 
-/** Animate pixelation in (resolve → pixelated) or out (pixelated → clear) */
+/**
+ * Animate pixelation continuously.
+ *  - "in"  = clear → fully pixelated (block size 1 → PIXEL_START)
+ *  - "out" = fully pixelated → clear (block size PIXEL_START → 1)
+ * Uses eased interpolation every frame for smooth transitions.
+ */
 function animatePixelation(
   canvas: HTMLCanvasElement,
   img: HTMLImageElement,
@@ -151,21 +146,31 @@ function animatePixelation(
   fit: FitMode = "contain",
 ): Promise<void> {
   return new Promise((resolve) => {
-    const steps = direction === "in" ? [...SIZES].reverse() : SIZES;
-    const stepDuration = durationMs / steps.length;
     const startTime = performance.now();
-    let lastStep = -1;
+    let lastBlock = -1;
 
     const tick = () => {
       const elapsed = performance.now() - startTime;
-      const step = Math.min(steps.length - 1, Math.floor(elapsed / stepDuration));
+      const rawT = Math.min(1, elapsed / durationMs);
+      const easedT = easeInOutCubic(rawT);
 
-      if (step !== lastStep) {
-        lastStep = step;
-        drawPixelated(canvas, img, steps[step], fit);
+      // Interpolate block size: "in" goes 1→PIXEL_START, "out" goes PIXEL_START→1
+      let blockSize: number;
+      if (direction === "in") {
+        blockSize = 1 + (PIXEL_START - 1) * easedT;
+      } else {
+        blockSize = PIXEL_START - (PIXEL_START - 1) * easedT;
       }
 
-      if (step < steps.length - 1) {
+      const rounded = Math.max(1, Math.round(blockSize));
+
+      // Only redraw when the rounded block size actually changes
+      if (rounded !== lastBlock) {
+        lastBlock = rounded;
+        drawPixelated(canvas, img, rounded, fit);
+      }
+
+      if (rawT < 1) {
         requestAnimationFrame(tick);
       } else {
         resolve();
@@ -177,7 +182,6 @@ function animatePixelation(
 
 export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) => {
   const [focusIndex, setFocusIndex] = useState(0);
-  const [hovered, setHovered] = useState(false);
 
   const focusCanvasRef = useRef<HTMLCanvasElement>(null);
   const focusImgRef = useRef<HTMLImageElement>(null);
@@ -193,7 +197,6 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
   const busyRef = useRef(false);
   const unmountedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const hoveredRef = useRef(false);
 
   // Preload all images once on mount
   useEffect(() => {
@@ -273,9 +276,9 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
 
     if (newFocusCanvas && newThumbCanvas) {
       syncCanvas(newFocusCanvas);
-      drawPixelated(newFocusCanvas, targetPreloaded, SIZES[SIZES.length - 2], "contain");
+      drawPixelated(newFocusCanvas, targetPreloaded, PIXEL_START, "contain");
       syncCanvas(newThumbCanvas);
-      drawPixelated(newThumbCanvas, focusPreloaded, SIZES[SIZES.length - 2], "cover");
+      drawPixelated(newThumbCanvas, focusPreloaded, PIXEL_START, "cover");
 
       await Promise.all([
         animatePixelation(newFocusCanvas, targetPreloaded, "out", RESOLVE_MS, "contain"),
@@ -286,73 +289,12 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
     if (unmountedRef.current) return;
     busyRef.current = false;
 
-    // Schedule next swap only if not hovered
-    if (!hoveredRef.current) {
-      const next = (focusRef.current + 1) % images.length;
-      timerRef.current = setTimeout(() => {
-        if (!unmountedRef.current) doSwap(next);
-      }, CYCLE_PAUSE);
-    }
+    // Schedule next swap
+    const next = (focusRef.current + 1) % images.length;
+    timerRef.current = setTimeout(() => {
+      if (!unmountedRef.current) doSwap(next);
+    }, CYCLE_PAUSE);
   }, [images, syncCanvas]);
-
-  // Hover handlers — pause/resume cycling
-  const handleMouseEnter = useCallback(() => {
-    hoveredRef.current = true;
-    setHovered(true);
-    clearTimeout(timerRef.current);
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    hoveredRef.current = false;
-    setHovered(false);
-    // Resume cycling after pause
-    if (!busyRef.current) {
-      const next = (focusRef.current + 1) % images.length;
-      timerRef.current = setTimeout(() => {
-        if (!unmountedRef.current) doSwap(next);
-      }, CYCLE_PAUSE);
-    }
-  }, [images.length, doSwap]);
-
-  // Compute the actual rendered image rect (object-fit: contain, object-position: top)
-  const [imgRect, setImgRect] = useState({ x: 0, y: 0, w: 0, h: 0 });
-
-  const measureImgRect = useCallback(() => {
-    const wrap = focusWrapRef.current;
-    const preloaded = preloadedRef.current[focusRef.current];
-    if (!wrap || !preloaded || !preloaded.naturalWidth) return;
-
-    const containerW = wrap.clientWidth;
-    const containerH = wrap.clientHeight;
-    const nw = preloaded.naturalWidth;
-    const nh = preloaded.naturalHeight;
-
-    const imgRatio = nw / nh;
-    const containerRatio = containerW / containerH;
-
-    let dw: number, dh: number;
-    if (imgRatio > containerRatio) {
-      dw = containerW;
-      dh = containerW / imgRatio;
-    } else {
-      dh = containerH;
-      dw = containerH * imgRatio;
-    }
-    // object-position: top → dy = 0; centered horizontally
-    const dx = (containerW - dw) / 2;
-    const dy = 0;
-    setImgRect({ x: dx, y: dy, w: dw, h: dh });
-  }, []);
-
-  // Re-measure on resize and when focus image changes
-  useEffect(() => {
-    measureImgRect();
-    const el = focusWrapRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(measureImgRect);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [focusIndex, measureImgRect]);
 
   // Initial kick-off: start cycling once preloaded images are ready
   useEffect(() => {
@@ -380,20 +322,12 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // SVG stroke dimensions based on actual rendered image rect
-  const m = STROKE_MARGIN;
-  const strokeW = imgRect.w + m * 2;
-  const strokeH = imgRect.h + m * 2;
-  const perim = 2 * (strokeW + strokeH);
-
   return (
     <div className={styles.caseStudyGallery}>
       {/* Focus image — full height */}
       <div
         ref={focusWrapRef}
         className={styles.caseStudyFocus}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -402,40 +336,6 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
           alt={images[focusIndex].alt}
         />
         <canvas ref={focusCanvasRef} />
-
-        {/* SVG animated stroke — draws on when hovered, sized to actual image */}
-        {imgRect.w > 0 && (
-          <svg
-            className={styles.caseStudyStroke}
-            style={{
-              top: imgRect.y - m,
-              left: imgRect.x - m,
-              width: strokeW,
-              height: strokeH,
-            }}
-            viewBox={`0 0 ${strokeW} ${strokeH}`}
-            preserveAspectRatio="none"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <rect
-              x="0.25"
-              y="0.25"
-              width={strokeW - 0.5}
-              height={strokeH - 0.5}
-              stroke="var(--color-text, #1A1C21)"
-              strokeWidth="0.5"
-              fill="none"
-              strokeDasharray={perim}
-              strokeDashoffset={hovered ? 0 : perim}
-              style={{
-                transition: hovered
-                  ? `stroke-dashoffset ${STROKE_DRAW_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`
-                  : `stroke-dashoffset ${STROKE_DRAW_MS * 0.6}ms ease-in`,
-              }}
-            />
-          </svg>
-        )}
       </div>
 
       {/* Thumbnail strip */}
