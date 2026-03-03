@@ -4,10 +4,9 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 import styles from "./ContentBlock.module.css";
 
 const PIXEL_START  = 48;     // max block size (fully pixelated)
-const PIXELATE_MS  = 400;   // time to fully pixelate
-const HOLD_MS      = 120;   // pause while swapped (fully pixelated)
-const RESOLVE_MS   = 400;   // time to de-pixelate
+const SWAP_MS      = 700;   // total time for one through-animation (peak at midpoint)
 const CYCLE_PAUSE  = 3000;  // pause between swaps
+const FADE_ZONE    = 0.001;  // ±6% around midpoint = crossfade from 0.44→0.56
 
 interface CaseStudyGalleryProps {
   images: { src: string; alt: string }[];
@@ -84,12 +83,26 @@ function coverCrop(
 
 type FitMode = "contain" | "cover";
 
+/* ---- Cached offscreen canvas (reused every frame to avoid GC churn) ---- */
+let _offCanvas: HTMLCanvasElement | null = null;
+let _offCtx: CanvasRenderingContext2D | null = null;
+
+function getOffscreen(): CanvasRenderingContext2D {
+  if (!_offCanvas) {
+    _offCanvas = document.createElement("canvas");
+    _offCtx = _offCanvas.getContext("2d")!;
+  }
+  return _offCtx!;
+}
+
 /** Draw an image pixelated onto a canvas at a given block size */
 function drawPixelated(
   canvas: HTMLCanvasElement,
   img: HTMLImageElement,
   blockSize: number,
   fit: FitMode = "contain",
+  alpha: number = 1,
+  clear: boolean = true,
 ) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
@@ -102,18 +115,22 @@ function drawPixelated(
     return;
   }
 
-  ctx.clearRect(0, 0, w, h);
+  if (clear) ctx.clearRect(0, 0, w, h);
   ctx.imageSmoothingEnabled = false;
+
+  const prevAlpha = ctx.globalAlpha;
+  ctx.globalAlpha = alpha;
+
+  const offCtx = getOffscreen();
+  const off = _offCanvas!;
 
   if (fit === "cover") {
     // Cover: crop source to fill entire canvas
     const { sx, sy, sw, sh } = coverCrop(img, w, h);
     const cols = Math.max(1, Math.ceil(w / blockSize));
     const rows = Math.max(1, Math.ceil(h / blockSize));
-    const off = document.createElement("canvas");
-    off.width = cols;
+    off.width = cols;   // setting width clears the canvas
     off.height = rows;
-    const offCtx = off.getContext("2d")!;
     offCtx.drawImage(img, sx, sy, sw, sh, 0, 0, cols, rows);
     ctx.drawImage(off, 0, 0, cols, rows, 0, 0, w, h);
   } else {
@@ -121,58 +138,87 @@ function drawPixelated(
     const { dx, dy, dw, dh } = containRect(img, w, h);
     const cols = Math.max(1, Math.ceil(dw / blockSize));
     const rows = Math.max(1, Math.ceil(dh / blockSize));
-    const off = document.createElement("canvas");
     off.width = cols;
     off.height = rows;
-    const offCtx = off.getContext("2d")!;
     offCtx.drawImage(img, 0, 0, cols, rows);
     ctx.drawImage(off, 0, 0, cols, rows, dx, dy, dw, dh);
   }
 
+  ctx.globalAlpha = prevAlpha;
   canvas.style.opacity = "1";
 }
 
 /**
- * Animate pixelation continuously.
- *  - "in"  = clear → fully pixelated (block size 1 → PIXEL_START)
- *  - "out" = fully pixelated → clear (block size PIXEL_START → 1)
- * Uses eased interpolation every frame for smooth transitions.
+ * Single continuous animation: clear → peak pixelation → clear.
+ * Around the midpoint, both images are crossfaded under heavy pixelation
+ * so the swap is completely invisible.  `onMid` fires at 50 % for the
+ * React state update (hidden behind the opaque mosaic).
  */
-function animatePixelation(
+function animateThrough(
   canvas: HTMLCanvasElement,
-  img: HTMLImageElement,
-  direction: "in" | "out",
+  imgA: HTMLImageElement,
+  imgB: HTMLImageElement,
   durationMs: number,
   fit: FitMode = "contain",
+  onMid?: () => void,
 ): Promise<void> {
   return new Promise((resolve) => {
     const startTime = performance.now();
     let lastBlock = -1;
+    let lastAlphaA = -1;
+    let midFired = false;
 
     const tick = () => {
       const elapsed = performance.now() - startTime;
       const rawT = Math.min(1, elapsed / durationMs);
-      const easedT = easeInOutCubic(rawT);
 
-      // Interpolate block size: "in" goes 1→PIXEL_START, "out" goes PIXEL_START→1
-      let blockSize: number;
-      if (direction === "in") {
-        blockSize = 1 + (PIXEL_START - 1) * easedT;
-      } else {
-        blockSize = PIXEL_START - (PIXEL_START - 1) * easedT;
-      }
-
+      // First half 0→1 ramps up, second half 1→0 ramps down
+      const halfT = rawT <= 0.5 ? rawT * 2 : (1 - rawT) * 2;
+      const easedT = easeInOutCubic(halfT);
+      const blockSize = 1 + (PIXEL_START - 1) * easedT;
       const rounded = Math.max(1, Math.round(blockSize));
 
-      // Only redraw when the rounded block size actually changes
-      if (rounded !== lastBlock) {
+      // Fire midpoint callback exactly once
+      if (!midFired && rawT >= 0.5) {
+        midFired = true;
+        onMid?.();
+      }
+
+      // Crossfade zone: blend both images around the midpoint
+      const fadeStart = 0.5 - FADE_ZONE;
+      const fadeEnd   = 0.5 + FADE_ZONE;
+      let alphaA: number, alphaB: number;
+
+      if (rawT <= fadeStart) {
+        alphaA = 1; alphaB = 0;
+      } else if (rawT >= fadeEnd) {
+        alphaA = 0; alphaB = 1;
+      } else {
+        // Smooth blend within the zone
+        const fadeT = (rawT - fadeStart) / (fadeEnd - fadeStart);
+        const easedFade = easeInOutCubic(fadeT);
+        alphaA = 1 - easedFade;
+        alphaB = easedFade;
+      }
+
+      const roundedAlphaA = Math.round(alphaA * 100);
+      const needsRedraw = rounded !== lastBlock || roundedAlphaA !== lastAlphaA;
+
+      if (needsRedraw) {
         lastBlock = rounded;
-        drawPixelated(canvas, img, rounded, fit);
+        lastAlphaA = roundedAlphaA;
+
+        const ctx = canvas.getContext("2d");
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (alphaA > 0.01) drawPixelated(canvas, imgA, rounded, fit, alphaA, false);
+        if (alphaB > 0.01) drawPixelated(canvas, imgB, rounded, fit, alphaB, false);
       }
 
       if (rawT < 1) {
         requestAnimationFrame(tick);
       } else {
+        canvas.style.opacity = "0";
         resolve();
       }
     };
@@ -183,6 +229,7 @@ function animatePixelation(
 export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) => {
   const [focusIndex, setFocusIndex] = useState(0);
 
+  const galleryRef = useRef<HTMLDivElement>(null);
   const focusCanvasRef = useRef<HTMLCanvasElement>(null);
   const focusImgRef = useRef<HTMLImageElement>(null);
   const focusWrapRef = useRef<HTMLDivElement>(null);
@@ -197,6 +244,7 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
   const busyRef = useRef(false);
   const unmountedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const visibleRef = useRef(true);
 
   // Preload all images once on mount
   useEffect(() => {
@@ -221,7 +269,7 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
     return preloadedRef.current[idx] ?? null;
   }, []);
 
-  /** Core swap — uses preloaded images for canvas draws */
+  /** Core swap — single continuous animation per canvas, zero pause at peak */
   const doSwap = useCallback(async (targetIdx: number) => {
     if (busyRef.current) return;
     const curFocus = focusRef.current;
@@ -249,52 +297,65 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
     syncCanvas(focusCanvas);
     syncCanvas(thumbCanvas);
 
-    // 1. Pixelate both (clear → mosaic) — draw from preloaded images
+    // Single continuous animation: clear → peak → clear
+    // At the midpoint frame the DOM images swap under the mosaic
     await Promise.all([
-      animatePixelation(focusCanvas, focusPreloaded, "in", PIXELATE_MS, "contain"),
-      animatePixelation(thumbCanvas, targetPreloaded, "in", PIXELATE_MS, "cover"),
+      animateThrough(
+        focusCanvas, focusPreloaded, targetPreloaded, SWAP_MS, "contain",
+        () => {
+          // Midpoint — swap React state (canvas is fully opaque mosaic)
+          focusRef.current = targetIdx;
+          setFocusIndex(targetIdx);
+        },
+      ),
+      animateThrough(
+        thumbCanvas, targetPreloaded, focusPreloaded, SWAP_MS, "cover",
+      ),
     ]);
-    if (unmountedRef.current) return;
-
-    // 2. Swap while fully pixelated
-    focusRef.current = targetIdx;
-    setFocusIndex(targetIdx);
-
-    await new Promise((r) => setTimeout(r, HOLD_MS));
-    if (unmountedRef.current) return;
-
-    // Wait for React to flush the new DOM img srcs
-    await new Promise((r) => requestAnimationFrame(r));
-    await new Promise((r) => requestAnimationFrame(r));
-    if (unmountedRef.current) return;
-
-    // 3. De-pixelate both — draw from preloaded images (always correct dimensions)
-    const newFocusCanvas = focusCanvasRef.current;
-    const newThumbIndices = images.map((_, i) => i).filter((i) => i !== targetIdx);
-    const oldFocusSlot = newThumbIndices.indexOf(curFocus);
-    const newThumbCanvas = thumbCanvasRefs.current[oldFocusSlot];
-
-    if (newFocusCanvas && newThumbCanvas) {
-      syncCanvas(newFocusCanvas);
-      drawPixelated(newFocusCanvas, targetPreloaded, PIXEL_START, "contain");
-      syncCanvas(newThumbCanvas);
-      drawPixelated(newThumbCanvas, focusPreloaded, PIXEL_START, "cover");
-
-      await Promise.all([
-        animatePixelation(newFocusCanvas, targetPreloaded, "out", RESOLVE_MS, "contain"),
-        animatePixelation(newThumbCanvas, focusPreloaded, "out", RESOLVE_MS, "cover"),
-      ]);
-    }
 
     if (unmountedRef.current) return;
     busyRef.current = false;
 
-    // Schedule next swap
-    const next = (focusRef.current + 1) % images.length;
-    timerRef.current = setTimeout(() => {
-      if (!unmountedRef.current) doSwap(next);
-    }, CYCLE_PAUSE);
+    // Schedule next swap (only while gallery is in viewport)
+    if (visibleRef.current) {
+      const next = (focusRef.current + 1) % images.length;
+      timerRef.current = setTimeout(() => {
+        if (!unmountedRef.current) doSwap(next);
+      }, CYCLE_PAUSE);
+    }
   }, [images, syncCanvas]);
+
+  // Pause auto-cycling when gallery is off-screen, resume when visible
+  useEffect(() => {
+    const el = galleryRef.current;
+    if (!el) return;
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        const wasVisible = visibleRef.current;
+        visibleRef.current = entry.isIntersecting;
+
+        // Scrolled back into view — restart cycle if idle
+        if (!wasVisible && entry.isIntersecting && !busyRef.current && !unmountedRef.current) {
+          clearTimeout(timerRef.current);
+          const next = (focusRef.current + 1) % images.length;
+          timerRef.current = setTimeout(() => {
+            if (!unmountedRef.current) doSwap(next);
+          }, CYCLE_PAUSE);
+        }
+
+        // Left viewport — cancel pending timer
+        if (wasVisible && !entry.isIntersecting) {
+          clearTimeout(timerRef.current);
+        }
+      },
+      { threshold: 0 },
+    );
+
+    io.observe(el);
+    return () => io.disconnect();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Initial kick-off: start cycling once preloaded images are ready
   useEffect(() => {
@@ -323,7 +384,7 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
   }, []);
 
   return (
-    <div className={styles.caseStudyGallery}>
+    <div ref={galleryRef} className={styles.caseStudyGallery}>
       {/* Focus image — full height */}
       <div
         ref={focusWrapRef}

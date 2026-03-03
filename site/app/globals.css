@@ -103,7 +103,7 @@ body {
   color: var(--color-text);
   background-color: var(--color-bg);
   line-height: 1.4;
-  overflow-x: hidden;
+  overflow-x: clip; /* clip instead of hidden — avoids breaking position:sticky on mobile */
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 

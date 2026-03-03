@@ -191,45 +191,83 @@ function setupAnimations(
 ) {
   const lenis = lenisRef.current;
 
-  if (lenis) {
-    // Intercept hash links (e.g. #section-redbull) and smooth-scroll.
-    const hashClickHandler = (e: MouseEvent) => {
-      const anchor = (e.target as HTMLElement).closest("a[href^='#section-']");
-      if (!anchor) return;
+  /* ------------------------------------------------
+     Smooth animated scroll — works with or without Lenis.
+     Uses a rAF lerp loop as the native fallback.
+     ------------------------------------------------ */
+  let lerpRaf = 0;
 
-      e.preventDefault();
-      const targetId = (anchor as HTMLAnchorElement).getAttribute("href")!.slice(1);
-      const targetEl = document.getElementById(targetId);
-      if (!targetEl) return;
+  /** Lerp-scroll to a target Y pixel position over ~duration seconds */
+  function smoothScrollTo(targetY: number, duration = 0.8) {
+    const lenis = lenisRef.current;
+    if (lenis) {
+      lenis.scrollTo(targetY, { duration });
+      return;
+    }
 
-      lenis.scrollTo(targetEl, {
-        offset: -LOGO_BAR_H,
-        duration: 0.8,
-      });
-    };
+    // rAF lerp fallback when Lenis is off
+    cancelAnimationFrame(lerpRaf);
+    const startY = window.scrollY;
+    const dist = targetY - startY;
+    if (Math.abs(dist) < 1) return;
 
-    document.addEventListener("click", hashClickHandler);
+    const startTime = performance.now();
+    const durationMs = duration * 1000;
 
-    // Down-arrow click — smooth scroll past landing
-    const downArrow = document.getElementById("landing-down-arrow");
-    const landing = document.getElementById("landing-page");
-    const arrowClickHandler = () => {
-      if (landing) {
-        lenis.scrollTo(landing.offsetHeight, { duration: 0.8 });
+    const tick = () => {
+      const elapsed = performance.now() - startTime;
+      const t = Math.min(1, elapsed / durationMs);
+      // ease-out cubic for a smooth deceleration
+      const eased = 1 - Math.pow(1 - t, 3);
+      window.scrollTo(0, startY + dist * eased);
+
+      if (t < 1) {
+        lerpRaf = requestAnimationFrame(tick);
       }
     };
-    if (downArrow) {
-      downArrow.addEventListener("click", arrowClickHandler);
-    }
+    lerpRaf = requestAnimationFrame(tick);
+  }
 
-    // Logo click — scroll back to top
-    const logoHomeBtn = document.getElementById("logo-home-btn");
-    const logoClickHandler = () => {
-      lenis.scrollTo(0, { duration: 0.8 });
-    };
-    if (logoHomeBtn) {
-      logoHomeBtn.addEventListener("click", logoClickHandler);
+  /** Scroll to an element, accounting for the logo bar height */
+  function smoothScrollToElement(el: HTMLElement, duration = 0.8) {
+    const rect = el.getBoundingClientRect();
+    const targetY = rect.top + window.scrollY - LOGO_BAR_H;
+    smoothScrollTo(Math.max(0, targetY), duration);
+  }
+
+  // Intercept hash links (e.g. #section-redbull) and smooth-scroll.
+  const hashClickHandler = (e: MouseEvent) => {
+    const anchor = (e.target as HTMLElement).closest("a[href^='#section-']");
+    if (!anchor) return;
+
+    e.preventDefault();
+    const targetId = (anchor as HTMLAnchorElement).getAttribute("href")!.slice(1);
+    const targetEl = document.getElementById(targetId);
+    if (!targetEl) return;
+
+    smoothScrollToElement(targetEl);
+  };
+  document.addEventListener("click", hashClickHandler);
+
+  // Down-arrow click — smooth scroll past landing
+  const downArrow = document.getElementById("landing-down-arrow");
+  const landing = document.getElementById("landing-page");
+  const arrowClickHandler = () => {
+    if (landing) {
+      smoothScrollTo(landing.offsetHeight);
     }
+  };
+  if (downArrow) {
+    downArrow.addEventListener("click", arrowClickHandler);
+  }
+
+  // Logo click — scroll back to top
+  const logoHomeBtn = document.getElementById("logo-home-btn");
+  const logoClickHandler = () => {
+    smoothScrollTo(0);
+  };
+  if (logoHomeBtn) {
+    logoHomeBtn.addEventListener("click", logoClickHandler);
   }
 
   /* -- 3. Header sticky-stack -- */
@@ -286,10 +324,7 @@ function setupAnimations(
     block.addEventListener("click", () => {
       const state = block.dataset.state || "expanded";
       if (state !== "expanded") {
-        lenisRef.current?.scrollTo(section, {
-          offset: -LOGO_BAR_H,
-          duration: 0.8,
-        });
+        smoothScrollToElement(section);
       }
     });
   }

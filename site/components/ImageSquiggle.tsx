@@ -243,23 +243,10 @@ export const ImageSquiggle: React.FC<{
     baseScale: number;
   };
   const scatterImgsRef = useRef<TrackedImage[]>([]);
-  const scatterRafRef = useRef<number | null>(null);
+  const masterRafRef = useRef<number | null>(null);
   const scatterSpawnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastFrameRef = useRef<number>(0);
-
-  // Throw physics state
-  type ThrownEntry = {
-    el: HTMLImageElement;
-    x: number;
-    y: number;
-    size: number;
-    vx: number;
-    vy: number;
-  };
-  const thrownImgsRef = useRef<ThrownEntry[]>([]);
-  const throwRafRef = useRef<number | null>(null);
-  const throwLastFrameRef = useRef<number>(0);
-  const THROW_FRICTION = 0.985; // velocity damping per frame
+  const visibleRef = useRef(true); // IntersectionObserver gating
 
   // Focus mode state
   const focusedRef = useRef<HTMLImageElement | null>(null);
@@ -577,8 +564,29 @@ export const ImageSquiggle: React.FC<{
 
   /* ---------- Proximity scale effect ---------- */
   const mouseRef = useRef<{ x: number; y: number }>({ x: -9999, y: -9999 });
-  const proximityRafRef = useRef<number | null>(null);
+  const lastMouseRef = useRef<{ x: number; y: number }>({ x: -9999, y: -9999 });
 
+  /* ---------- IntersectionObserver visibility gating ---------- */
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visibleRef.current = entry.isIntersecting;
+        // Resume master loop when becoming visible again
+        if (entry.isIntersecting && !masterRafRef.current) {
+          lastFrameRef.current = performance.now();
+          masterRafRef.current = requestAnimationFrame(masterTick);
+        }
+      },
+      { threshold: 0 }
+    );
+    io.observe(container);
+    return () => io.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ---------- Mouse tracking (single listener) ---------- */
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -589,144 +597,97 @@ export const ImageSquiggle: React.FC<{
       mouseRef.current.y = e.clientY - rect.top;
     };
 
-    // Listen on window so proximity works even when cursor
-    // is over empty space (container has pointer-events: none).
     window.addEventListener("mousemove", onMouseMove);
-
-    const tick = () => {
-      const c = controlsRef.current as typeof controls;
-      const mx = mouseRef.current.x;
-      const my = mouseRef.current.y;
-      const radius = c.proximityRadius;
-      const maxScale = c.proximityScale;
-      const ease = c.proximityEase;
-
-      // Iterate tracked scatter images (no DOM query)
-      for (const entry of scatterImgsRef.current) {
-        if (focusedRef.current === entry.el || isFocusingRef.current) continue;
-        if (entry.el.dataset.dragging) continue;
-
-        const cx = entry.x + entry.size / 2;
-        const cy = entry.y + entry.size / 2;
-        const dx = mx - cx;
-        const dy = my - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        const bs = entry.baseScale;
-        if (dist < radius) {
-          const t = Math.pow(1 - dist / radius, ease);
-          const scale = bs * (1 + (maxScale - 1) * t);
-          entry.el.style.transform = `translate(${entry.x}px,${entry.y}px) scale(${scale})`;
-        } else {
-          entry.el.style.transform = `translate(${entry.x}px,${entry.y}px) scale(${bs})`;
-        }
-      }
-
-      // Also handle thrown images
-      for (const t of thrownImgsRef.current) {
-        if (t.el.dataset.dragging) continue;
-        const cx = t.x + t.size / 2;
-        const cy = t.y + t.size / 2;
-        const dx = mx - cx;
-        const dy = my - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < radius) {
-          const tt = Math.pow(1 - dist / radius, ease);
-          const scale = 1 + (maxScale - 1) * tt;
-          t.el.style.transform = `translate(${t.x}px,${t.y}px) scale(${scale})`;
-        } else {
-          t.el.style.transform = `translate(${t.x}px,${t.y}px) scale(1)`;
-        }
-      }
-
-      proximityRafRef.current = requestAnimationFrame(tick);
-    };
-
-    proximityRafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      if (proximityRafRef.current) {
-        cancelAnimationFrame(proximityRafRef.current);
-        proximityRafRef.current = null;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => window.removeEventListener("mousemove", onMouseMove);
   }, []);
 
-  /* ---------- Throw physics RAF loop ---------- */
-  const startThrowLoop = () => {
-    if (throwRafRef.current) return; // already running
-    throwLastFrameRef.current = performance.now();
+  /* ---------- Consolidated master rAF tick ---------- */
+  // Defined as a stable ref so IO callback can restart it
+  const masterTick = (now: number) => {
+    // Stop the loop when off-screen
+    if (!visibleRef.current) {
+      masterRafRef.current = null;
+      return;
+    }
 
-    const tick = (now: number) => {
-      const dt = Math.min((now - throwLastFrameRef.current) / 1000, 0.05);
-      throwLastFrameRef.current = now;
+    const dt = Math.min((now - lastFrameRef.current) / 1000, 0.05);
+    lastFrameRef.current = now;
 
-      const container = containerRef.current;
-      if (!container) {
-        throwRafRef.current = requestAnimationFrame(tick);
-        return;
-      }
-      const vw = container.clientWidth;
+    const container = containerRef.current;
+    if (container) {
+      // ---- Scatter fall physics ----
       const vh = container.clientHeight;
+      const c = controlsRef.current as typeof controls;
+      const growH = c.scatterGrowZone * vh;
+      const shrinkStart = vh * (1 - c.scatterShrinkZone);
 
-      const alive: ThrownEntry[] = [];
-      const BOUNCE_DAMPING = 0.6;
-
-      for (const t of thrownImgsRef.current) {
-        t.vx *= THROW_FRICTION;
-        t.vy *= THROW_FRICTION;
-        t.x += t.vx * dt;
-        t.y += t.vy * dt;
-
-        const w = t.size;
-        const h = t.size;
-
-        // Bounce off edges
-        if (t.x < 0) {
-          t.x = 0;
-          t.vx = Math.abs(t.vx) * BOUNCE_DAMPING;
-        } else if (t.x + w > vw) {
-          t.x = vw - w;
-          t.vx = -Math.abs(t.vx) * BOUNCE_DAMPING;
+      const alive: TrackedImage[] = [];
+      for (const entry of scatterImgsRef.current) {
+        if (entry.el.dataset.hovered || focusedRef.current === entry.el) {
+          alive.push(entry);
+          continue;
         }
-        if (t.y < 0) {
-          t.y = 0;
-          t.vy = Math.abs(t.vy) * BOUNCE_DAMPING;
-        } else if (t.y + h > vh) {
-          t.y = vh - h;
-          t.vy = -Math.abs(t.vy) * BOUNCE_DAMPING;
-        }
+        entry.y += entry.speed * dt;
 
-        // Write position via transform only (no layout thrash)
-        t.el.style.transform = `translate(${t.x}px,${t.y}px) scale(1)`;
-
-        // Kill when nearly stopped
-        const speed = Math.sqrt(t.vx * t.vx + t.vy * t.vy);
-        if (speed < 5) {
-          // Fade out gently
-          gsap.to(t.el, {
-            opacity: 0,
-            duration: 0.6,
-            ease: "power2.in",
-            onComplete: () => t.el.remove(),
-          });
+        let t: number;
+        if (entry.y < growH) {
+          t = growH > 0 ? entry.y / growH : 1;
+        } else if (entry.y > shrinkStart) {
+          t = shrinkStart < vh ? (vh - entry.y) / (vh - shrinkStart) : 0;
         } else {
-          alive.push(t);
+          t = 1;
+        }
+        t = Math.max(0, Math.min(1, t));
+        const exp = c.scatterEasing;
+        const baseScale = entry.y <= growH
+          ? 1 - Math.pow(1 - t, exp)
+          : Math.pow(t, exp);
+        entry.baseScale = baseScale;
+
+        if (entry.y >= vh + 10 || (entry.y > shrinkStart && baseScale <= 0.01)) {
+          const cleanup = (entry.el as any).__cleanup;
+          if (cleanup) cleanup();
+          entry.el.remove();
+        } else {
+          entry.el.style.transform = `translate(${entry.x}px,${entry.y}px) scale(${baseScale})`;
+          alive.push(entry);
         }
       }
-      thrownImgsRef.current = alive;
+      scatterImgsRef.current = alive;
 
-      if (alive.length > 0) {
-        throwRafRef.current = requestAnimationFrame(tick);
-      } else {
-        throwRafRef.current = null; // stop loop when no thrown images
+      // ---- Proximity scale (only if mouse moved) ----
+      const mx = mouseRef.current.x;
+      const my = mouseRef.current.y;
+      if (mx !== lastMouseRef.current.x || my !== lastMouseRef.current.y) {
+        lastMouseRef.current.x = mx;
+        lastMouseRef.current.y = my;
+
+        const radius = c.proximityRadius;
+        const maxScale = c.proximityScale;
+        const ease = c.proximityEase;
+
+        for (const entry of scatterImgsRef.current) {
+          if (focusedRef.current === entry.el || isFocusingRef.current) continue;
+          if (entry.el.dataset.dragging) continue;
+
+          const cx = entry.x + entry.size / 2;
+          const cy = entry.y + entry.size / 2;
+          const ddx = mx - cx;
+          const ddy = my - cy;
+          const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+
+          const bs = entry.baseScale;
+          if (dist < radius) {
+            const tt = Math.pow(1 - dist / radius, ease);
+            const scale = bs * (1 + (maxScale - 1) * tt);
+            entry.el.style.transform = `translate(${entry.x}px,${entry.y}px) scale(${scale})`;
+          }
+          // else: already written by scatter-fall above
+        }
       }
-    };
+    }
 
-    throwRafRef.current = requestAnimationFrame(tick);
+    masterRafRef.current = requestAnimationFrame(masterTick);
   };
 
   /* ---------- Shared interaction handlers ---------- */
@@ -739,11 +700,6 @@ export const ImageSquiggle: React.FC<{
     let startY = 0;
     let lastX = 0;
     let lastY = 0;
-    let prevX = 0;
-    let prevY = 0;
-    let lastMoveTime = 0;
-    let vx = 0;
-    let vy = 0;
 
     // Hover: freeze + scale
     img.addEventListener("mouseenter", () => {
@@ -772,11 +728,6 @@ export const ImageSquiggle: React.FC<{
       startY = e.clientY;
       lastX = e.clientX;
       lastY = e.clientY;
-      prevX = e.clientX;
-      prevY = e.clientY;
-      lastMoveTime = performance.now();
-      vx = 0;
-      vy = 0;
       img.style.cursor = "grabbing";
       img.style.zIndex = "10";
     });
@@ -802,7 +753,6 @@ export const ImageSquiggle: React.FC<{
       }
 
       if (didDrag) {
-        // Move the image with cursor — read position from tracked data
         const curX = tracked ? tracked.x : (parseFloat(img.dataset.posX || "0"));
         const curY = tracked ? tracked.y : (parseFloat(img.dataset.posY || "0"));
         const moveX = e.clientX - lastX;
@@ -817,19 +767,6 @@ export const ImageSquiggle: React.FC<{
         img.dataset.posX = String(newX);
         img.dataset.posY = String(newY);
         img.style.transform = `translate(${newX}px,${newY}px) scale(1)`;
-
-        // Track velocity (smoothed)
-        const now = performance.now();
-        const elapsed = (now - lastMoveTime) / 1000;
-        if (elapsed > 0) {
-          const instantVx = (e.clientX - prevX) / elapsed;
-          const instantVy = (e.clientY - prevY) / elapsed;
-          vx = vx * 0.6 + instantVx * 0.4;
-          vy = vy * 0.6 + instantVy * 0.4;
-        }
-        prevX = e.clientX;
-        prevY = e.clientY;
-        lastMoveTime = now;
       }
 
       lastX = e.clientX;
@@ -840,36 +777,24 @@ export const ImageSquiggle: React.FC<{
       if (!isDragging) return;
       isDragging = false;
       img.style.cursor = "grab";
+      img.style.zIndex = "";
 
       if (didDrag) {
-        // Throw the image!
-        img.style.zIndex = "";
+        // Dragged — fade out and remove
         delete img.dataset.hovered;
         delete img.dataset.dragging;
-
-        // Clamp velocity so it doesn't fly insanely far
-        const maxV = 1800;
-        vx = Math.max(-maxV, Math.min(maxV, vx));
-        vy = Math.max(-maxV, Math.min(maxV, vy));
-
-        const posX = tracked ? tracked.x : parseFloat(img.dataset.posX || "0");
-        const posY = tracked ? tracked.y : parseFloat(img.dataset.posY || "0");
-        const size = tracked ? tracked.size : (parseFloat(img.style.width) || 40);
-
-        thrownImgsRef.current.push({
-          el: img,
-          x: posX,
-          y: posY,
-          size,
-          vx,
-          vy,
+        gsap.to(img, {
+          opacity: 0,
+          duration: 0.5,
+          ease: "power2.in",
+          onComplete: () => {
+            const cleanup = (img as any).__cleanup;
+            if (cleanup) cleanup();
+            img.remove();
+          },
         });
-
-        // Ensure throw physics loop is running
-        startThrowLoop();
       } else {
-        img.style.zIndex = "";
-        // It was a click, not a drag — trigger focus
+        // Click — trigger focus
         if (!isFocusingRef.current) {
           focusImage(img);
         }
@@ -880,7 +805,7 @@ export const ImageSquiggle: React.FC<{
     window.addEventListener("mouseup", onMouseUp);
 
     // Store cleanup so we can remove listeners if img is removed
-    (img as any).__throwCleanup = () => {
+    (img as any).__cleanup = () => {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
@@ -943,67 +868,11 @@ export const ImageSquiggle: React.FC<{
   const startScatterFall = () => {
     const c = controlsRef.current as typeof controls;
 
-    // Start the RAF loop
-    lastFrameRef.current = performance.now();
-
-    const tick = (now: number) => {
-      const dt = Math.min((now - lastFrameRef.current) / 1000, 0.05);
-      lastFrameRef.current = now;
-
-      const container = containerRef.current;
-      if (!container) {
-        scatterRafRef.current = requestAnimationFrame(tick);
-        return;
-      }
-      const vh = container.clientHeight;
-      const c = controlsRef.current as typeof controls;
-      const growH = c.scatterGrowZone * vh;
-      const shrinkStart = vh * (1 - c.scatterShrinkZone);
-
-      // Update each falling image
-      const alive: TrackedImage[] = [];
-      for (const entry of scatterImgsRef.current) {
-        // If hovered or focused, pause falling
-        if (entry.el.dataset.hovered || focusedRef.current === entry.el) {
-          alive.push(entry);
-          continue;
-        }
-        entry.y += entry.speed * dt;
-
-        // Scale based on Y position: grow near top, shrink near bottom
-        let t: number;
-        if (entry.y < growH) {
-          t = growH > 0 ? entry.y / growH : 1;
-        } else if (entry.y > shrinkStart) {
-          t = shrinkStart < vh ? (vh - entry.y) / (vh - shrinkStart) : 0;
-        } else {
-          t = 1;
-        }
-        t = Math.max(0, Math.min(1, t));
-        // Ease-out for grow, ease-in for shrink (exponent from control)
-        const exp = c.scatterEasing;
-        const baseScale = entry.y <= growH
-          ? 1 - Math.pow(1 - t, exp)   // easeOut
-          : Math.pow(t, exp);           // easeIn
-        entry.baseScale = baseScale;
-
-        // Remove only when past the bottom edge or shrunk away at the bottom
-        if (entry.y >= vh + 10 || (entry.y > shrinkStart && baseScale <= 0.01)) {
-          const cleanup = (entry.el as any).__throwCleanup;
-          if (cleanup) cleanup();
-          entry.el.remove();
-        } else {
-          // Write position + scale (opacity is constant at maxOpacity)
-          entry.el.style.transform = `translate(${entry.x}px,${entry.y}px) scale(${baseScale})`;
-          alive.push(entry);
-        }
-      }
-      scatterImgsRef.current = alive;
-
-      scatterRafRef.current = requestAnimationFrame(tick);
-    };
-
-    scatterRafRef.current = requestAnimationFrame(tick);
+    // Kick the master rAF loop if not already running
+    if (!masterRafRef.current) {
+      lastFrameRef.current = performance.now();
+      masterRafRef.current = requestAnimationFrame(masterTick);
+    }
 
     // Start periodic spawning
     spawnScatterBatch(); // immediate first batch
@@ -1013,10 +882,6 @@ export const ImageSquiggle: React.FC<{
   };
 
   const stopScatterFall = () => {
-    if (scatterRafRef.current) {
-      cancelAnimationFrame(scatterRafRef.current);
-      scatterRafRef.current = null;
-    }
     if (scatterSpawnTimerRef.current) {
       clearInterval(scatterSpawnTimerRef.current);
       scatterSpawnTimerRef.current = null;
@@ -1024,7 +889,7 @@ export const ImageSquiggle: React.FC<{
     // Remove remaining scatter images
     for (const entry of scatterImgsRef.current) {
       gsap.killTweensOf(entry.el);
-      const cleanup = (entry.el as any).__throwCleanup;
+      const cleanup = (entry.el as any).__cleanup;
       if (cleanup) cleanup();
       entry.el.remove();
     }
@@ -1194,7 +1059,7 @@ export const ImageSquiggle: React.FC<{
         imgEls.forEach((el) => {
           // Don't remove focused or hovered images
           if (el.dataset.hovered || focusedRef.current === el) return;
-          const cleanup = (el as any).__throwCleanup;
+          const cleanup = (el as any).__cleanup;
           if (cleanup) cleanup();
           el.remove();
         });
@@ -1251,7 +1116,7 @@ export const ImageSquiggle: React.FC<{
         duration: 0.4,
         ease: "power2.in",
         onComplete: () => {
-          const cleanup = (el as any).__throwCleanup;
+          const cleanup = (el as any).__cleanup;
           if (cleanup) cleanup();
           el.remove();
         },
@@ -1392,7 +1257,7 @@ export const ImageSquiggle: React.FC<{
       duration: 0.6,
       ease: "power3.in",
       onComplete: () => {
-        const cleanup = (img as any).__throwCleanup;
+        const cleanup = (img as any).__cleanup;
         if (cleanup) cleanup();
         img.remove();
         focusedRef.current = null;
@@ -1459,13 +1324,13 @@ export const ImageSquiggle: React.FC<{
         // Scatter mode uses the continuous fall system instead
         if (c.mode === "scatter") {
           // Start scatter if not already running
-          if (!scatterRafRef.current) startScatterFall();
+          if (!scatterSpawnTimerRef.current) startScatterFall();
           cycleTimerRef.current = setTimeout(runCycle, c.cycleInterval * 1000);
           return;
         }
 
         // Stop scatter if we switched away from it
-        if (scatterRafRef.current) stopScatterFall();
+        if (scatterSpawnTimerRef.current) stopScatterFall();
 
         const lines = c.linesPerCycle;
         const delay = c.lineDelay * 1000;
@@ -1498,15 +1363,10 @@ export const ImageSquiggle: React.FC<{
       cancelledRef.current = true;
       if (cycleTimerRef.current) clearTimeout(cycleTimerRef.current);
       stopScatterFall();
-      if (throwRafRef.current) {
-        cancelAnimationFrame(throwRafRef.current);
-        throwRafRef.current = null;
+      if (masterRafRef.current) {
+        cancelAnimationFrame(masterRafRef.current);
+        masterRafRef.current = null;
       }
-      thrownImgsRef.current.forEach((t) => {
-        const cleanup = (t.el as any).__throwCleanup;
-        if (cleanup) cleanup();
-      });
-      thrownImgsRef.current = [];
       activeTweensRef.current.forEach((t) => t.kill());
       activeTweensRef.current = [];
     };

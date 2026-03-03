@@ -45,7 +45,7 @@ export interface GalleryBlock {
 export interface CardsBlock {
   type: "cards";
   id: string;
-  cards: { title: string; body: string }[];
+  cards: { title: string; body: string; items?: string[] }[];
 }
 
 /** Module 6: Case-study page — single viewport-height layout with text (upper-left) + image grid (bottom-right) */
@@ -208,7 +208,7 @@ export const caseStudies: CaseStudy[] = [
 
 export const servicesSection: ServicesSection = {
   id: "services",
-  title: "SERVICES",
+  title: "How We Work",
   tags: ["Strategy", "Strategy"],
   description: "Welcome Labs offers end-to-end creative services that engineer cultural relevance for forward-thinking brands. From strategic planning through execution and distribution, we provide the tools and talent necessary to introduce new ideas to the culture at scale.",
   client: "Welcome Labs",
@@ -220,15 +220,42 @@ export const servicesSection: ServicesSection = {
       cards: [
         {
           title: "Design",
-          body: PLACEHOLDER_BODY_SHORT,
+          body: "Making good work is half the job. The other half is making sure it reaches the right people through channels they actually trust. Our distribution infrastructure comes from years of building relationships, growing our own pages, and learning what moves through culture versus what just gets posted and forgotten.",
+          items: [
+            "Social strategy",
+            "Brand strategy",
+            "Creative strategy",
+            "Audience mapping",
+            "Content and channel strategy",
+            "Founder-forward strategy",
+            "Ad concepts",
+          ],
         },
         {
           title: "Develop",
-          body: PLACEHOLDER_BODY_SHORT,
+          body: "Making good work is half the job. The other half is making sure it reaches the right people through channels they actually trust. Our distribution infrastructure comes from years of building relationships, growing our own pages, and learning what moves through culture versus what just gets posted and forgotten.",
+          items: [
+            "Creative direction",
+            "Creative briefs development",
+            "Photo and video production",
+            "Event production",
+            "Guest list curation",
+            "Merch design and production",
+            "Zine and print production",
+            "Campaign production",
+          ],
         },
         {
           title: "Distribute",
-          body: PLACEHOLDER_BODY_SHORT,
+          body: "Making good work is half the job. The other half is making sure it reaches the right people through channels they actually trust. Our distribution infrastructure comes from years of building relationships, growing our own pages, and learning what moves through culture versus what just gets posted and forgotten.",
+          items: [
+            "Tastemaker seeding",
+            "Curated page coordination",
+            "Clipping campaigns",
+            "Creator and talent placements",
+            "Owned channel distribution",
+            "Paid distribution coordination",
+          ],
         },
       ],
     },
@@ -241,7 +268,7 @@ export const servicesSection: ServicesSection = {
 
 export const insightSection: ServicesSection = {
   id: "insight",
-  title: "INSIGHT",
+  title: "What sets us apart",
   tags: ["Culture", "Trends"],
   description: "A window into the cultural currents shaping tomorrow.",
   client: "Welcome Labs",
@@ -251,11 +278,9 @@ export const insightSection: ServicesSection = {
       type: "about",
       id: "insight-about",
       paragraphs: [
-        "Welcome is a creative agency that helps growth-stage technology companies that need to turn ambitious products into cultural conversation.",
-        "We operate at the intersection of taste and virality; we create work that\u2019s culturally elevated and built to scale.",
+        "Great brands are great media companies. Welcome is a creative agency that helps companies turn ambitious products into cultural conversation. We create work that\u2019s culturally elevated and built to scale.",
         "What makes us different is simple: we built our agency on the back of a media brand we run ourselves. A publication with over 1.5 million followers that gives us real-time cultural intelligence, a creative network rooted in authentic relationships, and distribution infrastructure most agencies have to rent.",
         "We design strategies, develop content, and distribute through the channels and communities where quality attention really forms.",
-        "For companies that need more than a campaign and more than a vendor, Welcome is the growth engine.",
       ],
       image: { src: "", alt: "Welcome Labs — placeholder" },
     },

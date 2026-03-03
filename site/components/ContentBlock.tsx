@@ -147,105 +147,7 @@ interface ContentBlockProps {
   className?: string;
 }
 
-/* ---- 3D tilt card with FLIP expand-on-click ---- */
-
-const TILT_MAX = 2; // degrees
-
-interface TiltCardProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  expanded: boolean;
-  onExpand: () => void;
-  onCollapse: () => void;
-  ref?: React.Ref<HTMLDivElement>;
-}
-
-const TiltCard: React.FC<TiltCardProps> = ({ children, className, style, expanded, onExpand, onCollapse, ref }) => {
-  const internalRef = useRef<HTMLDivElement>(null);
-  const rafId     = useRef(0);
-  const rawTilt   = useRef({ rx: 0, ry: 0 });
-  const current   = useRef({ rx: 0, ry: 0 });
-  const mousePos  = useRef({ x: 0, y: 0 });
-
-  // Merge refs
-  const setRef = useCallback((el: HTMLDivElement | null) => {
-    (internalRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-    if (typeof ref === "function") ref(el);
-    else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = el;
-  }, [ref]);
-
-  // Track raw cursor position globally
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      mousePos.current = { x: e.clientX, y: e.clientY };
-    };
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
-  }, []);
-
-  useEffect(() => {
-    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-    const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-
-    const tick = () => {
-      const el = internalRef.current;
-      if (!el || expanded) { rafId.current = requestAnimationFrame(tick); return; }
-
-      const rect = el.getBoundingClientRect();
-      const cx = rect.left + rect.width  / 2;
-      const cy = rect.top  + rect.height / 2;
-      const vh = window.innerHeight;
-
-      const normY = cy / vh;
-      const distFromCenter = Math.abs(normY - 0.5);
-      const fadeStart = 0.3;
-      const fadeEnd   = 0.55;
-      const strength  = 1 - clamp((distFromCenter - fadeStart) / (fadeEnd - fadeStart), 0, 1);
-
-      const rawX = clamp((mousePos.current.x - cx) / (rect.width  / 2), -1, 1);
-      const rawY = clamp((mousePos.current.y - cy) / (rect.height / 2), -1, 1);
-      rawTilt.current = {
-        rx: -rawY * TILT_MAX * strength,
-        ry:  rawX * TILT_MAX * strength,
-      };
-
-      current.current.rx = lerp(current.current.rx, rawTilt.current.rx, 0.08);
-      current.current.ry = lerp(current.current.ry, rawTilt.current.ry, 0.08);
-      el.style.transform = `perspective(800px) rotateX(${current.current.rx}deg) rotateY(${current.current.ry}deg)`;
-
-      rafId.current = requestAnimationFrame(tick);
-    };
-    rafId.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId.current);
-  }, [expanded]);
-
-  const handleClick = useCallback(() => {
-    if (!expanded) onExpand();
-  }, [expanded, onExpand]);
-
-  return (
-    <div
-      ref={setRef}
-      className={className}
-      style={{ willChange: "transform", cursor: expanded ? "default" : "pointer", ...style }}
-      onClick={handleClick}
-    >
-      {expanded && (
-        <button
-          className={styles.cardClose}
-          onClick={(e) => { e.stopPropagation(); onCollapse(); }}
-          aria-label="Close"
-        >
-          ✕
-        </button>
-      )}
-      {children}
-    </div>
-  );
-};
-
-/* ---- Cards module with FLIP expand/collapse ---- */
+/* ---- Cards module ---- */
 
 import type { CardsBlock as CardsBlockType, CaseStudyPageBlock as CaseStudyPageBlockType, AboutBlock as AboutBlockType } from "@/lib/data";
 
@@ -266,6 +168,15 @@ const CardsModule: React.FC<{ block: CardsBlockType; className?: string; isMobil
               <p className={styles.cardBody}>
                 <ScrollCharReveal stagger={2} simple={isMobile}>{nl2br(card.body)}</ScrollCharReveal>
               </p>
+              {card.items && card.items.length > 0 && (
+                <ul className={styles.cardItems}>
+                  {card.items.map((item, j) => (
+                    <li key={j} className={styles.cardItem}>
+                      <ScrollCharReveal stagger={2} simple={isMobile}>{item}</ScrollCharReveal>
+                    </li>
+                  ))}
+                </ul>
+              )}
           </div>
       ))}
     </div>
@@ -287,17 +198,6 @@ const AboutModule: React.FC<{ block: AboutBlockType; className?: string; isMobil
             <ScrollCharReveal stagger={2} simple={isMobile}>{p}</ScrollCharReveal>
           </p>
         ))}
-      </div>
-      <div className={styles.aboutImage}>
-        {block.image.src ? (
-          <ScrollImageReveal
-            src={block.image.src}
-            alt={block.image.alt}
-            className={styles.aboutImageInner}
-          />
-        ) : (
-          <div className={styles.placeholderImage} role="img" aria-label={block.image.alt} />
-        )}
       </div>
     </div>
   );

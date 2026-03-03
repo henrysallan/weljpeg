@@ -187,20 +187,27 @@ function clearReverseVis(
   clusterEl.style.opacity = "";
 
   if (svgRectEl) {
+    svgRectEl.setAttribute("stroke-dashoffset", "0");
     svgRectEl.style.transition = "";
   }
 
   if (logoWrapEl) {
+    logoWrapEl.style.opacity = "";
+    logoWrapEl.style.transform = "";
     logoWrapEl.style.transition = "";
   }
 
   if (companyLogosEl) {
+    companyLogosEl.style.opacity = "";
+    companyLogosEl.style.transform = "";
     companyLogosEl.style.transition = "";
   }
 
   const charSpans = clusterEl.querySelectorAll<HTMLSpanElement>("[data-char-slot]");
   for (let i = 0; i < charSpans.length; i++) {
     const span = charSpans[i];
+    span.style.opacity = "";
+    span.style.transform = "";
     span.style.transition = "";
   }
 }
