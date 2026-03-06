@@ -220,7 +220,7 @@ export const servicesSection: ServicesSection = {
       cards: [
         {
           title: "Design",
-          body: "Making good work is half the job. The other half is making sure it reaches the right people through channels they actually trust. Our distribution infrastructure comes from years of building relationships, growing our own pages, and learning what moves through culture versus what just gets posted and forgotten.",
+          body: "",
           items: [
             "Social strategy",
             "Brand strategy",
@@ -233,7 +233,7 @@ export const servicesSection: ServicesSection = {
         },
         {
           title: "Develop",
-          body: "Making good work is half the job. The other half is making sure it reaches the right people through channels they actually trust. Our distribution infrastructure comes from years of building relationships, growing our own pages, and learning what moves through culture versus what just gets posted and forgotten.",
+          body: "",
           items: [
             "Creative direction",
             "Creative briefs development",
@@ -247,7 +247,7 @@ export const servicesSection: ServicesSection = {
         },
         {
           title: "Distribute",
-          body: "Making good work is half the job. The other half is making sure it reaches the right people through channels they actually trust. Our distribution infrastructure comes from years of building relationships, growing our own pages, and learning what moves through culture versus what just gets posted and forgotten.",
+          body: "",
           items: [
             "Tastemaker seeding",
             "Curated page coordination",

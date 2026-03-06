@@ -275,6 +275,20 @@
   grid-template-columns: 1fr 2fr auto;
   grid-template-rows: auto 1fr;
   gap: var(--grid-gutter);
+  position: relative;
+}
+
+/* Vertical hairline between text and gallery */
+.caseStudyPage::before {
+  content: "";
+  position: absolute;
+  top: -20px;
+  bottom: -300px;
+  left: calc((100% - 2 * var(--page-padding, 10px)) / 3 + var(--page-padding, 10px));
+  width: 0.5px;
+  background: var(--color-text);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Headline spans upper-left */
@@ -419,6 +433,10 @@
     grid-template-rows: auto auto auto;
   }
 
+  .caseStudyPage::before {
+    display: none;
+  }
+
   .caseStudyHeadline {
     grid-column: 1;
     grid-row: 1;
@@ -434,12 +452,31 @@
   .caseStudyGallery {
     grid-column: 1;
     grid-row: 3;
-    height: 400px;
+    flex-direction: column;
+    height: auto;
+    max-height: none;
+  }
+
+  .caseStudyFocus {
+    flex: 0 0 auto;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    min-height: 0;
+  }
+
+  .caseStudyFocus img {
+    object-position: center top;
+  }
+
+  .caseStudyThumbs {
+    flex-direction: row;
+    overflow-x: auto;
   }
 
   .caseStudyThumb {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
   }
 }
 
@@ -451,7 +488,7 @@
   width: 100%;
   max-width: 1728px;
   margin: 0 auto;
-  padding: 120px var(--page-padding);
+  padding: clamp(120px, 35vh, 500px) var(--page-padding);
   box-sizing: border-box;
   display: flex;
   justify-content: center;
@@ -473,6 +510,6 @@
 
 @media (max-width: 767px) {
   .about {
-    padding: 50px var(--page-padding);
+    padding: clamp(60px, 20vh, 200px) var(--page-padding);
   }
 }

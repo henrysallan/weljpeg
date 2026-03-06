@@ -3,142 +3,29 @@
    ============================================================ */
 
 .contact {
-  min-height: 100dvh;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  padding: 60px 0;
+  padding: 80px 0 120px;
 }
 
-.inner {
-  display: flex;
-  align-items: stretch;
-  gap: 16px;
-}
-
-/* ---- Left column — avatar ---- */
-
-.leftCol {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 280px;
-}
-
-.heading {
-  font-size: 20px;
-  letter-spacing: 0.02em;
-}
-
-.avatar {
-  width: 100%;
-  flex: 1 1 0;
-  min-height: 0;
-  object-fit: cover;
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
-/* ---- Right column — form ---- */
-
-.rightCol {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 20px;
-  width: 280px;
-}
-
-/* ---- Calendar wrapper ---- */
-
-.calendarWrap {
-  width: 100%;
-}
-
-/* ---- Input fields ---- */
-
-.fields {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  width: 100%;
-}
-
-.input {
-  width: 100%;
-  padding: 10px 12px;
-  font-size: 13px;
-  font-family: var(--font-family);
-  font-weight: var(--font-weight);
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: var(--separator-weight) solid var(--color-text);
-  border-radius: 0;
-  outline: none;
-  transition: background 0.15s ease;
-  -webkit-appearance: none;
-}
-
-/* Collapse double borders between stacked inputs */
-.input + .input {
-  margin-top: calc(-1 * var(--separator-weight));
-}
-
-.input::placeholder {
-  color: var(--color-text);
-  opacity: 0.35;
-}
-
-.input:focus {
-  background: var(--color-input-focus);
-}
-
-/* ---- Send button ---- */
-
-.sendBtn {
-  padding: 9px 28px;
-  font-size: 13px;
+.emailBtn {
+  padding: 14px 36px;
+  font-size: 16px;
   font-family: var(--font-family);
   font-weight: var(--font-weight);
   letter-spacing: 0.03em;
-  color: var(--color-inverted-text);
-  background: var(--color-text);
-  border: var(--separator-weight) solid var(--color-text);
+  color: var(--color-text);
+  background: #ffffff;
+  border: 0.5px solid #000000;
   border-radius: 0;
   cursor: pointer;
   transition: opacity 0.15s ease;
   -webkit-appearance: none;
+  line-height: 1.4;
 }
 
-.sendBtn:disabled {
-  opacity: 0.25;
-  cursor: default;
-}
-
-.sendBtn:not(:disabled):hover {
-  opacity: 0.75;
-}
-
-/* ---- Confirmation message ---- */
-
-.confirmation {
-  font-size: 13px;
-  opacity: 0.5;
-  letter-spacing: 0.02em;
-}
-
-/* ---- Responsive ---- */
-
-@media (max-width: 639px) {
-  .rightCol {
-    width: 240px;
-  }
-
-  .avatar {
-    width: 40px;
-    height: 40px;
-  }
+.emailBtn:hover {
+  opacity: 0.7;
 }

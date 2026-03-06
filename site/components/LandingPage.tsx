@@ -302,11 +302,23 @@ export const LandingPage: React.FC = () => {
       return;
     }
     // Lock scroll during fullscreen intro (both native & Lenis)
-    document.body.style.overflow = "hidden";
+    const html = document.documentElement;
+    const body = document.body;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.position = "fixed";
+    html.style.width = "100%";
+    html.style.height = "100%";
+    const blockTouch = (e: TouchEvent) => e.preventDefault();
+    document.addEventListener("touchmove", blockTouch, { passive: false });
     window.dispatchEvent(new Event("lenis-lock"));
     measure();
     // Capture what the cluster's final size will be (before we start)
     measureTarget();
+
+    return () => {
+      document.removeEventListener("touchmove", blockTouch);
+    };
   }, [measure, measureTarget]);
 
   // Phase transitions
@@ -317,7 +329,7 @@ export const LandingPage: React.FC = () => {
     } else if (phase === "fill") {
       timer = setTimeout(() => setPhase("chars"), FILL_FADE_MS * 0.4);
     } else if (phase === "chars") {
-      timer = setTimeout(() => setPhase("shrink"), 1200);
+      timer = setTimeout(() => setPhase("shrink"), 100);
     } else if (phase === "shrink") {
       // GSAP-driven shrink from fullscreen → target rect
       const el = clusterRef.current;
@@ -356,6 +368,11 @@ export const LandingPage: React.FC = () => {
           // Mark intro as played so it never replays
           introPlayed = true;
           // Unlock scroll (both native & Lenis)
+          const html = document.documentElement;
+          html.style.overflow = "";
+          html.style.position = "";
+          html.style.width = "";
+          html.style.height = "";
           document.body.style.overflow = "";
           window.dispatchEvent(new Event("lenis-unlock"));
           // Final measure for SVG border

@@ -4,6 +4,8 @@
   flex-direction: column;
   gap: 0;
   background: var(--color-bg);
+  position: relative;
+  z-index: 2;
 }
 
 .header {

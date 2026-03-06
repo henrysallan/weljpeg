@@ -4,6 +4,7 @@ import React from "react";
 import { LandingPage } from "@/components/LandingPage";
 import { LogoBar } from "@/components/LogoBar";
 import { Section } from "@/components/Section";
+import { SectionHeader } from "@/components/SectionHeader";
 import { ContactPage } from "@/components/ContactPage";
 import { ScrollManager } from "@/components/ScrollManager";
 import { CursorEffect } from "@/components/CursorEffect";
@@ -30,11 +31,12 @@ export default function Home() {
             <React.Fragment key={section.id}>
               <Section data={section} hideTopSeparator={i === 0} />
               {isLastCaseStudy && (
-                <div style={{ height: 60 }} aria-hidden />
+                <div style={{ height: 250 }} aria-hidden />
               )}
             </React.Fragment>
           );
         })}
+        <SectionHeader title="Contact" sectionId="contact" />
         <ContactPage />
       </main>
     </>

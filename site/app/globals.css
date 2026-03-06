@@ -2,6 +2,10 @@
    Welcome Labs — Global Styles & Design Tokens
    ============================================================ */
 
+html, body {
+  overflow-x: hidden;
+}
+
 :root {
   /* Colours */
   --color-bg: #F9F9F9;

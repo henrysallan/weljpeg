@@ -27,6 +27,7 @@ function containRect(
   img: HTMLImageElement,
   canvasW: number,
   canvasH: number,
+  hAlign: "right" | "center" = "right",
 ): { dx: number; dy: number; dw: number; dh: number } {
   const nw = img.naturalWidth;
   const nh = img.naturalHeight;
@@ -45,7 +46,7 @@ function containRect(
     dh = canvasH;
     dw = canvasH * imgRatio;
   }
-  const dx = canvasW - dw; // right-aligned to match object-position: right top
+  const dx = hAlign === "center" ? (canvasW - dw) / 2 : canvasW - dw;
   const dy = 0;            // top-aligned
   return { dx, dy, dw, dh };
 }
@@ -108,8 +109,9 @@ function getDisplayBitmap(
   canvasW: number,
   canvasH: number,
   fit: FitMode,
+  hAlign: "right" | "center" = "right",
 ): HTMLCanvasElement {
-  const key = `${img.src}-${fit}-${canvasW}x${canvasH}`;
+  const key = `${img.src}-${fit}-${hAlign}-${canvasW}x${canvasH}`;
   let cached = _bitmapCache.get(key);
   if (cached) return cached;
 
@@ -122,7 +124,7 @@ function getDisplayBitmap(
     const { sx, sy, sw, sh } = coverCrop(img, canvasW, canvasH);
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
   } else {
-    const { dx, dy, dw, dh } = containRect(img, canvasW, canvasH);
+    const { dx, dy, dw, dh } = containRect(img, canvasW, canvasH, hAlign);
     ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, dx, dy, dw, dh);
   }
 
@@ -330,9 +332,12 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
     // Size canvases once
     syncCanvas(focusCanvas);
 
+    // Match CSS object-position: center on mobile (≤767px), right on desktop
+    const hAlign = window.innerWidth <= 767 ? "center" as const : "right" as const;
+
     // Get display-resolution bitmaps (cached after first call per image+size)
-    const focusBitmapA = getDisplayBitmap(focusPreloaded, focusCanvas.width, focusCanvas.height, "contain");
-    const focusBitmapB = getDisplayBitmap(targetPreloaded, focusCanvas.width, focusCanvas.height, "contain");
+    const focusBitmapA = getDisplayBitmap(focusPreloaded, focusCanvas.width, focusCanvas.height, "contain", hAlign);
+    const focusBitmapB = getDisplayBitmap(targetPreloaded, focusCanvas.width, focusCanvas.height, "contain", hAlign);
 
     // Build parallel animations — focus always, thumb only if canvas available
     const animations: Promise<void>[] = [
