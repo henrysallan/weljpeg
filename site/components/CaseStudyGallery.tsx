@@ -95,12 +95,50 @@ function getOffscreen(): CanvasRenderingContext2D {
   return _offCtx!;
 }
 
-/** Draw an image pixelated onto a canvas at a given block size */
+/* ---- Display-resolution bitmap cache (avoids resampling every frame) ---- */
+const _bitmapCache = new Map<string, HTMLCanvasElement>();
+
+/**
+ * Lazily create (and cache) a canvas with the image pre-rendered at the
+ * exact display dimensions + fit mode.  Subsequent calls with the same
+ * image / size / mode return the cached canvas instantly.
+ */
+function getDisplayBitmap(
+  img: HTMLImageElement,
+  canvasW: number,
+  canvasH: number,
+  fit: FitMode,
+): HTMLCanvasElement {
+  const key = `${img.src}-${fit}-${canvasW}x${canvasH}`;
+  let cached = _bitmapCache.get(key);
+  if (cached) return cached;
+
+  cached = document.createElement("canvas");
+  cached.width = canvasW;
+  cached.height = canvasH;
+  const ctx = cached.getContext("2d")!;
+
+  if (fit === "cover") {
+    const { sx, sy, sw, sh } = coverCrop(img, canvasW, canvasH);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
+  } else {
+    const { dx, dy, dw, dh } = containRect(img, canvasW, canvasH);
+    ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, dx, dy, dw, dh);
+  }
+
+  _bitmapCache.set(key, cached);
+  return cached;
+}
+
+/**
+ * Draw a display-resolution bitmap pixelated onto a canvas at a given block size.
+ * The bitmap is already at canvas dimensions with fit/crop baked in,
+ * so every frame is a simple downsample → upsample (no contain/cover math).
+ */
 function drawPixelated(
   canvas: HTMLCanvasElement,
-  img: HTMLImageElement,
+  bitmap: HTMLCanvasElement,
   blockSize: number,
-  fit: FitMode = "contain",
   alpha: number = 1,
   clear: boolean = true,
 ) {
@@ -124,25 +162,12 @@ function drawPixelated(
   const offCtx = getOffscreen();
   const off = _offCanvas!;
 
-  if (fit === "cover") {
-    // Cover: crop source to fill entire canvas
-    const { sx, sy, sw, sh } = coverCrop(img, w, h);
-    const cols = Math.max(1, Math.ceil(w / blockSize));
-    const rows = Math.max(1, Math.ceil(h / blockSize));
-    off.width = cols;   // setting width clears the canvas
-    off.height = rows;
-    offCtx.drawImage(img, sx, sy, sw, sh, 0, 0, cols, rows);
-    ctx.drawImage(off, 0, 0, cols, rows, 0, 0, w, h);
-  } else {
-    // Contain: fit full image into destination rect
-    const { dx, dy, dw, dh } = containRect(img, w, h);
-    const cols = Math.max(1, Math.ceil(dw / blockSize));
-    const rows = Math.max(1, Math.ceil(dh / blockSize));
-    off.width = cols;
-    off.height = rows;
-    offCtx.drawImage(img, 0, 0, cols, rows);
-    ctx.drawImage(off, 0, 0, cols, rows, dx, dy, dw, dh);
-  }
+  const cols = Math.max(1, Math.ceil(w / blockSize));
+  const rows = Math.max(1, Math.ceil(h / blockSize));
+  off.width = cols;
+  off.height = rows;
+  offCtx.drawImage(bitmap, 0, 0, cols, rows);
+  ctx.drawImage(off, 0, 0, cols, rows, 0, 0, w, h);
 
   ctx.globalAlpha = prevAlpha;
   canvas.style.opacity = "1";
@@ -156,11 +181,11 @@ function drawPixelated(
  */
 function animateThrough(
   canvas: HTMLCanvasElement,
-  imgA: HTMLImageElement,
-  imgB: HTMLImageElement,
+  bitmapA: HTMLCanvasElement,
+  bitmapB: HTMLCanvasElement,
   durationMs: number,
-  fit: FitMode = "contain",
   onMid?: () => void,
+  signal?: { cancelled: boolean },
 ): Promise<void> {
   return new Promise((resolve) => {
     const startTime = performance.now();
@@ -169,6 +194,12 @@ function animateThrough(
     let midFired = false;
 
     const tick = () => {
+      if (signal?.cancelled) {
+        canvas.style.opacity = "0";
+        resolve();
+        return;
+      }
+
       const elapsed = performance.now() - startTime;
       const rawT = Math.min(1, elapsed / durationMs);
 
@@ -211,8 +242,8 @@ function animateThrough(
         const ctx = canvas.getContext("2d");
         if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (alphaA > 0.01) drawPixelated(canvas, imgA, rounded, fit, alphaA, false);
-        if (alphaB > 0.01) drawPixelated(canvas, imgB, rounded, fit, alphaB, false);
+        if (alphaA > 0.01) drawPixelated(canvas, bitmapA, rounded, alphaA, false);
+        if (alphaB > 0.01) drawPixelated(canvas, bitmapB, rounded, alphaB, false);
       }
 
       if (rawT < 1) {
@@ -245,6 +276,7 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
   const unmountedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const visibleRef = useRef(true);
+  const cancelRef = useRef<{ cancelled: boolean } | null>(null);
 
   // Preload all images once on mount
   useEffect(() => {
@@ -269,51 +301,65 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
     return preloadedRef.current[idx] ?? null;
   }, []);
 
-  /** Core swap — single continuous animation per canvas, zero pause at peak */
+  /** Core swap — interruptible animation per canvas, zero pause at peak */
   const doSwap = useCallback(async (targetIdx: number) => {
-    if (busyRef.current) return;
-    const curFocus = focusRef.current;
-    if (targetIdx === curFocus) return;
+    const fromIdx = focusRef.current;
+    if (targetIdx === fromIdx) return;
 
-    // Cancel any pending auto-cycle so we don't stack timers
+    // Cancel any in-flight animation & pending auto-cycle
+    if (cancelRef.current) cancelRef.current.cancelled = true;
     clearTimeout(timerRef.current);
 
-    const focusPreloaded = getPreloaded(curFocus);
+    const signal = { cancelled: false };
+    cancelRef.current = signal;
+
+    const focusPreloaded = getPreloaded(fromIdx);
     const targetPreloaded = getPreloaded(targetIdx);
     if (!focusPreloaded?.complete || !targetPreloaded?.complete) return;
 
-    // Find the thumb slot for the target image
-    const curThumbIndices = images.map((_, i) => i).filter((i) => i !== curFocus);
-    const thumbSlot = curThumbIndices.indexOf(targetIdx);
-
     const focusCanvas = focusCanvasRef.current;
-    const thumbCanvas = thumbCanvasRefs.current[thumbSlot];
+    if (!focusCanvas) return;
 
-    if (!focusCanvas || !thumbCanvas) return;
+    // Find the thumb slot for the target image in the current layout
+    const curThumbIndices = images.map((_, i) => i).filter((i) => i !== fromIdx);
+    const thumbSlot = curThumbIndices.indexOf(targetIdx);
+    const thumbCanvas = thumbCanvasRefs.current[thumbSlot];
 
     busyRef.current = true;
 
     // Size canvases once
     syncCanvas(focusCanvas);
-    syncCanvas(thumbCanvas);
 
-    // Single continuous animation: clear → peak → clear
-    // At the midpoint frame the DOM images swap under the mosaic
-    await Promise.all([
+    // Get display-resolution bitmaps (cached after first call per image+size)
+    const focusBitmapA = getDisplayBitmap(focusPreloaded, focusCanvas.width, focusCanvas.height, "contain");
+    const focusBitmapB = getDisplayBitmap(targetPreloaded, focusCanvas.width, focusCanvas.height, "contain");
+
+    // Build parallel animations — focus always, thumb only if canvas available
+    const animations: Promise<void>[] = [
       animateThrough(
-        focusCanvas, focusPreloaded, targetPreloaded, SWAP_MS, "contain",
+        focusCanvas, focusBitmapA, focusBitmapB, SWAP_MS,
         () => {
           // Midpoint — swap React state (canvas is fully opaque mosaic)
           focusRef.current = targetIdx;
           setFocusIndex(targetIdx);
         },
+        signal,
       ),
-      animateThrough(
-        thumbCanvas, targetPreloaded, focusPreloaded, SWAP_MS, "cover",
-      ),
-    ]);
+    ];
 
-    if (unmountedRef.current) return;
+    if (thumbCanvas) {
+      syncCanvas(thumbCanvas);
+      const thumbBitmapA = getDisplayBitmap(targetPreloaded, thumbCanvas.width, thumbCanvas.height, "cover");
+      const thumbBitmapB = getDisplayBitmap(focusPreloaded, thumbCanvas.width, thumbCanvas.height, "cover");
+      animations.push(
+        animateThrough(thumbCanvas, thumbBitmapA, thumbBitmapB, SWAP_MS, undefined, signal),
+      );
+    }
+
+    await Promise.all(animations);
+
+    // If we were cancelled mid-flight, a newer doSwap owns cleanup
+    if (signal.cancelled || unmountedRef.current) return;
     busyRef.current = false;
 
     // Schedule next swap (only while gallery is in viewport)
@@ -323,7 +369,7 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
         if (!unmountedRef.current) doSwap(next);
       }, CYCLE_PAUSE);
     }
-  }, [images, syncCanvas]);
+  }, [images, syncCanvas, getPreloaded]);
 
   // Pause auto-cycling when gallery is off-screen, resume when visible
   useEffect(() => {
@@ -405,7 +451,7 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
           <div
             key={imgIdx}
             className={styles.caseStudyThumb}
-            onClick={() => !busyRef.current && doSwap(imgIdx)}
+            onClick={() => doSwap(imgIdx)}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
