@@ -8,7 +8,8 @@ html, body {
 
 :root {
   /* Colours */
-  --color-bg: #F9F9F9;
+  --color-bg: #F4F4F4;
+  --color-header-bg: #F9F9F9;
   --color-text: #1A1C21;
   --color-black: #000000;
   --color-icon-line: #33363F;
@@ -67,6 +68,7 @@ html, body {
 
 [data-theme="dark"] {
   --color-bg: #0A0A0A;
+  --color-header-bg: #111111;
   --color-text: #F0F0F0;
   --color-black: #F0F0F0;
   --color-icon-line: #CCCCCC;

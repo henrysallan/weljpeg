@@ -7,7 +7,7 @@
   position: sticky;
   top: 0;
   z-index: var(--z-logo-bar);
-  background: var(--color-bg);
+  background: var(--color-header-bg);
   display: flex;
   flex-direction: column;
   transform: translateZ(0);
@@ -144,6 +144,20 @@
   height: var(--separator-weight);
   background: var(--color-text);
   transform-origin: center center;
+}
+
+/* ---- Upward variant (when nav is in lower half of viewport) ---- */
+
+.dropdownUp {
+  top: auto;
+  bottom: 100%;
+  padding-top: 0;
+  padding-bottom: 4px;
+  flex-direction: column-reverse;
+}
+
+.dropdownUp .dropdownStem {
+  transform-origin: bottom center;
 }
 
 @media (max-width: 767px) {

@@ -1,43 +1,34 @@
 /* ============================================================
-   LogoMarquee — infinite horizontal carousel with edge fade
+   LogoMarquee — grid on desktop, scrolling marquee on mobile
    ============================================================ */
 
+/* Desktop: 4-column grid */
 .wrapper {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-  /* Edge fade masks via gradient */
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 15%,
-    black 85%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 15%,
-    black 85%,
-    transparent 100%
-  );
-}
-
-.track {
-  display: flex;
-  align-items: center;
-  gap: 40px;
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 30px 50px;
   width: max-content;
-  animation: marquee var(--marquee-duration, 30s) linear infinite;
+  justify-content: start;
+  direction: rtl;
+  transform: scaleY(-1);
 }
 
 .logo {
-  height: 22px;
-  width: auto;
   display: block;
-  flex-shrink: 0;
+  height: auto !important;
+  width: 100%;
+  max-width: 60px;
+  object-fit: contain;
   filter: grayscale(1);
   opacity: 0.7;
+  place-self: center;
+  box-sizing: border-box;
+  transform: scaleY(-1);
+}
+
+/* Hide duplicate logos on desktop */
+.dupe {
+  display: none;
 }
 
 @keyframes marquee {
@@ -49,14 +40,29 @@
   }
 }
 
-/* ---- Responsive ---- */
+/* ---- Mobile: scrolling marquee ---- */
 
-@media (max-width: 639px) {
-  .track {
-    gap: 16px;
+@media (max-width: 767px) {
+  .wrapper {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    width: max-content;
+    overflow: visible;
+    animation: marquee var(--marquee-duration, 30s) linear infinite;
+    direction: ltr;
+    transform: none;
   }
 
   .logo {
     height: 20px;
+    padding: 0;
+    flex-shrink: 0;
+    place-self: auto;
+    transform: none;
+  }
+
+  .dupe {
+    display: block;
   }
 }

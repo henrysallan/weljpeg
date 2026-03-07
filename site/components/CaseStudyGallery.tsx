@@ -59,6 +59,7 @@ function coverCrop(
   img: HTMLImageElement,
   canvasW: number,
   canvasH: number,
+  vAlign: "top" | "center" = "center",
 ): { sx: number; sy: number; sw: number; sh: number } {
   const nw = img.naturalWidth;
   const nh = img.naturalHeight;
@@ -77,7 +78,7 @@ function coverCrop(
     sw = nw;
     sh = nw / canvasRatio;
     sx = 0;
-    sy = (nh - sh) / 2;
+    sy = vAlign === "top" ? 0 : (nh - sh) / 2;
   }
   return { sx, sy, sw, sh };
 }
@@ -110,8 +111,9 @@ function getDisplayBitmap(
   canvasH: number,
   fit: FitMode,
   hAlign: "right" | "center" = "right",
+  vAlign: "top" | "center" = "center",
 ): HTMLCanvasElement {
-  const key = `${img.src}-${fit}-${hAlign}-${canvasW}x${canvasH}`;
+  const key = `${img.src}-${fit}-${hAlign}-${vAlign}-${canvasW}x${canvasH}`;
   let cached = _bitmapCache.get(key);
   if (cached) return cached;
 
@@ -121,7 +123,7 @@ function getDisplayBitmap(
   const ctx = cached.getContext("2d")!;
 
   if (fit === "cover") {
-    const { sx, sy, sw, sh } = coverCrop(img, canvasW, canvasH);
+    const { sx, sy, sw, sh } = coverCrop(img, canvasW, canvasH, vAlign);
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
   } else {
     const { dx, dy, dw, dh } = containRect(img, canvasW, canvasH, hAlign);
@@ -295,6 +297,13 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
     if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
   }, []);
 
+  // Compute aspect ratio: 4/5 for portrait, 5/4 for landscape
+  const focusAspect = (() => {
+    const img = preloadedRef.current[focusIndex];
+    if (!img || !img.naturalWidth) return "5 / 4";
+    return img.naturalHeight > img.naturalWidth ? "4 / 5" : "5 / 4";
+  })();
+
   // Thumbnail indices derived from current render's focusIndex
   const thumbIndices = images.map((_, i) => i).filter((i) => i !== focusIndex);
 
@@ -336,8 +345,8 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
     const hAlign = window.innerWidth <= 767 ? "center" as const : "right" as const;
 
     // Get display-resolution bitmaps (cached after first call per image+size)
-    const focusBitmapA = getDisplayBitmap(focusPreloaded, focusCanvas.width, focusCanvas.height, "contain", hAlign);
-    const focusBitmapB = getDisplayBitmap(targetPreloaded, focusCanvas.width, focusCanvas.height, "contain", hAlign);
+    const focusBitmapA = getDisplayBitmap(focusPreloaded, focusCanvas.width, focusCanvas.height, "cover", hAlign, "top");
+    const focusBitmapB = getDisplayBitmap(targetPreloaded, focusCanvas.width, focusCanvas.height, "cover", hAlign, "top");
 
     // Build parallel animations — focus always, thumb only if canvas available
     const animations: Promise<void>[] = [
@@ -440,6 +449,7 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
       <div
         ref={focusWrapRef}
         className={styles.caseStudyFocus}
+        style={{ aspectRatio: focusAspect }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

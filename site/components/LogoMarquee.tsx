@@ -47,28 +47,37 @@ export const LogoMarquee: React.FC<LogoMarqueeProps> = ({
   duration = 30,
   className,
 }) => {
-  // Duplicate logos for seamless loop
-  const allLogos = [...LOGO_DATA, ...LOGO_DATA];
-
   return (
     <div
       className={`${styles.wrapper}${className ? ` ${className}` : ""}`}
       style={{ "--marquee-duration": `${duration}s` } as React.CSSProperties}
     >
-      <div className={styles.track}>
-        {allLogos.map((logo, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={i}
-            src={logo.src}
-            alt=""
-            className={styles.logo}
-            style={{ height: `${normHeight(logo.ratio)}px` }}
-            loading="eager"
-            draggable={false}
-          />
-        ))}
-      </div>
+      {/* First set — always visible */}
+      {LOGO_DATA.map((logo, i) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={`a-${i}`}
+          src={logo.src}
+          alt=""
+          className={styles.logo}
+          style={{ height: `${normHeight(logo.ratio)}px` }}
+          loading="eager"
+          draggable={false}
+        />
+      ))}
+      {/* Duplicate set — only used by mobile marquee for seamless loop */}
+      {LOGO_DATA.map((logo, i) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={`b-${i}`}
+          src={logo.src}
+          alt=""
+          className={`${styles.logo} ${styles.dupe}`}
+          style={{ height: `${normHeight(logo.ratio)}px` }}
+          loading="eager"
+          draggable={false}
+        />
+      ))}
     </div>
   );
 };

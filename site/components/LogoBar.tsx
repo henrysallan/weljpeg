@@ -9,7 +9,7 @@ interface LogoBarProps {
   className?: string;
 }
 
-const NAV_ITEMS = ["Selected Work", "How We Work", "About", "Contact"] as const;
+const NAV_ITEMS = ["Selected Work", "How We Work", "Contact"] as const;
 
 const WORK_SUBITEMS = [
   { label: "Redbull", sectionId: "redbull" },
@@ -35,6 +35,8 @@ const CLOSE_MS       = 200;   // exit duration
 const WorkDropdown: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<"closed" | "stem" | "border" | "fill" | "chars" | "done" | "closing">("closed");
+  const [openUp, setOpenUp] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGRectElement>(null);
   const [boxSize, setBoxSize] = useState({ w: 0, h: 0 });
@@ -54,6 +56,11 @@ const WorkDropdown: React.FC = () => {
     }
     if (open && phase === "done") return; // already open
     clearTimers();
+    // Decide direction: if button is in bottom half of viewport, open upward
+    if (wrapRef.current) {
+      const rect = wrapRef.current.getBoundingClientRect();
+      setOpenUp(rect.bottom > window.innerHeight * 0.5);
+    }
     setOpen(true);
     setPhase("stem");
   }, [open, phase, clearTimers]);
@@ -160,7 +167,8 @@ const WorkDropdown: React.FC = () => {
 
   return (
     <div
-      className={styles.navDropdownWrap}
+      ref={wrapRef}
+      className={`${styles.navDropdownWrap}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -173,12 +181,13 @@ const WorkDropdown: React.FC = () => {
       </a>
 
       {open && (
-        <div className={`${styles.dropdown} ${styles.dropdownVisible}`}>
-          {/* Stem — draws down */}
+        <div className={`${styles.dropdown} ${styles.dropdownVisible} ${openUp ? styles.dropdownUp : ""}`}>
+          {/* Stem — draws down (or up) */}
           <div
             className={styles.dropdownStem}
             style={{
               transform: stemReady ? "scaleY(1)" : "scaleY(0)",
+              transformOrigin: openUp ? "bottom center" : "top center",
               transition: isClosing
                 ? `transform ${CLOSE_MS * 0.4}ms ease-in`
                 : `transform ${STEM_DRAW_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
@@ -190,7 +199,7 @@ const WorkDropdown: React.FC = () => {
             ref={menuRef}
             className={styles.dropdownMenu}
             style={{
-              background: fillReady && !isClosing ? "var(--color-bg)" : "transparent",
+              background: fillReady && !isClosing ? "var(--color-header-bg)" : "transparent",
               transition: isClosing
                 ? `background ${CLOSE_MS * 0.3}ms ease-in`
                 : `background ${FILL_FADE_MS}ms ease-out`,
@@ -286,18 +295,6 @@ export const LogoBar: React.FC<LogoBarProps> = ({ className }) => {
                   href="#section-services"
                   className={styles.navBtn}
                   data-nav="services"
-                >
-                  {label}
-                </a>
-              );
-            }
-            if (label === "About") {
-              return (
-                <a
-                  key={label}
-                  href="#section-insight"
-                  className={styles.navBtn}
-                  data-nav="insight"
                 >
                   {label}
                 </a>

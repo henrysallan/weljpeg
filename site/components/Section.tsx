@@ -22,11 +22,13 @@ export const Section: React.FC<SectionProps> = ({ data, className, hideTopSepara
       className={`${styles.section} ${className ?? ""}`}
       aria-labelledby={`header-${data.id}`}
     >
-      <SectionHeader
-        title={data.title}
-        sectionId={data.id}
-        hideTopSeparator={hideTopSeparator}
-      />
+      {data.title ? (
+        <SectionHeader
+          title={data.title}
+          sectionId={data.id}
+          hideTopSeparator={hideTopSeparator}
+        />
+      ) : null}
 
       <div className={styles.sectionContent}>
         {data.blocks.map((block) => (

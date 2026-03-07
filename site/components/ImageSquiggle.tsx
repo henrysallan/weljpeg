@@ -262,6 +262,21 @@ export const ImageSquiggle: React.FC<{
   // values without restarting when they change.
   const controlsRef = useRef<Record<string, unknown>>({});
 
+  // Track all line/arc-spawned images for DOM cap enforcement
+  const allLineImgsRef = useRef<Set<HTMLImageElement>>(new Set());
+
+  // Shared drag state for event delegation (single mousemove+mouseup pair)
+  const dragStateRef = useRef<{
+    img: HTMLImageElement;
+    tracked?: TrackedImage;
+    isDragging: boolean;
+    didDrag: boolean;
+    startX: number;
+    startY: number;
+    lastX: number;
+    lastY: number;
+  } | null>(null);
+
   // Detect mobile for smaller defaults
   const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
@@ -269,30 +284,30 @@ export const ImageSquiggle: React.FC<{
   const controls = useControls({
     Mode: folder({
       mode: {
-        value: "scatter",
+        value: "linear",
         options: ["arc", "linear", "scatter"],
       },
     }),
     General: folder({
-      imagesPerLine: { value: isMobile ? 24 : 30, min: 3, max: 100, step: 1 },
-      minImageSize: { value: isMobile ? 30 : 20, min: 20, max: 250, step: 5, label: "img size min" },
-      maxImageSize: { value: isMobile ? 60 : 60, min: 20, max: 250, step: 5, label: "img size max" },
+      imagesPerLine: { value: isMobile ? 24 : 45, min: 3, max: 100, step: 1 },
+      minImageSize: { value: isMobile ? 30 : 100, min: 20, max: 250, step: 5, label: "img size min" },
+      maxImageSize: { value: isMobile ? 60 : 45, min: 20, max: 250, step: 5, label: "img size max" },
       curvePoints: {
-        value: 5,
+        value: 6,
         min: 3,
         max: 12,
         step: 1,
         label: "curve pts",
       },
       linesPerCycle: {
-        value: 2,
+        value: 3,
         min: 1,
         max: 5,
         step: 1,
         label: "lines/cycle",
       },
       lineDelay: {
-        value: 0.1,
+        value: 1.7,
         min: 0,
         max: 2,
         step: 0.1,
@@ -694,13 +709,6 @@ export const ImageSquiggle: React.FC<{
   const DRAG_THRESHOLD = 6; // px movement to count as drag vs click
 
   const attachInteractionHandlers = (img: HTMLImageElement, tracked?: TrackedImage) => {
-    let isDragging = false;
-    let didDrag = false;
-    let startX = 0;
-    let startY = 0;
-    let lastX = 0;
-    let lastY = 0;
-
     // Hover: freeze + scale
     img.addEventListener("mouseenter", () => {
       if (isFocusingRef.current || focusedRef.current === img) return;
@@ -718,96 +726,27 @@ export const ImageSquiggle: React.FC<{
     // Stop click from bubbling to container (would dismiss focused image)
     img.addEventListener("click", (e) => e.stopPropagation());
 
-    // Mousedown: start potential drag
+    // Mousedown: start potential drag via shared drag state
     img.addEventListener("mousedown", (e) => {
       if (isFocusingRef.current || focusedRef.current) return;
       e.preventDefault();
-      isDragging = true;
-      didDrag = false;
-      startX = e.clientX;
-      startY = e.clientY;
-      lastX = e.clientX;
-      lastY = e.clientY;
+      dragStateRef.current = {
+        img,
+        tracked,
+        isDragging: true,
+        didDrag: false,
+        startX: e.clientX,
+        startY: e.clientY,
+        lastX: e.clientX,
+        lastY: e.clientY,
+      };
       img.style.cursor = "grabbing";
       img.style.zIndex = "10";
     });
 
-    const onMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      if (!didDrag && Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
-        didDrag = true;
-        // Remove from scatter tracking if applicable so it stops falling
-        scatterImgsRef.current = scatterImgsRef.current.filter(
-          (entry) => entry.el !== img
-        );
-        // Kill any GSAP tweens on this image
-        gsap.killTweensOf(img);
-        img.style.opacity = String(
-          (controlsRef.current as typeof controls).maxOpacity
-        );
-        img.style.transform = "scale(1)";
-        img.dataset.dragging = "true";
-      }
-
-      if (didDrag) {
-        const curX = tracked ? tracked.x : (parseFloat(img.dataset.posX || "0"));
-        const curY = tracked ? tracked.y : (parseFloat(img.dataset.posY || "0"));
-        const moveX = e.clientX - lastX;
-        const moveY = e.clientY - lastY;
-        const newX = curX + moveX;
-        const newY = curY + moveY;
-
-        if (tracked) {
-          tracked.x = newX;
-          tracked.y = newY;
-        }
-        img.dataset.posX = String(newX);
-        img.dataset.posY = String(newY);
-        img.style.transform = `translate(${newX}px,${newY}px) scale(1)`;
-      }
-
-      lastX = e.clientX;
-      lastY = e.clientY;
-    };
-
-    const onMouseUp = () => {
-      if (!isDragging) return;
-      isDragging = false;
-      img.style.cursor = "grab";
-      img.style.zIndex = "";
-
-      if (didDrag) {
-        // Dragged — fade out and remove
-        delete img.dataset.hovered;
-        delete img.dataset.dragging;
-        gsap.to(img, {
-          opacity: 0,
-          duration: 0.5,
-          ease: "power2.in",
-          onComplete: () => {
-            const cleanup = (img as any).__cleanup;
-            if (cleanup) cleanup();
-            img.remove();
-          },
-        });
-      } else {
-        // Click — trigger focus
-        if (!isFocusingRef.current) {
-          focusImage(img);
-        }
-      }
-    };
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-
-    // Store cleanup so we can remove listeners if img is removed
+    // Cleanup: remove from line tracking set (no-op for scatter images)
     (img as any).__cleanup = () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      allLineImgsRef.current.delete(img);
     };
   };
 
@@ -815,6 +754,7 @@ export const ImageSquiggle: React.FC<{
   /** Hard cap on total images in the container. */
   const isMobileDevice = typeof window !== "undefined" && !window.matchMedia("(pointer: fine)").matches;
   const MAX_IMAGES = isMobileDevice ? 20 : 80;
+  const MAX_LINE_IMAGES = isMobileDevice ? 100 : 500;
 
   const spawnScatterBatch = () => {
     const container = containerRef.current;
@@ -1051,6 +991,26 @@ export const ImageSquiggle: React.FC<{
       );
     }
 
+    // Track line images for DOM cap enforcement
+    for (const el of imgEls) {
+      allLineImgsRef.current.add(el);
+    }
+
+    // Enforce DOM cap — remove oldest line images first
+    const lineSet = allLineImgsRef.current;
+    if (lineSet.size > MAX_LINE_IMAGES) {
+      const excess = lineSet.size - MAX_LINE_IMAGES;
+      let removed = 0;
+      for (const el of lineSet) {
+        if (removed >= excess) break;
+        if (el.dataset.hovered || focusedRef.current === el) continue;
+        gsap.killTweensOf(el);
+        lineSet.delete(el);
+        el.remove();
+        removed++;
+      }
+    }
+
     // Cleanup after everything finishes
     const cleanupTime =
       fadeOutStart + totalOutTime + c.fadeOutDuration + 0.1;
@@ -1065,6 +1025,21 @@ export const ImageSquiggle: React.FC<{
         });
         const idx = activeTweensRef.current.indexOf(tl);
         if (idx !== -1) activeTweensRef.current.splice(idx, 1);
+
+        // Safety: force-remove any orphaned (hovered) images after grace period
+        const remainingEls = imgEls.filter((el) => el.isConnected);
+        if (remainingEls.length > 0) {
+          setTimeout(() => {
+            remainingEls.forEach((el) => {
+              if (!el.isConnected) return;
+              if (focusedRef.current === el) return;
+              gsap.killTweensOf(el);
+              const cleanup = (el as any).__cleanup;
+              if (cleanup) cleanup();
+              el.remove();
+            });
+          }, 5000);
+        }
       },
       undefined,
       cleanupTime
@@ -1278,6 +1253,91 @@ export const ImageSquiggle: React.FC<{
     });
   };
 
+  /* ---------- Delegated drag listeners (single pair for all images) ---------- */
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      const ds = dragStateRef.current;
+      if (!ds || !ds.isDragging) return;
+
+      const { img, tracked } = ds;
+      const dx = e.clientX - ds.startX;
+      const dy = e.clientY - ds.startY;
+
+      if (!ds.didDrag && Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
+        ds.didDrag = true;
+        // Remove from scatter tracking if applicable
+        scatterImgsRef.current = scatterImgsRef.current.filter(
+          (entry) => entry.el !== img
+        );
+        gsap.killTweensOf(img);
+        img.style.opacity = String(
+          (controlsRef.current as typeof controls).maxOpacity
+        );
+        img.style.transform = "scale(1)";
+        img.dataset.dragging = "true";
+      }
+
+      if (ds.didDrag) {
+        const curX = tracked ? tracked.x : parseFloat(img.dataset.posX || "0");
+        const curY = tracked ? tracked.y : parseFloat(img.dataset.posY || "0");
+        const moveX = e.clientX - ds.lastX;
+        const moveY = e.clientY - ds.lastY;
+        const newX = curX + moveX;
+        const newY = curY + moveY;
+
+        if (tracked) {
+          tracked.x = newX;
+          tracked.y = newY;
+        }
+        img.dataset.posX = String(newX);
+        img.dataset.posY = String(newY);
+        img.style.transform = `translate(${newX}px,${newY}px) scale(1)`;
+      }
+
+      ds.lastX = e.clientX;
+      ds.lastY = e.clientY;
+    };
+
+    const onMouseUp = () => {
+      const ds = dragStateRef.current;
+      if (!ds || !ds.isDragging) return;
+
+      const { img } = ds;
+      ds.isDragging = false;
+      img.style.cursor = "grab";
+      img.style.zIndex = "";
+
+      if (ds.didDrag) {
+        delete img.dataset.hovered;
+        delete img.dataset.dragging;
+        gsap.to(img, {
+          opacity: 0,
+          duration: 0.5,
+          ease: "power2.in",
+          onComplete: () => {
+            const cleanup = (img as any).__cleanup;
+            if (cleanup) cleanup();
+            img.remove();
+          },
+        });
+      } else {
+        if (!isFocusingRef.current) {
+          focusImage(img);
+        }
+      }
+
+      dragStateRef.current = null;
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /* ---------- Container click (dismiss focused image) ---------- */
   useEffect(() => {
     const container = containerRef.current;
@@ -1369,6 +1429,12 @@ export const ImageSquiggle: React.FC<{
       }
       activeTweensRef.current.forEach((t) => t.kill());
       activeTweensRef.current = [];
+      // Clean up all tracked line images
+      for (const el of allLineImgsRef.current) {
+        gsap.killTweensOf(el);
+        el.remove();
+      }
+      allLineImgsRef.current.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

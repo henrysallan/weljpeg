@@ -94,7 +94,7 @@ export interface CaseStudy {
 
 export interface ServicesSection {
   id: string;
-  title: string;
+  title?: string;
   tags: string[];
   description: string;
   client: string;
@@ -268,7 +268,7 @@ export const servicesSection: ServicesSection = {
 
 export const insightSection: ServicesSection = {
   id: "insight",
-  title: "What sets us apart",
+  title: "",
   tags: ["Culture", "Trends"],
   description: "A window into the cultural currents shaping tomorrow.",
   client: "Welcome Labs",

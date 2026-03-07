@@ -91,9 +91,10 @@
 .companyLogos {
   flex: 1;
   min-width: 0;
-  max-width: 280px;
+  max-width: 420px;
   display: flex;
   align-items: flex-end;
+  justify-content: flex-end;
   margin-left: 24px;
 }
 
@@ -126,5 +127,20 @@
     margin-left: 0;
     margin-top: 12px;
     width: 100%;
+    overflow: hidden;
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 10%,
+      black 90%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 10%,
+      black 90%,
+      transparent 100%
+    );
   }
 }
