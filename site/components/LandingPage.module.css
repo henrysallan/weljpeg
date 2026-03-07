@@ -18,7 +18,7 @@
   aspect-ratio: 4 / 3;
   position: relative;
   z-index: 1;
-  padding: 32px 36px 36px;
+  padding: 3.6cqw 4cqw 4cqw;
   background: var(--color-cluster-bg);
   color: var(--color-cluster-text);
   border: var(--separator-weight) solid var(--color-text);
@@ -71,6 +71,8 @@
 
 .logo {
   display: block;
+  width: 31.5cqw;
+  height: auto;
 }
 
 .bottomRow {
@@ -91,11 +93,11 @@
 .companyLogos {
   flex: 1;
   min-width: 0;
-  max-width: 420px;
+  max-width: 47cqw;
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
-  margin-left: 24px;
+  margin-left: 2.7cqw;
 }
 
 /* ---- Responsive ---- */
@@ -105,12 +107,11 @@
     width: calc(100% - 32px);
     min-width: 0;
     aspect-ratio: 3 / 4;
-    padding: 20px;
+    padding: 5cqw;
   }
 
   .logo {
-    width: 120px;
-    height: auto;
+    width: 33cqw;
   }
 
   .bottomRow {

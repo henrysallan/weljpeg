@@ -42,7 +42,7 @@
 
 /* ---- Mobile: scrolling marquee ---- */
 
-@media (max-width: 767px) {
+@media (max-width: 639px) {
   .wrapper {
     display: flex;
     align-items: center;

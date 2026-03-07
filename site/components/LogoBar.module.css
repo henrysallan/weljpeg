@@ -29,6 +29,12 @@
   cursor: pointer;
   display: flex;
   align-items: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.logoBtn:active {
+  opacity: 0.5;
 }
 
 .nav {
@@ -58,10 +64,16 @@
   font-family: inherit;
   text-transform: lowercase;
   letter-spacing: 0.02em;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .navBtn:hover {
   opacity: 0.6;
+}
+
+.navBtn:active {
+  opacity: 0.4;
 }
 
 /* ---- Work dropdown ---- */
@@ -132,10 +144,16 @@
   white-space: nowrap;
   transition: opacity 0.15s ease;
   text-transform: uppercase;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .dropdownItem:hover {
   opacity: 0.5;
+}
+
+.dropdownItem:active {
+  opacity: 0.3;
 }
 
 .dropdownSep {

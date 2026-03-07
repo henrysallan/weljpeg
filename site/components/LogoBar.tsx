@@ -113,6 +113,28 @@ const WorkDropdown: React.FC = () => {
     }, 80);
   }, [handleClose]);
 
+  // Toggle dropdown on touch (mobile)
+  const handleTouchToggle = useCallback((e: React.TouchEvent) => {
+    e.preventDefault(); // prevent navigation & double-tap zoom
+    if (open && (phase === "done" || phase === "chars")) {
+      handleClose();
+    } else {
+      handleOpen();
+    }
+  }, [open, phase, handleOpen, handleClose]);
+
+  // Close dropdown when tapping outside (mobile)
+  useEffect(() => {
+    if (!open) return;
+    const onTouchOutside = (e: TouchEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        handleClose();
+      }
+    };
+    document.addEventListener("touchstart", onTouchOutside, { passive: true });
+    return () => document.removeEventListener("touchstart", onTouchOutside);
+  }, [open, handleClose]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -176,6 +198,7 @@ const WorkDropdown: React.FC = () => {
         href="#section-redbull"
         className={styles.navBtn}
         data-nav="work"
+        onTouchEnd={handleTouchToggle}
       >
         Selected Work
       </a>
@@ -252,6 +275,11 @@ const WorkDropdown: React.FC = () => {
                   href={`#section-${item.sectionId}`}
                   className={styles.dropdownItem}
                   onClick={handleClose}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    handleClose();
+                    window.location.hash = `#section-${item.sectionId}`;
+                  }}
                 >
                   {renderChars(item.label, i)}
                 </a>

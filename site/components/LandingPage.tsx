@@ -224,6 +224,7 @@ export const LandingPage: React.FC = () => {
   const logoWrapRef = useRef<HTMLDivElement>(null);
   const companyLogosRef = useRef<HTMLDivElement>(null);
   const landingRef = useRef<HTMLElement>(null);
+  const blockTouchRef = useRef<((e: TouchEvent) => void) | null>(null);
 
   const [phase, setPhase] = useState<
     "hidden" | "border" | "fill" | "chars" | "shrink" | "done"
@@ -310,6 +311,7 @@ export const LandingPage: React.FC = () => {
     html.style.width = "100%";
     html.style.height = "100%";
     const blockTouch = (e: TouchEvent) => e.preventDefault();
+    blockTouchRef.current = blockTouch;
     document.addEventListener("touchmove", blockTouch, { passive: false });
     window.dispatchEvent(new Event("lenis-lock"));
     measure();
@@ -318,6 +320,7 @@ export const LandingPage: React.FC = () => {
 
     return () => {
       document.removeEventListener("touchmove", blockTouch);
+      blockTouchRef.current = null;
     };
   }, [measure, measureTarget]);
 
@@ -374,6 +377,11 @@ export const LandingPage: React.FC = () => {
           html.style.width = "";
           html.style.height = "";
           document.body.style.overflow = "";
+          // Remove touch-move blocker so mobile can scroll again
+          if (blockTouchRef.current) {
+            document.removeEventListener("touchmove", blockTouchRef.current);
+            blockTouchRef.current = null;
+          }
           window.dispatchEvent(new Event("lenis-unlock"));
           // Final measure for SVG border
           measure();
@@ -531,7 +539,7 @@ export const LandingPage: React.FC = () => {
             transition: `opacity ${CHAR_FADE_MS}ms ${logoDelay}ms ease-out, transform ${CHAR_FADE_MS}ms ${logoDelay}ms ease-out`,
           }}
         >
-          <WelcomeLogo className={styles.logo} width={280} height={245} />
+          <WelcomeLogo className={styles.logo} />
         </div>
 
         {/* Bottom row: tagline left, company logos right */}
