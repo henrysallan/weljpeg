@@ -6,19 +6,26 @@ import styles from "./LogoMarquee.module.css";
 /* All company logos with viewBox aspect ratios for area-normalised sizing.
    Each logo gets a height that gives it roughly the same visual area. */
 const LOGO_DATA: { src: string; ratio: number }[] = [
-  { src: "/images/companylogos/Logo_01.svg", ratio: 76 / 12 },   // 6.33
-  { src: "/images/companylogos/Logo_02.svg", ratio: 55 / 55 },   // 1.00
-  { src: "/images/companylogos/Logo_03.svg", ratio: 81 / 10 },   // 8.10
-  { src: "/images/companylogos/Logo_04.svg", ratio: 71 / 16 },   // 4.44
-  { src: "/images/companylogos/Logo_05.svg", ratio: 69 / 27 },   // 2.56
-  { src: "/images/companylogos/Logo_06.svg", ratio: 69 / 42 },   // 1.64
-  { src: "/images/companylogos/Logo_07.svg", ratio: 65 / 65 },   // 1.00
-  { src: "/images/companylogos/Logo_08.svg", ratio: 56 / 52 },   // 1.08
-  { src: "/images/companylogos/Logo_09.svg", ratio: 74 / 29 },   // 2.55
-  { src: "/images/companylogos/Logo_10.svg", ratio: 142 / 15 },  // 9.47
-  { src: "/images/companylogos/Logo_11.svg", ratio: 65 / 42 },   // 1.55
-  { src: "/images/companylogos/Logo_12.svg", ratio: 144 / 44 },  // 3.27
-  { src: "/images/companylogos/Logo_13.svg", ratio: 159 / 17 },  // 9.35
+  { src: "/images/companylogos/Logo_01.svg", ratio: 76 / 12 },          // 6.33
+  { src: "/images/companylogos/Logo_02.svg", ratio: 55 / 55 },          // 1.00
+  { src: "/images/companylogos/Logo_03.svg", ratio: 81 / 10 },          // 8.10
+  { src: "/images/companylogos/Logo_04.svg", ratio: 71 / 16 },          // 4.44
+  { src: "/images/companylogos/Logo_05.svg", ratio: 69 / 27 },          // 2.56
+  { src: "/images/companylogos/Logo_06.svg", ratio: 69 / 42 },          // 1.64
+  { src: "/images/companylogos/Logo_07.svg", ratio: 65 / 65 },          // 1.00
+  { src: "/images/companylogos/Logo_08.svg", ratio: 56 / 52 },          // 1.08
+  { src: "/images/companylogos/Logo_09.svg", ratio: 74 / 29 },          // 2.55
+  { src: "/images/companylogos/Logo_10.svg", ratio: 142 / 15 },         // 9.47
+  { src: "/images/companylogos/Logo_11.svg", ratio: 65 / 42 },          // 1.55
+  { src: "/images/companylogos/Logo_12.svg", ratio: 144 / 44 },         // 3.27
+  { src: "/images/companylogos/epic_records.svg", ratio: 1280 / 898 },  // 1.43
+  { src: "/images/companylogos/locally_yours.svg", ratio: 2500 / 1563 },// 1.60
+  { src: "/images/companylogos/nous_research.svg", ratio: 400 / 400 },  // 1.00
+  { src: "/images/companylogos/prada.svg", ratio: 600 / 600 },          // 1.00
+  { src: "/images/companylogos/pressman.svg", ratio: 820 / 1014 },      // 0.81
+  { src: "/images/companylogos/sophon.svg", ratio: 400 / 400 },         // 1.00
+  { src: "/images/companylogos/stem.svg", ratio: 443 / 114 },           // 3.89
+  { src: "/images/companylogos/rainmaker.svg", ratio: 2144 / 2144 },    // 1.00
 ];
 
 /** Target visual area (px²). Equivalent to a ~28×28 square. */

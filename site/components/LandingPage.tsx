@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { gsap } from "gsap";
-import { WelcomeLogo } from "./WelcomeLogo";
+import { AnimatedWelcomeLogo } from "./AnimatedWelcomeLogo";
 import { ImageSquiggle } from "./ImageSquiggle";
 import { LogoMarquee } from "./LogoMarquee";
 import styles from "./LandingPage.module.css";
@@ -539,7 +539,7 @@ export const LandingPage: React.FC = () => {
             transition: `opacity ${CHAR_FADE_MS}ms ${logoDelay}ms ease-out, transform ${CHAR_FADE_MS}ms ${logoDelay}ms ease-out`,
           }}
         >
-          <WelcomeLogo className={styles.logo} />
+          <AnimatedWelcomeLogo className={styles.logo} autoLoop />
         </div>
 
         {/* Bottom row: tagline left, company logos right */}

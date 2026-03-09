@@ -11,6 +11,19 @@ export const transitionConfig = {
   easePower: 5,
 };
 
+export const logoAnimConfig = {
+  expandDuration: 1.6,
+  collapseDuration: 1.6,
+  holdLogo: 2.0,
+  holdDot: 1.0,
+  /** Lower = smoother blobs (more path segments). Range ~0.1–4. */
+  morphResolution: 0.5,
+  /** Set by AnimatedWelcomeLogo, called by leva panel to restart loop */
+  _onRestart: null as (() => void) | null,
+  /** Called when morphResolution changes so interpolators can be rebuilt */
+  _onResolutionChange: null as (() => void) | null,
+};
+
 export const imageRevealConfig = {
   blur: false,
   pixelate: true,

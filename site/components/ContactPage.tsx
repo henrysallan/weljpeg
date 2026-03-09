@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { ScrollCharReveal } from "./ScrollCharReveal";
+import { AnimatedWelcomeLogo } from "./AnimatedWelcomeLogo";
 import styles from "./ContactPage.module.css";
 
 const EMAIL = "info@welcomejpeg.com";
@@ -42,6 +43,12 @@ export const ContactPage: React.FC = () => {
 
   return (
     <section id="section-contact" className={styles.contact}>
+      <AnimatedWelcomeLogo
+        className={styles.contactLogo}
+        width={36}
+        height={31.5}
+        autoLoop
+      />
       <button
         className={styles.emailBtn}
         onClick={handleCopy}

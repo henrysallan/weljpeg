@@ -278,7 +278,8 @@
   position: relative;
 }
 
-/* Vertical hairline between text and gallery */
+/* Vertical hairline between text and gallery — disabled */
+/*
 .caseStudyPage::before {
   content: "";
   position: absolute;
@@ -290,6 +291,7 @@
   pointer-events: none;
   z-index: 1;
 }
+*/
 
 /* Headline spans upper-left */
 .caseStudyHeadline {
@@ -357,15 +359,23 @@
   min-width: 0;
   min-height: 0;
   position: relative;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .caseStudyFocus img {
+  position: relative;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center top;
   display: block;
+  z-index: 1;
+  transition: opacity 0.5s ease;
+}
+
+/* Fade out thumbnail to reveal video underneath */
+.focusImgHidden {
+  opacity: 0;
 }
 
 .caseStudyFocus canvas {
@@ -375,6 +385,32 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: 2;
+}
+
+/* Video layer — sits behind img + canvas */
+.focusVideoLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* Buffering overlay — animated logo centered while video loads */
+.bufferingOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: bufferFadeIn 0.4s ease-out both;
+}
+
+@keyframes bufferFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .caseStudyStroke {

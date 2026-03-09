@@ -7,9 +7,10 @@ import { observe } from "@/lib/sharedObserver";
 /* ----------------------------------------------------------------
    Timing
    ---------------------------------------------------------------- */
-const CHAR_FADE_MS   = 220;   // per-character transition duration
-const CHAR_TRAVEL    = 5;     // px each char drifts up
-const CHAR_STAGGER   = 12;    // ms between shuffled characters
+const CHAR_FADE_MS   = 220;   // per-unit transition duration
+const CHAR_TRAVEL    = 5;     // px each unit drifts up
+const CHAR_STAGGER   = 12;    // ms between shuffled units (chars)
+const WORD_STAGGER   = 18;    // ms between shuffled units (words)
 
 /* ----------------------------------------------------------------
    Utility — Fisher-Yates shuffle for random stagger order
@@ -41,6 +42,9 @@ interface ScrollCharRevealProps {
   stagger?: number;
   /** When true, skip per-char splitting — just fade the whole block. */
   simple?: boolean;
+  /** Animation granularity: "char" (default) or "word". Word mode creates
+   *  far fewer DOM nodes and is better for body copy. */
+  mode?: "char" | "word";
 }
 
 export const ScrollCharReveal: React.FC<ScrollCharRevealProps> = ({
@@ -51,16 +55,21 @@ export const ScrollCharReveal: React.FC<ScrollCharRevealProps> = ({
   as: Tag = "span" as any,
   stagger = CHAR_STAGGER,
   simple = false,
+  mode = "char",
 }) => {
   const wrapRef = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
 
-  // Count total characters & build shuffled delay slots (stable per mount)
-  const { totalChars, slots } = useMemo(() => {
-    if (simple) return { totalChars: 0, slots: [] as number[] };
-    const count = countChars(children);
-    return { totalChars: count, slots: buildShuffledSlots(count) };
-  }, [children, simple]);
+  const isWordMode = mode === "word";
+
+  // Count total units & build shuffled delay slots (stable per mount)
+  const { totalUnits, slots } = useMemo(() => {
+    if (simple) return { totalUnits: 0, slots: [] as number[] };
+    const count = isWordMode ? countWords(children) : countChars(children);
+    return { totalUnits: count, slots: buildShuffledSlots(count) };
+  }, [children, simple, isWordMode]);
+
+  const effectiveStagger = isWordMode ? (stagger === CHAR_STAGGER ? WORD_STAGGER : stagger) : stagger;
 
   // IntersectionObserver — toggles visible (shared)
   useEffect(() => {
@@ -88,9 +97,11 @@ export const ScrollCharReveal: React.FC<ScrollCharRevealProps> = ({
     );
   }
 
-  // Flatten children into per-char spans
-  let charIdx = 0;
-  const rendered = flattenChars(children, visible, slots, totalChars, () => charIdx++, stagger);
+  // Flatten children into animated spans
+  let unitIdx = 0;
+  const rendered = isWordMode
+    ? flattenWords(children, visible, slots, totalUnits, () => unitIdx++, effectiveStagger)
+    : flattenChars(children, visible, slots, totalUnits, () => unitIdx++, effectiveStagger);
 
   return (
     <Tag
@@ -116,6 +127,78 @@ function countChars(node: React.ReactNode): number {
     return countChars(el.props.children);
   }
   return 0;
+}
+
+/** Count all words recursively (whitespace-separated tokens) */
+function countWords(node: React.ReactNode): number {
+  if (typeof node === "string") {
+    const words = node.match(/\S+/g);
+    return words ? words.length : 0;
+  }
+  if (typeof node === "number") return 1;
+  if (Array.isArray(node)) return node.reduce((s, c) => s + countWords(c), 0);
+  if (React.isValidElement(node)) {
+    const el = node as React.ReactElement<any>;
+    return countWords(el.props.children);
+  }
+  return 0;
+}
+
+/** Recursively split text nodes into animated word spans */
+function flattenWords(
+  node: React.ReactNode,
+  visible: boolean,
+  slots: number[],
+  totalWords: number,
+  nextIdx: () => number,
+  stagger: number,
+): React.ReactNode {
+  if (typeof node === "string" || typeof node === "number") {
+    const str = String(node);
+    // Split into words and whitespace tokens
+    const tokens = str.match(/\S+|\s+/g) || [];
+    return tokens.map((token, tIdx) => {
+      if (/^\s+$/.test(token)) {
+        // Whitespace — render as-is (inline, no animation needed)
+        return <span key={`ws-${tIdx}-${Math.random()}`} style={{ whiteSpace: "pre" }}>{token}</span>;
+      }
+      // Word token — one animated span per word
+      const idx = nextIdx();
+      const slot = slots[idx] ?? idx;
+      const delay = slot * stagger;
+      const show = visible;
+      return (
+        <span
+          key={`w-${idx}`}
+          className={styles.char}
+          style={{
+            opacity: show ? 1 : 0,
+            transform: show ? "translateY(0)" : `translateY(${CHAR_TRAVEL}px)`,
+            transition: show
+              ? `opacity ${CHAR_FADE_MS}ms ${delay}ms ease-out, transform ${CHAR_FADE_MS}ms ${delay}ms ease-out`
+              : `opacity 120ms ease-in, transform 120ms ease-in`,
+          }}
+        >
+          {token}
+        </span>
+      );
+    });
+  }
+
+  if (React.isValidElement(node)) {
+    const el = node as React.ReactElement<any>;
+    if (el.type === "br") return node;
+    const kids = React.Children.map(el.props.children, (child) =>
+      flattenWords(child, visible, slots, totalWords, nextIdx, stagger),
+    );
+    return React.cloneElement(el, { ...el.props, key: el.key ?? `wr-${Math.random()}` }, kids);
+  }
+
+  if (Array.isArray(node)) {
+    return node.map((child) => flattenWords(child, visible, slots, totalWords, nextIdx, stagger));
+  }
+
+  return node;
 }
 
 /** Recursively split text nodes into animated char spans */

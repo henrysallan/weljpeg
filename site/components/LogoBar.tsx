@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
-import { WelcomeLogo } from "./WelcomeLogo";
+import { AnimatedWelcomeLogo } from "./AnimatedWelcomeLogo";
 import { Separator } from "./Separator";
+import { caseStudies } from "@/lib/data";
 import styles from "./LogoBar.module.css";
 
 interface LogoBarProps {
@@ -11,11 +12,10 @@ interface LogoBarProps {
 
 const NAV_ITEMS = ["Selected Work", "How We Work", "Contact"] as const;
 
-const WORK_SUBITEMS = [
-  { label: "Redbull", sectionId: "redbull" },
-  { label: "Uniqlo", sectionId: "uniqlo" },
-  { label: "Puma", sectionId: "puma" },
-] as const;
+const WORK_SUBITEMS = caseStudies.map((cs) => ({
+  label: cs.title,
+  sectionId: cs.id,
+}));
 
 /* ----------------------------------------------------------------
    Animation timing (ms)
@@ -309,7 +309,7 @@ export const LogoBar: React.FC<LogoBarProps> = ({ className }) => {
       <Separator className={styles.topSep} />
       <div className={styles.logoWrap}>
         <button id="logo-home-btn" className={styles.logoBtn} aria-label="Back to top">
-          <WelcomeLogo width={scale} height={scale * ratio} />
+          <AnimatedWelcomeLogo autoLoop width={scale} height={scale * ratio} />
         </button>
         <nav id="logo-nav" className={styles.nav}>
           {NAV_ITEMS.map((label) => {

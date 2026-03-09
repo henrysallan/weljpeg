@@ -2,6 +2,10 @@
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import styles from "./ContentBlock.module.css";
+import { VimeoEmbed } from "./VimeoEmbed";
+import { AnimatedWelcomeLogo } from "./AnimatedWelcomeLogo";
+import type { MediaItem } from "@/lib/data";
+import { fetchVimeoThumbnail } from "@/lib/vimeoThumbnails";
 
 const PIXEL_START  = 48;     // max block size (fully pixelated)
 const SWAP_MS      = 700;   // total time for one through-animation (peak at midpoint)
@@ -9,7 +13,7 @@ const CYCLE_PAUSE  = 3000;  // pause between swaps
 const FADE_ZONE    = 0.001;  // ±6% around midpoint = crossfade from 0.44→0.56
 
 interface CaseStudyGalleryProps {
-  images: { src: string; alt: string }[];
+  images: MediaItem[];
 }
 
 /** Ease-in-out cubic for smooth acceleration/deceleration */
@@ -263,6 +267,14 @@ function animateThrough(
 
 export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) => {
   const [focusIndex, setFocusIndex] = useState(0);
+  const [resolvedImages, setResolvedImages] = useState<MediaItem[]>(images);
+  const [thumbsReady, setThumbsReady] = useState(false);
+  const [animating, setAnimating] = useState(false);
+  /** Set of video indices whose playback has started (buffered & rendering) */
+  const [videoReady, setVideoReady] = useState<Set<number>>(new Set());
+
+  // If any item is a video, disable auto-cycling (manual clicks only)
+  const hasVideo = images.some((m) => !!m.vimeoId);
 
   const galleryRef = useRef<HTMLDivElement>(null);
   const focusCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -282,13 +294,39 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
   const visibleRef = useRef(true);
   const cancelRef = useRef<{ cancelled: boolean } | null>(null);
 
-  // Preload all images once on mount
+  /* ---- Resolve Vimeo thumbnails, then preload all sources ---- */
   useEffect(() => {
-    preloadedRef.current = images.map((img) => {
-      const el = new Image();
-      el.src = img.src;
-      return el;
-    });
+    let cancelled = false;
+
+    async function resolve() {
+      const needsFetch = images.some((m) => m.vimeoId && !m.src);
+      const resolved = needsFetch
+        ? await Promise.all(
+            images.map(async (item) => {
+              if (item.vimeoId && !item.src) {
+                const thumb = await fetchVimeoThumbnail(item.vimeoId);
+                return { ...item, src: thumb };
+              }
+              return item;
+            }),
+          )
+        : images;
+
+      if (cancelled) return;
+      setResolvedImages(resolved);
+
+      // Preload all resolved images (incl. Vimeo thumbnails)
+      preloadedRef.current = resolved.map((img) => {
+        const el = new Image();
+        if (img.src) el.src = img.src;
+        return el;
+      });
+
+      setThumbsReady(true);
+    }
+
+    resolve();
+    return () => { cancelled = true; };
   }, [images]);
 
   /** Sync canvas size to CSS display size (no-op if already matched) */
@@ -337,6 +375,7 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
     const thumbCanvas = thumbCanvasRefs.current[thumbSlot];
 
     busyRef.current = true;
+    setAnimating(true);
 
     // Size canvases once
     syncCanvas(focusCanvas);
@@ -375,15 +414,16 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
     // If we were cancelled mid-flight, a newer doSwap owns cleanup
     if (signal.cancelled || unmountedRef.current) return;
     busyRef.current = false;
+    setAnimating(false);
 
-    // Schedule next swap (only while gallery is in viewport)
-    if (visibleRef.current) {
+    // Schedule next swap (only while gallery is in viewport, and no videos)
+    if (visibleRef.current && !hasVideo) {
       const next = (focusRef.current + 1) % images.length;
       timerRef.current = setTimeout(() => {
         if (!unmountedRef.current) doSwap(next);
       }, CYCLE_PAUSE);
     }
-  }, [images, syncCanvas, getPreloaded]);
+  }, [images, syncCanvas, getPreloaded, hasVideo]);
 
   // Pause auto-cycling when gallery is off-screen, resume when visible
   useEffect(() => {
@@ -395,8 +435,8 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
         const wasVisible = visibleRef.current;
         visibleRef.current = entry.isIntersecting;
 
-        // Scrolled back into view — restart cycle if idle
-        if (!wasVisible && entry.isIntersecting && !busyRef.current && !unmountedRef.current) {
+        // Scrolled back into view — restart cycle if idle (skip for video galleries)
+        if (!hasVideo && !wasVisible && entry.isIntersecting && !busyRef.current && !unmountedRef.current) {
           clearTimeout(timerRef.current);
           const next = (focusRef.current + 1) % images.length;
           timerRef.current = setTimeout(() => {
@@ -417,24 +457,26 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Initial kick-off: start cycling once preloaded images are ready
+  // Initial kick-off: start cycling once preloaded images are ready (skip for video galleries)
   useEffect(() => {
     unmountedRef.current = false;
 
-    const waitAndStart = () => {
-      const allReady = preloadedRef.current.length === images.length &&
-        preloadedRef.current.every((img) => img.complete && img.naturalWidth > 0);
-      if (allReady) {
-        const next = (focusRef.current + 1) % images.length;
-        timerRef.current = setTimeout(() => {
-          if (!unmountedRef.current) doSwap(next);
-        }, CYCLE_PAUSE);
-      } else {
-        timerRef.current = setTimeout(waitAndStart, 500);
-      }
-    };
+    if (!hasVideo) {
+      const waitAndStart = () => {
+        const allReady = preloadedRef.current.length === images.length &&
+          preloadedRef.current.every((img) => img.complete && img.naturalWidth > 0);
+        if (allReady) {
+          const next = (focusRef.current + 1) % images.length;
+          timerRef.current = setTimeout(() => {
+            if (!unmountedRef.current) doSwap(next);
+          }, CYCLE_PAUSE);
+        } else {
+          timerRef.current = setTimeout(waitAndStart, 500);
+        }
+      };
 
-    waitAndStart();
+      waitAndStart();
+    }
 
     return () => {
       unmountedRef.current = true;
@@ -443,21 +485,71 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  if (images.length === 0) {
+    return null;
+  }
+
   return (
     <div ref={galleryRef} className={styles.caseStudyGallery}>
-      {/* Focus image — full height */}
+      {/* Focus image/video — full height */}
       <div
         ref={focusWrapRef}
         className={styles.caseStudyFocus}
         style={{ aspectRatio: focusAspect }}
       >
+        {/* Pre-render ALL video embeds so they buffer ahead of time.
+            Only the active one is visible; the rest stay hidden but playing. */}
+        {resolvedImages.map((item, idx) =>
+          item.vimeoId ? (
+            <div
+              key={`video-${idx}`}
+              className={styles.focusVideoLayer}
+              style={{ visibility: idx === focusIndex && !animating ? "visible" : "hidden" }}
+            >
+              <VimeoEmbed
+                vimeoId={item.vimeoId}
+                alt={item.alt}
+                onPlaying={() =>
+                  setVideoReady((prev) => {
+                    if (prev.has(idx)) return prev;
+                    const next = new Set(prev);
+                    next.add(idx);
+                    return next;
+                  })
+                }
+              />
+            </div>
+          ) : null,
+        )}
+
+        {/* Thumbnail image — covers the video until idle, then fades out */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           ref={focusImgRef}
-          src={images[focusIndex].src}
-          alt={images[focusIndex].alt}
+          src={resolvedImages[focusIndex].src}
+          alt={resolvedImages[focusIndex].alt}
+          style={resolvedImages[focusIndex].vimeoId ? { objectPosition: "center center" } : undefined}
+          className={
+            resolvedImages[focusIndex].vimeoId && !animating && videoReady.has(focusIndex)
+              ? styles.focusImgHidden
+              : ""
+          }
         />
         <canvas ref={focusCanvasRef} />
+
+        {/* Buffering overlay — animated logo while video is loading */}
+        {resolvedImages[focusIndex].vimeoId &&
+          !animating &&
+          !videoReady.has(focusIndex) && (
+            <div className={styles.bufferingOverlay}>
+              <AnimatedWelcomeLogo
+                width={48}
+                height={42}
+                color="rgba(255,255,255,0.7)"
+                autoLoop
+              />
+            </div>
+          )}
       </div>
 
       {/* Thumbnail strip */}
@@ -471,8 +563,8 @@ export const CaseStudyGallery: React.FC<CaseStudyGalleryProps> = ({ images }) =>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               ref={(el) => { thumbImgRefs.current[slotIdx] = el; }}
-              src={images[imgIdx].src}
-              alt={images[imgIdx].alt}
+              src={resolvedImages[imgIdx].src}
+              alt={resolvedImages[imgIdx].alt}
             />
             <canvas ref={(el) => { thumbCanvasRefs.current[slotIdx] = el; }} />
           </div>

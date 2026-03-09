@@ -48,13 +48,22 @@ export interface CardsBlock {
   cards: { title: string; body: string; items?: string[] }[];
 }
 
+/** A single media item — either a static image or a Vimeo video. */
+export interface MediaItem {
+  src: string;
+  alt: string;
+  /** If set, this slot renders a Vimeo player instead of an image.
+   *  The `src` field is still used as the poster/thumbnail. */
+  vimeoId?: string;
+}
+
 /** Module 6: Case-study page — single viewport-height layout with text (upper-left) + image grid (bottom-right) */
 export interface CaseStudyPageBlock {
   type: "case-study-page";
   id: string;
   headline: string;
   texts: string[];
-  images: { src: string; alt: string }[];
+  images: MediaItem[];
 }
 
 /** Module 7: About — text paragraphs on the left, single image on the right */
@@ -200,8 +209,83 @@ export const caseStudies: CaseStudy[] = [
       },
     ],
   },
+  {
+    id: "rainmaker",
+    title: "Rainmaker",
+    tags: ["Strategy", "Content"],
+    description: "A founder-forward creative and marketing strategy.",
+    client: "Rainmaker",
+    services: "Strategy, Content, Distribution",
+    blocks: [
+      {
+        type: "case-study-page",
+        id: "rainmaker-page",
+        headline: "A founder-forward creative and marketing strategy.",
+        texts: [
+          "Rainmaker's founder had ideas worth hearing, but no system for getting them in front of people.",
+          "We [developed a founder-forward creative strategy] built around clipping his best thinking and [seeding it across the internet] in a way that felt native to every platform it landed on.",
+          "We [wrote the creative briefs], [developed ad concepts], and [managed the distribution] that turned those clips into traction for the brand.",
+          "We got millions of views, through sharp content and placement. The whole approach was designed to put his personality and perspective at the front of the brand, which is the kind of thing that compounds over time rather than fading out after a campaign window closes.",
+        ],
+        images: [
+          { src: "/images/companylogos/rainmaker/rainmaker01.png", alt: "Rainmaker campaign — image 1" },
+          { src: "/images/companylogos/rainmaker/rainmaker02.png", alt: "Rainmaker campaign — image 2" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kidcudi",
+    title: "Kid Cudi",
+    tags: ["Strategy", "Content"],
+    description: "Show, don't tell.",
+    client: "Kid Cudi",
+    services: "Strategy, Content",
+    blocks: [
+      {
+        type: "case-study-page",
+        id: "kidcudi-page",
+        headline: "Show, don\u2019t tell.",
+        texts: [
+          "Kid Cudi\u2019s team came to us with polished press images, and we urged them to reconsider their approach.",
+          "We put together a new creative strategy that placed raw images in front of our audience and the creative community.",
+          "What followed was a huge viral moment \u2014 press, pages, and intrigued fans picked up our post organically; the stunt saw massive engagement and tens of millions of impressions.",
+        ],
+        images: [
+          { src: "/images/companylogos/kidcudi/cudi01.jpeg", alt: "Kid Cudi campaign \u2014 image 1" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "vans",
+    title: "Vans",
+    tags: ["Strategy", "Content"],
+    description: "Integrated partnership including strategy, campaign, creation, and amplification.",
+    client: "Vans",
+    services: "Strategy, Content, Production",
+    blocks: [
+      {
+        type: "case-study-page",
+        id: "vans-page",
+        headline: "Integrated partnership including strategy, campaign, creation, and amplification.",
+        texts: [
+          "Each time we\u2019ve worked with Vans its been wildly different.",
+          "We [captured and curated event coverage] of a Vans activation, [producing content] with editorial sensibility instead of the usual branded recap treatment.",
+          "We [creative directed and produced a custom photo shoot] for a new product, building the entire visual world around the shoe from scratch.",
+          "And we [provided social and creative strategy] for a seeding campaign: who gets it, how it enters the conversation, and what the content looks like when it starts showing up in feeds.",
+          "Different deliverables across every engagement, but Vans showed up with the taste and intentionality that their audience already expects from them.",
+        ],
+        images: [
+          { src: "", alt: "Vans campaign — video 1", vimeoId: "1171938513" },
+          { src: "/images/companylogos/vans/vans02.png", alt: "Vans campaign — image 2" },
+          { src: "", alt: "Vans campaign — video 3", vimeoId: "1171939954" },
+          { src: "/images/companylogos/vans/vans04.jpg", alt: "Vans campaign — image 4" },
+        ],
+      },
+    ],
+  },
 ];
-
 /* ============================================================
    Services
    ============================================================ */

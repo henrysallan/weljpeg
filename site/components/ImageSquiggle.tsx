@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { useControls, folder, Leva } from "leva";
-import { transitionConfig, imageRevealConfig } from "@/lib/levaConfig";
+import { transitionConfig, imageRevealConfig, logoAnimConfig } from "@/lib/levaConfig";
 import styles from "./ImageSquiggle.module.css";
 
 /* ================================================================
@@ -540,6 +540,43 @@ export const ImageSquiggle: React.FC<{
       revealDuration: { value: 400, min: 200, max: 2000, step: 50, label: "duration (ms)" },
       revealTravel: { value: 0, min: 0, max: 40, step: 1, label: "travel (px)" },
     }),
+    "Logo Animation": folder({
+      logoExpandDuration: {
+        value: 1.6,
+        min: 0.4,
+        max: 4,
+        step: 0.1,
+        label: "expand (s)",
+      },
+      logoCollapseDuration: {
+        value: 2.6,
+        min: 0.4,
+        max: 4,
+        step: 0.1,
+        label: "collapse (s)",
+      },
+      logoHoldLogo: {
+        value: 2.0,
+        min: 0,
+        max: 6,
+        step: 0.1,
+        label: "hold logo (s)",
+      },
+      logoHoldDot: {
+        value: 0.3,
+        min: 0,
+        max: 6,
+        step: 0.1,
+        label: "hold dot (s)",
+      },
+      logoMorphResolution: {
+        value: 0.5,
+        min: 0.1,
+        max: 4,
+        step: 0.1,
+        label: "morph detail",
+      },
+    }),
   });
 
   // Sync ref every render (cheap assignment, no effect restart).
@@ -556,6 +593,26 @@ export const ImageSquiggle: React.FC<{
   imageRevealConfig.blurAmount = controls.revealBlurAmount;
   imageRevealConfig.duration = controls.revealDuration;
   imageRevealConfig.travel = controls.revealTravel;
+
+  // Sync logo animation config and restart if values changed
+  const logoChanged =
+    logoAnimConfig.expandDuration !== controls.logoExpandDuration ||
+    logoAnimConfig.collapseDuration !== controls.logoCollapseDuration ||
+    logoAnimConfig.holdLogo !== controls.logoHoldLogo ||
+    logoAnimConfig.holdDot !== controls.logoHoldDot;
+  const resolutionChanged =
+    logoAnimConfig.morphResolution !== controls.logoMorphResolution;
+  logoAnimConfig.expandDuration = controls.logoExpandDuration;
+  logoAnimConfig.collapseDuration = controls.logoCollapseDuration;
+  logoAnimConfig.holdLogo = controls.logoHoldLogo;
+  logoAnimConfig.holdDot = controls.logoHoldDot;
+  logoAnimConfig.morphResolution = controls.logoMorphResolution;
+  if (logoChanged) logoAnimConfig._onRestart?.();
+  if (resolutionChanged) {
+    logoAnimConfig._onResolutionChange?.();
+    // Also restart so the new interpolators are used immediately
+    logoAnimConfig._onRestart?.();
+  }
 
   /* ---------- Toggle leva panel with "L" key ---------- */
   useEffect(() => {

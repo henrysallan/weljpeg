@@ -166,13 +166,13 @@ const CardsModule: React.FC<{ block: CardsBlockType; className?: string; isMobil
                 <ScrollCharReveal>{card.title}</ScrollCharReveal>
               </h3>
               <p className={styles.cardBody}>
-                <ScrollCharReveal stagger={2} simple={isMobile}>{nl2br(card.body)}</ScrollCharReveal>
+                <ScrollCharReveal mode="word" simple={isMobile}>{nl2br(card.body)}</ScrollCharReveal>
               </p>
               {card.items && card.items.length > 0 && (
                 <ul className={styles.cardItems}>
                   {card.items.map((item, j) => (
                     <li key={j} className={styles.cardItem}>
-                      <ScrollCharReveal stagger={2} simple={isMobile}>{item}</ScrollCharReveal>
+                      <ScrollCharReveal mode="word" simple={isMobile}>{item}</ScrollCharReveal>
                     </li>
                   ))}
                 </ul>
@@ -195,7 +195,7 @@ const AboutModule: React.FC<{ block: AboutBlockType; className?: string; isMobil
       <div className={styles.aboutText}>
         {block.paragraphs.map((p, i) => (
           <p key={i} className={styles.aboutParagraph}>
-            <ScrollCharReveal stagger={2} simple={isMobile}>{p}</ScrollCharReveal>
+            <ScrollCharReveal mode="word" simple={isMobile}>{p}</ScrollCharReveal>
           </p>
         ))}
       </div>
@@ -221,7 +221,7 @@ const CaseStudyPageModule: React.FC<{ block: CaseStudyPageBlockType; className?:
       <div className={styles.caseStudyTexts}>
         {block.texts.map((text, i) => (
           <p key={`${block.id}-t-${i}`}>
-            <ScrollCharReveal stagger={2} simple={isMobile}>{parseHighlights(text)}</ScrollCharReveal>
+            <ScrollCharReveal mode="word" simple={isMobile}>{parseHighlights(text)}</ScrollCharReveal>
           </p>
         ))}
       </div>
@@ -349,7 +349,7 @@ const Column: React.FC<{ data: BlockColumn; isMobile: boolean }> = ({ data, isMo
 
       {data.type === "text" && (
         <p className={styles.bodyText}>
-          <ScrollCharReveal stagger={2} simple={isMobile}>{nl2br(data.body)}</ScrollCharReveal>
+          <ScrollCharReveal mode="word" simple={isMobile}>{nl2br(data.body)}</ScrollCharReveal>
         </p>
       )}
 
@@ -361,7 +361,7 @@ const Column: React.FC<{ data: BlockColumn; isMobile: boolean }> = ({ data, isMo
             </h3>
           )}
           <p className={styles.bodyText}>
-            <ScrollCharReveal stagger={2} simple={isMobile}>{nl2br(data.body)}</ScrollCharReveal>
+            <ScrollCharReveal mode="word" simple={isMobile}>{nl2br(data.body)}</ScrollCharReveal>
           </p>
         </>
       )}

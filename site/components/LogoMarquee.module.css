@@ -5,7 +5,7 @@
 /* Desktop: 4-column grid */
 .wrapper {
   display: grid;
-  grid-template-columns: repeat(3, auto);
+  grid-template-columns: repeat(4, auto);
   gap: 30px 50px;
   width: max-content;
   justify-content: start;

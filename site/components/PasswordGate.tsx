@@ -40,14 +40,15 @@ export const PasswordGate: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Still checking — render nothing to avoid flash
-  if (authed === null) return null;
+  // Always render children so ScrollManager/LandingPage mount on first frame.
+  // Overlay sits on top until authenticated.
+  const showGate = authed === null || authed === false;
 
   return (
     <>
       {children}
-      {!authed && (
-        <div className={`${styles.overlay} ${fading ? styles.hidden : ""}`}>
+      {showGate && !fading && (
+        <div className={styles.overlay}>
           <form className={styles.form} onSubmit={handleSubmit}>
             <input
               ref={inputRef}
@@ -61,6 +62,9 @@ export const PasswordGate: React.FC<{ children: React.ReactNode }> = ({ children
             <span className={styles.error}>{error ? "Try again" : ""}</span>
           </form>
         </div>
+      )}
+      {fading && (
+        <div className={`${styles.overlay} ${styles.hidden}`} />
       )}
     </>
   );

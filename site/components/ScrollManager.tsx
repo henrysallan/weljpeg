@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import Lenis from "lenis";
+import { caseStudies } from "@/lib/data";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -15,9 +16,21 @@ let LOGO_BAR_H = 52; // measured at runtime from #logo-bar
 const HEADER_BLOCK_COLLAPSED_H = 26.5; // 0.5px sep + 25.5px row + 0.5px sep
 const HEADER_ROW_COLLAPSED_H = 25.5;
 const COLLAPSED_TITLE_SIZE = 20.6;
-const MAX_VISIBLE_SLOTS = 2;
+const DEFAULT_MAX_VISIBLE_SLOTS = 2;
 // Multiplier: 1 = collapse consumes exactly the px it shrinks (1:1 scroll).
 const COLLAPSE_SPEED = 1;
+
+/** Set of section IDs that are case studies. Non-case-study sections
+ *  (e.g. "services", "insight") show only 1 header slot when they
+ *  are the newest in the stack. */
+const CASE_STUDY_IDS = new Set(caseStudies.map((cs) => cs.id));
+
+/** How many collapsed headers to show simultaneously.
+ *  Returns 1 when the newest stacked header is NOT a case study. */
+function maxVisibleSlots(newestId: string | undefined): number {
+  if (!newestId) return DEFAULT_MAX_VISIBLE_SLOTS;
+  return CASE_STUDY_IDS.has(newestId) ? DEFAULT_MAX_VISIBLE_SLOTS : 1;
+}
 
 /**
  * ScrollManager -- invisible component that wires up:
@@ -271,7 +284,7 @@ function setupAnimations(
   }
 
   /* -- 3. Header sticky-stack -- */
-  const sectionIds = ["redbull", "uniqlo", "puma", "services", "insight"];
+  const sectionIds = ["redbull", "uniqlo", "puma", "rainmaker", "kidcudi", "vans", "services", "insight"];
 
   const headerRefs: HeaderRef[] = [];
   const liveStates: Record<string, LiveState> = {};
@@ -400,7 +413,8 @@ function deriveStates(
   // line rises as we add headers, so we iterate until stable.
   const wantsStack: string[] = [];
   for (const ref of refs) {
-    const contactLine = slotTop(Math.min(wantsStack.length, MAX_VISIBLE_SLOTS));
+    const maxSlots = maxVisibleSlots(wantsStack[wantsStack.length - 1]);
+    const contactLine = slotTop(Math.min(wantsStack.length, maxSlots));
     if (naturalTops[ref.id] <= contactLine) {
       wantsStack.push(ref.id);
     }
@@ -431,7 +445,8 @@ function deriveStates(
 
     // How many visible headers are after this one in the stack?
     const totalInStack = wantsStack.length;
-    const visibleStartIdx = Math.max(0, totalInStack - MAX_VISIBLE_SLOTS);
+    const maxSlots = maxVisibleSlots(wantsStack[totalInStack - 1]);
+    const visibleStartIdx = Math.max(0, totalInStack - maxSlots);
 
     if (idx < visibleStartIdx) {
       // --- This header is older than the visible window ---
@@ -517,7 +532,7 @@ function deriveStates(
     } else if (
       visibleSlot === 0 &&
       visibleStartIdx > 0 &&
-      totalInStack > MAX_VISIBLE_SLOTS
+      totalInStack > maxSlots
     ) {
       // This header was in slot 1 and is sliding to slot 0 as the
       // oldest exits. Drive the slide by the incoming header's progress.
@@ -777,6 +792,12 @@ function updateContactPoints(
     if (mode !== "expanded") stackCount++;
   }
 
+  // Build ordered list of currently stacked IDs to determine the newest.
+  const stackedIds: string[] = [];
+  for (const ref of refs) {
+    if (live[ref.id].currentMode !== "expanded") stackedIds.push(ref.id);
+  }
+
   // Now check each expanded header to see if it's at or past the
   // contact line. We walk in order so we account for multiple
   // headers entering in the same frame.
@@ -784,8 +805,12 @@ function updateContactPoints(
     const ls = live[ref.id];
     if (ls.currentMode !== "expanded") continue;
 
+    // The "newest" in the stack is either the last stacked ID, or this
+    // header itself if it's about to enter (we need to check dynamically).
+    const newestStacked = stackedIds[stackedIds.length - 1];
+    const maxSlots = maxVisibleSlots(newestStacked ?? ref.id);
     const contactLine =
-      LOGO_BAR_H + Math.min(stackCount, MAX_VISIBLE_SLOTS) * HEADER_BLOCK_COLLAPSED_H;
+      LOGO_BAR_H + Math.min(stackCount, maxSlots) * HEADER_BLOCK_COLLAPSED_H;
     const naturalTop = ref.block.getBoundingClientRect().top;
 
     if (naturalTop <= contactLine && ls.contactY === 0) {
