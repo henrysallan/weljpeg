@@ -9,11 +9,12 @@ import { ContactPage } from "@/components/ContactPage";
 import { ScrollManager } from "@/components/ScrollManager";
 import { CursorEffect } from "@/components/CursorEffect";
 import { SelectionBox } from "@/components/SelectionBox";
+import { PasswordGate } from "@/components/PasswordGate";
 import { allSections, caseStudies } from "@/lib/data";
 
 export default function Home() {
   return (
-    <>
+    <PasswordGate>
       <ScrollManager />
       <CursorEffect />
       <SelectionBox />
@@ -38,6 +39,6 @@ export default function Home() {
         })}
         <ContactPage />
       </main>
-    </>
+    </PasswordGate>
   );
 }
