@@ -36,7 +36,6 @@ export default function Home() {
             </React.Fragment>
           );
         })}
-        <SectionHeader title="Contact" sectionId="contact" />
         <ContactPage />
       </main>
     </>

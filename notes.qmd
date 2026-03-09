@@ -1,3 +1,10 @@
 Ok I want to make another change to how scroll works on the landing page. Instead of allowing continuous scroll from the very beginning we should structure it as follows:
 
 We start with the page locked in place. when the user scrolls we track/listen for it -  we wait until the scroll meets a certain threshhold. When that threshold is met, we trigger a scroll animation going from the landing page being in view, to animate scroll down to a specific point where page 2 fits the view of the screen. Ideally it stops when the logo/header, and the
+
+
+I actually think that we should anticipate the collapsing and expaning of the headers. This will make the contraction and expansion of the header feel more natural. ideally it would work something like this, when the scroll is slow, there is a lot of anticipation so the collaps or exapnsion is more gradual. When the scroll is fast, there is less anticipation so the collapse or expansion is more immediate. This will make the header feel more responsive to the user's scroll behavior.
+
+we need the
+
+When we hover on the images, they snap to be larger, instead we always want them to lerp to the larger size, and then lerp back to the smaller size when we stop hovering. This will make the interaction feel smoother and more polished.
